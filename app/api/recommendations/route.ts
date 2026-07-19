@@ -21,6 +21,28 @@ const getCachedEngineContext = unstable_cache(fetchEngineContext, ['engine-conte
     revalidate: 300,
 });
 
+/**
+ * GET /api/recommendations — data-path healthcheck.
+ * Returns row counts only (no record data, no secrets): proves AIRTABLE_PAT is
+ * wired and the four tables are readable from the deployed environment.
+ */
+export async function GET(): Promise<NextResponse> {
+    const live = isLiveDataAvailable();
+    if (!live) {
+        return NextResponse.json({ liveData: false, note: 'AIRTABLE_PAT is not set — engine runs on an empty context.' });
+    }
+    const ctx = await getCachedEngineContext();
+    return NextResponse.json({
+        liveData: true,
+        counts: {
+            history: ctx.history.length,
+            premierItems: ctx.premierItems.length,
+            thirdPartyItems: ctx.thirdPartyItems.length,
+            fans: ctx.fans.length,
+        },
+    });
+}
+
 function coerceLineItem(raw: unknown, index: number): ParsedLineItem | null {
     if (!raw || typeof raw !== 'object') return null;
     const o = raw as Record<string, unknown>;
