@@ -328,8 +328,10 @@ export function extractDimensions(text: string): DimensionSignature {
     }
 
     // Series-embedded apertures on recessed/downlight-style part numbers:
-    // DL4/DL6, R4/R6, RD6, SMD6, HL6, CAN6 — a letter run ending in a small digit.
-    for (const m of t.matchAll(/\b(?:DL|RD|R|SMD|SLD|HL|CAN)(\d)(?=[A-Z-]|\b)/g)) {
+    // DL4/DL6, R4/R6, RD6, SMD6, HL6, CAN6 — and separator-carrying Premier SKU
+    // forms like REC-4 / REC-6 (GC-REC-6-DL-MX32W). One optional -_/space between
+    // the series token and its single aperture digit.
+    for (const m of t.matchAll(/\b(?:DL|RD|REC|SMD|SLD|HL|CAN|R)[-_ ]?(\d)(?=[A-Z\-_ "]|\b)/g)) {
         const v = parseInt(m[1] ?? '', 10);
         if (v >= 2 && v <= 9) sig.inches.push(v);
     }

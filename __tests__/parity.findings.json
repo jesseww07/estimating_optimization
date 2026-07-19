@@ -1,0 +1,33 @@
+{
+  "authoritative": {
+    "originalSpecExact": "VA4-R-SA-AT",
+    "bidItem": "GCEXITEM-G2",
+    "premierItemId": "GCEXITEM-G2",
+    "swapCount": 7,
+    "specManufacturer": "BEGHELLI",
+    "marks": [
+      "X - D",
+      "X - S",
+      "X - S (stairs)",
+      "X-D",
+      "X-S"
+    ],
+    "projects": [
+      "Crescent Render Norterra",
+      "Flourney Research Park"
+    ],
+    "bidDates": []
+  },
+  "dimensionPair": {
+    "sixInch": {
+      "itemId": "GC-REC-6-DL-MX32W-POWER",
+      "category": "Disk Light"
+    },
+    "fourInch": {
+      "itemId": "GC-REC-4-DL-MX32W-POWER",
+      "category": "Disk Light"
+    },
+    "family": "GC-REC-{4|6}-DL-MX32W-POWER"
+  },
+  "notes": "Scanned 3740 History rows with non-empty PREMIER_LINK (of 3740 total matching filter); 288 (normSpec,normBid) pairs had count>=3. Spec VA4-R-SA-AT (Beghelli exit sign) maps to GCEXITEM-G2 7 times across two projects, but the SAME spec also maps to GCMODEDGLIT1G/RCAEM-U-M (1x) and GCMODEDGLIT1G/RCAEM (1x) - 9 history rows total for the spec, so the authoritative winner has 7/9 majority, not unanimity. All 9 rows are MATCH_TYPE=EXACT with spec mfr BEGHELLI -> bid mfr GLOBAL CONCEPTS. Bid Date is empty on every matching row (bidDates=[]). Premier Items table has NO 'Recessed' FIXTURE_CATEGORY choice; recessed downlights live under 'Disk Light' (also 'Downlight'/'Recessed Accessory'/'Trim'); pulled 168 records across Downlight+Disk Light+Recessed Accessory. Only two strict 4-vs-6 sibling pairs exist: ERL-001-4FT/6FT (a length in feet, rejected) and GC-REC-4/6-DL-MX32W-POWER (true 4-inch vs 6-inch aperture, chosen). These are power-supply companion SKUs (TIMES_USED=0 both); the base 6-inch fixture GC-REC-6-DL-MX32W exists (used 10x) but has no base 4-inch counterpart (only -POWER/-EM/-TUNABLE 4-inch accessories). Data quirk: GC-REC-4-DL-MX32W-POWER has MAX_WATTAGE choice '12/17/22W 22W' even though its name and description say 17/24/32W. Runner-up authoritative candidates: same GCEXITEM-G2 vs specs NX603LEDR (6x) and GCMODEDGLIT1G/RCAEM-U-M vs EDG1RMREL (6x)."
+}
