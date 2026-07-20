@@ -54,7 +54,7 @@ export interface ItemAttributes {
 
 export interface Recommendation {
     id: string;
-    source: 'History' | 'Premier Items' | 'Fans' | 'Manual';
+    source: 'History' | 'Premier Items' | '3rd Party' | 'Fans' | 'Manual';
     matchType: 'exact' | 'fuzzy' | 'partial' | 'manual';
     confidence: number;
     bidItem?: string;

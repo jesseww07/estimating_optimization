@@ -319,6 +319,22 @@ export function categoriesCompatible(inferredLabel: string, itemCategory: string
     return catNorm.includes(infNorm) || infNorm.includes(catNorm);
 }
 
+/**
+ * Category gate for 3rd Party Domestic Items, whose "Product Categories" field
+ * is a display string of linked category names (possibly several, comma
+ * joined) rather than a single select. Conservative: an item with no category
+ * signal never qualifies for the in-category fallback.
+ */
+export function thirdPartyCategoriesCompatible(inferredLabel: string, productCategories: string): boolean {
+    if (!inferredLabel || !productCategories) return false;
+    const cats = productCategories.toLowerCase();
+    const group = CATEGORY_GROUPS[inferredLabel];
+    if (group) {
+        return group.some(g => cats.includes(g.toLowerCase()));
+    }
+    return cats.includes(inferredLabel.toLowerCase());
+}
+
 // ── RFI / TBD placeholder detection (domain rule: never fabricate a match) ────
 
 const UNKNOWN_MFRS = new Set(['', 'TBD', 'RFI', 'N/A', 'NA', '-', '?', 'UNKNOWN', 'BY OTHERS']);

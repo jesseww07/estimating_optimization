@@ -157,3 +157,40 @@ describe('RFI / TBD placeholder guard', () => {
         expect(r2.infoMessage ?? '').toContain('RFI');
     });
 });
+
+describe('3rd-party items in the in-category fallback (Phase 2 backlog)', () => {
+    const third = (id: string, itemId: string, productCategories: string, itemDescription: string, manufacturer = 'SATCO') => ({
+        id, itemId, itemDescription, manufacturer,
+        finish: '', colorTemp: '', maxWattage: '', lightOutput: '',
+        productCategories,
+    });
+
+    const ctx: EngineContext = {
+        history: [],
+        fans: [],
+        premierItems: [
+            premier({ id: 'pv', itemId: 'GC-VAN-LED-22-30K', fixtureCategory: 'Vanity', itemDescription: '22" LED VANITY BAR', timesUsed: 0 }),
+        ],
+        thirdPartyItems: [
+            third('t1', 'SAT-VAN-22', 'Vanity', '22" VANITY BAR BUDGET LED'),
+            third('t2', 'WG-POLE-25', 'Post/Pier Head', 'LED POLE HEAD', 'WESTGATE'),
+        ],
+    };
+
+    it('offers 3rd-party alternatives inside the inferred category', () => {
+        const r = analyzeLineItem(line('U-SS1B - 22" VANITY', 'NOBRAND', 'CUSTOM VANITY BAR 22 INCH'), ctx);
+        const ids = r.recommendations.map(x => x.premierItem);
+        expect(ids).toContain('SAT-VAN-22');
+        // The pole-head item is category-incompatible with Vanity and must not appear.
+        expect(ids).not.toContain('WG-POLE-25');
+        const thirdRec = r.recommendations.find(x => x.premierItem === 'SAT-VAN-22')!;
+        expect(thirdRec.source).toBe('3rd Party');
+        expect(thirdRec.thirdPartyLinkId).toBe('t1');
+    });
+
+    it('never ranks a 3rd-party alternative above an own-brand item with equal signal', () => {
+        const r = analyzeLineItem(line('U-SS1B - 22" VANITY', 'NOBRAND', 'CUSTOM VANITY BAR 22 INCH'), ctx);
+        const ids = r.recommendations.map(x => x.premierItem);
+        expect(ids.indexOf('GC-VAN-LED-22-30K')).toBeLessThan(ids.indexOf('SAT-VAN-22'));
+    });
+});

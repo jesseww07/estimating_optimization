@@ -9,10 +9,13 @@
  * Cases still holding `FILL(...)` placeholders are SKIPPED by the runner, so an
  * unfilled case reports "skipped", never a false "pass".
  *
+ * Filled 2026-07-20 (Phase 2 backlog sweep): satco-bulb-exclude — real 1868 Ogden
+ * row frozen from the live base.
+ *
  * Still unfilled (need data not yet frozen):
  *   - premier-own-brand-rank  (needs a spec matched by both an own-brand and a 3rd-party alt)
- *   - satco-bulb-exclude      (needs a SATCO S-series lamp row in the frozen context)
- *   - recency-weight          (the authoritative dataset has EMPTY Bid Dates — needs dated rows)
+ *   - recency-weight          (needs a spec with dated rows where a recent 1-2 swap target should
+ *                              outrank an older 2-swap target — write-back Bid Dates will create these)
  *   - decorative-not-suppressed (needs a decorative spec with a Premier equivalent in context)
  */
 
@@ -170,20 +173,25 @@ export const PARITY_CASES: ParityCase[] = [
     {
         id: 'satco-bulb-exclude',
         rule: 'SATCO is excluded as a bulb/lamp recommendation per rule',
-        sourceBid: 'any bid — a lamp/bulb line where SATCO would otherwise match',
-        ready: false,
+        sourceBid: '1868 Ogden — U4 vanity spec ALE2497327 bid as SATCO S28574 (frozen from live base 2026-07-20)',
+        ready: true,
         input: {
-            rowIndex: FILL('#', 55),
-            section: FILL('section', '26 51 00'),
-            mark: FILL('mark', 'LAMP1'),
-            quantity: FILL('qty', '100'),
-            manufacturer: FILL('mfr', 'Philips'),
-            catalogNumber: FILL('A19 lamp spec', '9A19-LED-2700K'),
+            rowIndex: 55,
+            section: 'Units',
+            mark: 'U4 (vanity)',
+            quantity: '6',
+            manufacturer: 'LUMENS',
+            catalogNumber: 'ALE2497327',
             rawRow: row({}),
         },
         expect: {
-            mustNotInclude: [FILL('the SATCO SKU that must be excluded', 'SATCO-S11-A19')],
+            // The ONLY history row matching this spec in the frozen context is the
+            // SATCO S-series lamp — with the exclusion applied the engine must
+            // return silence, never the lamp.
+            expectNoRecommendations: true,
+            mustNotInclude: ['S28574'],
         },
+        bindNote: 'The frozen catalog has no Vanity items, so a correct exclusion leaves zero recommendations; if the SATCO skip regressed, a history rec carrying bidItem S28574 would appear.',
     },
     {
         id: 'recency-weight',

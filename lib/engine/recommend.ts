@@ -43,6 +43,7 @@ import {
     looksLikeProse,
     normalizeProductId,
     normalizeSpecKey,
+    thirdPartyCategoriesCompatible,
 } from './matcher';
 import {
     OWN_BRAND_BONUS,
@@ -624,7 +625,27 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             .split(/[\s\-\/,()'"]+/)
             .filter(t => t.length >= 3 && !stopWords.has(t) && !/^\d+(\.\d+)?["']?$/.test(t));
 
-        const candidates: Array<{ tokenScore: number; usageBonus: number; score: number; item: (typeof ctx.premierItems)[number]; itemAttributes: ItemAttributes }> = [];
+        interface FallbackCandidate {
+            tokenScore: number;
+            usageBonus: number;
+            score: number;
+            tier: 'premier' | 'third_party';   // own-brand catalog first, 3rd-party budget tier second
+            id: string;
+            itemId: string;
+            category: string;
+            timesUsed: number;
+            itemAttributes: ItemAttributes;
+        }
+        const candidates: FallbackCandidate[] = [];
+
+        const tokenScoreFor = (itemId: string, description: string): number => {
+            const searchTarget = (itemId + ' ' + description).toUpperCase();
+            let tokenScore = 0;
+            for (const token of proseTokens) {
+                if (searchTarget.includes(token)) tokenScore++;
+            }
+            return tokenScore;
+        };
 
         for (const item of ctx.premierItems) {
             const category = item.fixtureCategory;
@@ -636,19 +657,18 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
 
             // Score by token overlap with item ID + description, then usage.
-            const searchTarget = (item.itemId + ' ' + item.itemDescription).toUpperCase();
-            let tokenScore = 0;
-            for (const token of proseTokens) {
-                if (searchTarget.includes(token)) tokenScore++;
-            }
-
+            const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
             const usageBonus = Math.min(10, Math.floor(item.timesUsed / 2));
 
             candidates.push({
                 tokenScore,
                 usageBonus,
                 score: tokenScore * 8 + usageBonus,
-                item,
+                tier: 'premier',
+                id: item.id,
+                itemId: item.itemId,
+                category,
+                timesUsed: item.timesUsed,
                 itemAttributes: {
                     category: category || undefined,
                     finish: item.finish || undefined,
@@ -658,33 +678,67 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             });
         }
 
-        candidates.sort((a, b) => b.score - a.score || b.item.timesUsed - a.item.timesUsed);
+        // 3rd-party items join the fallback as the budget-alternative tier
+        // (SATCO/Westgate). No Times Used on that table, so their signal is
+        // token overlap only — and the tier ordering below guarantees they never
+        // rank above an own-brand candidate with equal signal.
+        for (const item of ctx.thirdPartyItems) {
+            if (!thirdPartyCategoriesCompatible(inferredCategory, item.productCategories)) continue;
+            if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
+
+            const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
+            candidates.push({
+                tokenScore,
+                usageBonus: 0,
+                score: tokenScore * 8,
+                tier: 'third_party',
+                id: item.id,
+                itemId: item.itemId,
+                category: item.productCategories,
+                timesUsed: 0,
+                itemAttributes: {
+                    category: item.productCategories || undefined,
+                    finish: item.finish || undefined,
+                    colorTemp: item.colorTemp || undefined,
+                    wattage: item.maxWattage || undefined,
+                    manufacturer: item.manufacturer || undefined,
+                },
+            });
+        }
+
+        candidates.sort((a, b) =>
+            b.score - a.score ||
+            // Equal signal: own-brand always outranks the 3rd-party tier.
+            (a.tier === b.tier ? 0 : a.tier === 'premier' ? -1 : 1) ||
+            b.timesUsed - a.timesUsed);
         // Prefer candidates with a real signal (token match or usage history);
         // fall back to the top in-category items so the estimator still sees the
         // right family instead of "No recommendations".
-        const withSignal = candidates.filter(cand => cand.tokenScore > 0 || cand.item.timesUsed > 0);
+        const withSignal = candidates.filter(cand => cand.tokenScore > 0 || cand.timesUsed > 0);
         const chosen = (withSignal.length > 0 ? withSignal : candidates).slice(0, 3);
         for (const cand of chosen) {
             const descriptionBased = cand.tokenScore > 0;
+            const isThirdParty = cand.tier === 'third_party';
             recommendations.push({
-                id: cand.item.id,
-                source: 'Premier Items',
+                id: cand.id,
+                source: isThirdParty ? '3rd Party' : 'Premier Items',
                 matchType: 'partial',
                 confidence: descriptionBased
                     ? Math.min(60, Math.max(15, cand.score)) // cap at 60 — prose matching is imprecise
-                    : Math.min(45, 15 + Math.min(30, cand.item.timesUsed)),
-                premierItem: cand.item.itemId || undefined,
-                recordId: cand.item.id,
+                    : Math.min(45, 15 + Math.min(30, cand.timesUsed)),
+                premierItem: cand.itemId || undefined,
+                recordId: cand.id,
                 matchReason: descriptionBased
-                    ? `Category match: ${inferredCategory} (description-based)`
+                    ? `Category match: ${inferredCategory} (description-based${isThirdParty ? ', 3rd-party alternative' : ''})`
                     : `Category match: ${inferredCategory} — most-used catalog items (spec not identified at item level)`,
                 itemAttributes: cand.itemAttributes,
                 matchDetails: [
-                    `Category: ${cand.item.fixtureCategory}`,
-                    descriptionBased ? 'Matched from description tokens' : `Used ${cand.item.timesUsed} time${cand.item.timesUsed === 1 ? '' : 's'} before`,
+                    `Category: ${cand.category}`,
+                    descriptionBased ? 'Matched from description tokens' : `Used ${cand.timesUsed} time${cand.timesUsed === 1 ? '' : 's'} before`,
+                    ...(isThirdParty ? ['3rd-party budget alternative'] : []),
                 ],
-                productCategory: cand.item.fixtureCategory || undefined,
-                premierLinkId: cand.item.id,
+                productCategory: cand.category || undefined,
+                ...(isThirdParty ? { thirdPartyLinkId: cand.id } : { premierLinkId: cand.id }),
             });
         }
         hasAnyRecommendations = recommendations.length > 0;
