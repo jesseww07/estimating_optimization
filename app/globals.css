@@ -1,26 +1,40 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Premier Lighting brand tokens (premier-brand skill / Prism theme) */
+@theme {
+    --color-steel: #385887;
+    --color-plteal: #176e8d;
+    --color-bluelight: #b7c8e1;
+    --color-ink: #131313;
+    --color-heading: #232323;
+    --color-body: #3d3d3d;
+    --color-muted: #676767;
+    --color-line: #dadada;
+    --color-offwhite: #f8f8f8;
+    --color-success: #337239;
+    --color-warn: #bd6b1b;
+    --color-danger: #ca4141;
+    --color-info: #287dff;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+    --font-heading: var(--font-playfair), Georgia, "Times New Roman", serif;
+    --font-body: var(--font-cardo), Georgia, "Times New Roman", serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: #ffffff;
+    color: var(--color-body);
+    font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-family: var(--font-heading);
+    color: var(--color-heading);
+}
+
+/* Square corners everywhere — brand shape language */
+* {
+    border-radius: 0 !important;
 }
