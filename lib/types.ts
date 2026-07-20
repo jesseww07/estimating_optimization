@@ -8,6 +8,8 @@
  * Next.js, no Airtable SDK imports anywhere in this file.
  */
 
+import type { IdentifiedSpec } from './identify/types';
+
 export interface ParsedLineItem {
     rowIndex: number;
     section: string;
@@ -16,6 +18,10 @@ export interface ParsedLineItem {
     manufacturer: string;
     catalogNumber: string;
     rawRow: Record<string, string>;
+    /** Spec-sheet URLs found anywhere in the raw row (estimators paste links in stray columns). */
+    specUrls?: string[];
+    /** Set when the line was identified via URL / web lookup / PDF — provenance for the UI. */
+    identified?: IdentifiedSpec;
 }
 
 export interface HistoryMatch {

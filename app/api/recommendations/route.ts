@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server';
 import { getEngineContext } from '@/lib/airtable/cached';
 import { isLiveDataAvailable } from '@/lib/airtable/fetch';
 import { analyzeLineItems } from '@/lib/engine/recommend';
+import { coerceLineItem } from '@/lib/parse/coerce';
 import type { ParsedLineItem } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -48,27 +49,6 @@ export async function GET(): Promise<NextResponse> {
     } catch (err) {
         return errorResponse(err);
     }
-}
-
-function coerceLineItem(raw: unknown, index: number): ParsedLineItem | null {
-    if (!raw || typeof raw !== 'object') return null;
-    const o = raw as Record<string, unknown>;
-    const str = (v: unknown): string => (typeof v === 'string' ? v : v === null || v === undefined ? '' : String(v));
-    const rawRow: Record<string, string> = {};
-    if (o.rawRow && typeof o.rawRow === 'object') {
-        for (const [k, v] of Object.entries(o.rawRow as Record<string, unknown>)) {
-            rawRow[k] = str(v);
-        }
-    }
-    return {
-        rowIndex: typeof o.rowIndex === 'number' ? o.rowIndex : index,
-        section: str(o.section),
-        mark: str(o.mark),
-        quantity: str(o.quantity),
-        manufacturer: str(o.manufacturer),
-        catalogNumber: str(o.catalogNumber),
-        rawRow,
-    };
 }
 
 export async function POST(request: Request): Promise<NextResponse> {

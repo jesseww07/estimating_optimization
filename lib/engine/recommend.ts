@@ -31,6 +31,7 @@ import type {
     Recommendation,
 } from '../types';
 import {
+    CATEGORY_GROUPS,
     calculateCatalogMatchScore,
     calculateMatchScore,
     categoriesCompatible,
@@ -132,8 +133,15 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         return t.length >= 3 && t.length <= 20 && FIXTURE_HINT_RE.test(t);
     }) || '';
 
-    // Infer fixture category once — used to gate Fans and Premier Items matching
-    const inferredCategory = detectFixtureCategory(mark, catalogNumber, manufacturer, fixtureTypeHint);
+    // Infer fixture category once — used to gate Fans and Premier Items matching.
+    // A category from a per-line identification (URL/web/PDF, Phase 2) is authoritative
+    // over the text heuristic: it was extracted from the actual spec sheet / product page
+    // and is already expressed in the detector's vocabulary.
+    const identifiedCategory =
+        lineItem.identified?.category && CATEGORY_GROUPS[lineItem.identified.category]
+            ? lineItem.identified.category
+            : null;
+    const inferredCategory = identifiedCategory ?? detectFixtureCategory(mark, catalogNumber, manufacturer, fixtureTypeHint);
 
     // The dimension signature the spec exposes — candidates are gated against this.
     const specDimensionText = `${mark} ${catalogNumber}`;

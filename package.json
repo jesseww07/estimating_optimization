@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.3",
     "airtable": "^0.12.2",
     "next": "16.2.10",
     "react": "19.2.4",
