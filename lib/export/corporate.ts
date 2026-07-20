@@ -26,6 +26,9 @@ export interface ExportSubstitution {
     source: string;
     confidence: number;
     matchReason: string;
+    /** Catalog record ids backing the selection — used by the History write-back link, not the workbook. */
+    premierLinkId?: string;
+    thirdPartyLinkId?: string;
 }
 
 export interface ExportRow {

@@ -83,6 +83,10 @@ export interface Recommendation {
     specEnrichConfidence?: string; // HIGH | MEDIUM | LOW
     matchedOriginalSpec?: string;  // the actual Original Spec value from history that triggered this match
     catalogSource?: 'premier' | 'third_party'; // which catalog the linked item came from (undefined for non-history-sourced recs)
+    /** Premier Items record id backing this rec — carried through export for the History write-back link. */
+    premierLinkId?: string;
+    /** 3rd Party Domestic Items record id backing this rec — same role as premierLinkId. */
+    thirdPartyLinkId?: string;
     /** True when this is a "leave as spec" passthrough card, not a substitution. */
     isPassthrough?: boolean;
 }

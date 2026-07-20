@@ -402,6 +402,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             specEnrichConfidence: firstMatch?.specEnrichConfidence,
             matchedOriginalSpec: firstMatch?.originalSpec,
             catalogSource,
+            premierLinkId: resolvedPremier?.id,
+            thirdPartyLinkId: resolvedThirdParty?.id,
         });
     }
 
@@ -489,6 +491,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     itemAttributes,
                     matchDetails,
                     productCategory: category || undefined,
+                    premierLinkId: item.id,
                 });
             }
         }
@@ -681,6 +684,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     descriptionBased ? 'Matched from description tokens' : `Used ${cand.item.timesUsed} time${cand.item.timesUsed === 1 ? '' : 's'} before`,
                 ],
                 productCategory: cand.item.fixtureCategory || undefined,
+                premierLinkId: cand.item.id,
             });
         }
         hasAnyRecommendations = recommendations.length > 0;

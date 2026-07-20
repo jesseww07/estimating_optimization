@@ -69,6 +69,8 @@ interface Recommendation {
     bidManufacturer?: string;
     projectsUsed?: string[];
     isPassthrough?: boolean;
+    premierLinkId?: string;
+    thirdPartyLinkId?: string;
     productCategory?: string;
     specDescription?: string;
     specVendor?: string;
@@ -134,6 +136,8 @@ export default function Home() {
     const [jobLocation, setJobLocation] = useState('');
     const [customer, setCustomer] = useState('');
     const [exporting, setExporting] = useState(false);
+    const [recordToHistory, setRecordToHistory] = useState(true);
+    const [writebackNotice, setWritebackNotice] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState(false);
     const [identifyBusy, setIdentifyBusy] = useState<Record<number, string | null>>({});
     const [identifyError, setIdentifyError] = useState<Record<number, string | null>>({});
@@ -245,19 +249,30 @@ export default function Home() {
                             source: rec.source,
                             confidence: rec.confidence,
                             matchReason: rec.matchReason,
+                            premierLinkId: rec.premierLinkId,
+                            thirdPartyLinkId: rec.thirdPartyLinkId,
                         }
                         : null,
                     note: a.infoMessage ?? (rec?.isPassthrough ? 'Left as specified (high-end decorative)' : ''),
                 };
             });
+            setWritebackNotice(null);
             const res = await fetch('/api/export', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jobName, jobLocation, customer, sourceFileName: fileName, rows }),
+                body: JSON.stringify({ jobName, jobLocation, customer, sourceFileName: fileName, recordToHistory, rows }),
             });
             if (!res.ok) {
                 const j = await res.json().catch(() => null);
                 throw new Error(j?.error || `Export failed (${res.status}).`);
+            }
+            const wbMode = res.headers.get('X-Writeback-Mode');
+            if (wbMode === 'dry_run') {
+                setWritebackNotice(`Bid history: DRY RUN — ${res.headers.get('X-Writeback-Attempted') ?? 0} row(s) inspected, nothing written (flip HISTORY_WRITEBACK=live to enable).`);
+            } else if (wbMode === 'live') {
+                setWritebackNotice(`Bid history: ${res.headers.get('X-Writeback-Written') ?? 0} row(s) recorded, ${res.headers.get('X-Writeback-Skipped') ?? 0} skipped as duplicates.`);
+            } else if (wbMode === 'error' || wbMode === 'unavailable') {
+                setWritebackNotice('Bid history write-back did not run (see server logs) — the export itself is unaffected.');
             }
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
@@ -399,15 +414,32 @@ export default function Home() {
                                         className="block border-2 border-line px-2 py-1 text-sm text-body w-36 focus:border-plteal outline-none"
                                     />
                                 </label>
-                                <button
-                                    onClick={handleExport}
-                                    disabled={exporting}
-                                    className="bg-steel text-white px-6 py-2 text-sm tracking-widest uppercase hover:bg-plteal disabled:opacity-50"
-                                >
-                                    {exporting ? 'Building…' : 'Export Bid Selections'}
-                                </button>
+                                <div className="flex flex-col gap-1">
+                                    <label className="flex items-center gap-2 text-xs text-body cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={recordToHistory}
+                                            onChange={e => setRecordToHistory(e.target.checked)}
+                                            className="accent-[#176e8d]"
+                                        />
+                                        Record selections to bid history ({substituted} row{substituted === 1 ? '' : 's'})
+                                    </label>
+                                    <button
+                                        onClick={handleExport}
+                                        disabled={exporting}
+                                        className="bg-steel text-white px-6 py-2 text-sm tracking-widest uppercase hover:bg-plteal disabled:opacity-50"
+                                    >
+                                        {exporting ? 'Building…' : 'Export Bid Selections'}
+                                    </button>
+                                </div>
                             </div>
                         </section>
+
+                        {writebackNotice && (
+                            <div className="border-2 border-line bg-offwhite text-body px-4 py-3 mt-4 text-sm font-data">
+                                {writebackNotice}
+                            </div>
+                        )}
 
                         {/* Shared picker for per-line cut-sheet PDFs */}
                         <input

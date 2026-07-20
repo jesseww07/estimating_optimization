@@ -10,10 +10,16 @@
  */
 
 import { NextResponse } from 'next/server';
-import { buildCorporateWorkbook, workbookToBuffer, type ExportRow } from '@/lib/export/corporate';
+import { getEngineContext, invalidateEngineContext } from '@/lib/airtable/cached';
+import { isLiveDataAvailable } from '@/lib/airtable/fetch';
+import { getWritebackMode, writeSelectionsToHistory, type WritebackRow } from '@/lib/airtable/writeback';
+import { isLedTape, isRfiPlaceholder } from '@/lib/engine/matcher';
+import { buildCorporateWorkbook, inferSubManufacturer, workbookToBuffer, type ExportRow } from '@/lib/export/corporate';
 import type { ParsedLineItem } from '@/lib/types';
 
 export const runtime = 'nodejs';
+// Write-back adds sequential Airtable create batches after the workbook build.
+export const maxDuration = 60;
 
 const MAX_ROWS = 2000;
 
@@ -50,6 +56,8 @@ function coerceRow(raw: unknown, index: number): ExportRow | null {
                 source: str(s.source),
                 confidence: typeof s.confidence === 'number' ? s.confidence : 0,
                 matchReason: str(s.matchReason),
+                premierLinkId: str(s.premierLinkId).trim() || undefined,
+                thirdPartyLinkId: str(s.thirdPartyLinkId).trim() || undefined,
             };
         }
     }
@@ -91,12 +99,61 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
     const buf = workbookToBuffer(wb);
 
-    const safeName = jobName.replace(/[^\w\- ]+/g, '').trim() || 'ESTIMATE';
-    return new NextResponse(new Uint8Array(buf), {
-        status: 200,
-        headers: {
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': `attachment; filename="VE DRAFT - ${safeName}.xlsx"`,
-        },
-    });
+    // ── Learning loop: record selections to bid history (create-only) ────────
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="VE DRAFT - ${jobName.replace(/[^\w\- ]+/g, '').trim() || 'ESTIMATE'}.xlsx"`,
+    };
+
+    const recordToHistory = o.recordToHistory === true;
+    const mode = getWritebackMode();
+    if (recordToHistory && mode !== 'off') {
+        if (!isLiveDataAvailable()) {
+            headers['X-Writeback-Mode'] = 'unavailable';
+        } else {
+            const today = new Date().toISOString().slice(0, 10); // Bid Date = export date
+            const writebackRows: WritebackRow[] = rows
+                .filter(r => r.substitution !== null)
+                // Never write RFI / tape lines (they should never carry a selection,
+                // but the guard is cheap and the contract explicit).
+                .filter(r => !isRfiPlaceholder(r.lineItem.mark, r.lineItem.catalogNumber, r.lineItem.manufacturer))
+                .filter(r => !isLedTape(r.lineItem.mark, r.lineItem.catalogNumber, r.lineItem.manufacturer))
+                .map(r => {
+                    const sub = r.substitution!;
+                    return {
+                        project: jobName,
+                        mark: r.lineItem.mark,
+                        originalSpec: r.lineItem.catalogNumber,
+                        bidItem: sub.item,
+                        specManufacturer: r.lineItem.manufacturer,
+                        bidManufacturer: sub.manufacturer || inferSubManufacturer(sub.item),
+                        bidDate: today,
+                        premierLinkId: sub.premierLinkId,
+                        thirdPartyLinkId: sub.thirdPartyLinkId,
+                    };
+                });
+            try {
+                const ctx = await getEngineContext();
+                const result = await writeSelectionsToHistory(writebackRows, ctx.history);
+                if (result.mode === 'live' && result.written > 0) {
+                    // Next analysis must see the new history immediately.
+                    invalidateEngineContext();
+                }
+                headers['X-Writeback-Mode'] = result.mode;
+                headers['X-Writeback-Written'] = String(result.written);
+                headers['X-Writeback-Skipped'] = String(result.skippedDuplicates);
+                headers['X-Writeback-Attempted'] = String(result.attempted);
+                if (result.errors.length > 0) {
+                    headers['X-Writeback-Errors'] = String(result.errors.length);
+                    console.error('writeback errors:', result.errors);
+                }
+            } catch (err) {
+                // The workbook is still the deliverable — never fail the export over write-back.
+                console.error('writeback failed:', err);
+                headers['X-Writeback-Mode'] = 'error';
+            }
+        }
+    }
+
+    return new NextResponse(new Uint8Array(buf), { status: 200, headers });
 }
