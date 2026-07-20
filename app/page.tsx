@@ -339,7 +339,7 @@ export default function Home() {
                                     disabled={exporting}
                                     className="bg-steel text-white px-6 py-2 text-sm tracking-widest uppercase hover:bg-plteal disabled:opacity-50"
                                 >
-                                    {exporting ? 'Building…' : 'Export corporate template'}
+                                    {exporting ? 'Building…' : 'Export Bid Selections'}
                                 </button>
                             </div>
                         </section>

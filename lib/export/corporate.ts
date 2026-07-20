@@ -214,8 +214,10 @@ function buildSheet(req: ExportRequest, mode: 'VE' | 'ORIGINAL'): XLSX.WorkSheet
 
 export function buildCorporateWorkbook(req: ExportRequest): XLSX.WorkBook {
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, buildSheet(req, 'VE'), 'VE DRAFT');
+    // ORIGINAL SPEC first, VE DRAFT second — estimators read the as-spec sheet
+    // before the selections sheet (requested 2026-07-20).
     XLSX.utils.book_append_sheet(wb, buildSheet(req, 'ORIGINAL'), 'ORIGINAL SPEC');
+    XLSX.utils.book_append_sheet(wb, buildSheet(req, 'VE'), 'VE DRAFT');
     return wb;
 }
 

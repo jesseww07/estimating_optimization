@@ -53,13 +53,13 @@ describe('buildCorporateWorkbook', () => {
     });
 
     it('produces VE DRAFT and ORIGINAL SPEC sheets', () => {
-        expect(wb.SheetNames).toEqual(['VE DRAFT', 'ORIGINAL SPEC']);
+        expect(wb.SheetNames).toEqual(['ORIGINAL SPEC', 'VE DRAFT']);
     });
 
     it('round-trips through the xlsx writer', () => {
         const buf = workbookToBuffer(wb);
         const re = XLSX.read(buf, { type: 'buffer' });
-        expect(re.SheetNames).toEqual(['VE DRAFT', 'ORIGINAL SPEC']);
+        expect(re.SheetNames).toEqual(['ORIGINAL SPEC', 'VE DRAFT']);
     });
 
     it('places the header block at the corporate grid positions', () => {
