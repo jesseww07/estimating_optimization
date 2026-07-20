@@ -5,6 +5,8 @@
  *   url  (JSON body):      { mode: 'url', url: string, lineItem: ParsedLineItem }
  *      Fetch the pasted spec link server-side → Claude extraction → re-run the
  *      engine on the identified line.
+ *   web  (JSON body):      { mode: 'web', lineItem: ParsedLineItem }
+ *      Claude with web search → cited findings → extraction → re-run engine.
  *
  * Response: { identified: IdentifiedSpec, result: LineItemAnalysis, liveData: boolean }
  *
@@ -17,7 +19,7 @@ import { getEngineContext } from '@/lib/airtable/cached';
 import { isLiveDataAvailable } from '@/lib/airtable/fetch';
 import { analyzeLineItem } from '@/lib/engine/recommend';
 import { applyIdentifiedSpec } from '@/lib/identify/apply';
-import { identifyFromPdf, identifyFromText, isIdentifyAvailable } from '@/lib/identify/claude';
+import { identifyFromPdf, identifyFromText, identifyFromWeb, isIdentifyAvailable } from '@/lib/identify/claude';
 import { fetchSpecUrl } from '@/lib/identify/fetchUrl';
 import { coerceLineItem, str } from '@/lib/parse/coerce';
 import type { IdentifiedSpec } from '@/lib/identify/types';
@@ -67,7 +69,14 @@ export async function POST(request: Request): Promise<NextResponse> {
                 : await identifyFromText(fetched.text, lineItem, 'url');
             return await respondWith(identified, lineItem);
         }
-        return err(400, `Unknown identify mode "${mode}". Expected "url".`);
+        if (mode === 'web') {
+            if (!lineItem.manufacturer && !lineItem.catalogNumber) {
+                return err(400, 'mode "web" needs at least a manufacturer or catalog value on the line.');
+            }
+            const identified = await identifyFromWeb(lineItem);
+            return await respondWith(identified, lineItem);
+        }
+        return err(400, `Unknown identify mode "${mode}". Expected "url" or "web".`);
     } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         console.error(`identify route failure (mode=${mode}):`, e);

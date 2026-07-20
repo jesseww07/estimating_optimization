@@ -429,7 +429,15 @@ export default function Home() {
                                             const idErr = identifyError[li.rowIndex];
                                             const linkUrl = li.specUrls?.[0] ?? (looksLikeUrl(li.catalogNumber) ? li.catalogNumber.trim() : undefined);
                                             const ident = li.identified;
-                                            if (!linkUrl && !ident && !idErr && !busy) return null;
+                                            // Web lookup: offered when the line has something to search for,
+                                            // recommendations are weak, and the line isn't RFI/tape-suppressed.
+                                            const topConfidence = a.recommendations[0]?.confidence ?? 0;
+                                            const webEligible =
+                                                !a.infoMessage &&
+                                                (li.manufacturer.trim() !== '' || li.catalogNumber.trim() !== '') &&
+                                                !looksLikeUrl(li.catalogNumber) &&
+                                                topConfidence < 70;
+                                            if (!linkUrl && !webEligible && !ident && !idErr && !busy) return null;
                                             return (
                                                 <div className="px-4 py-2 border-b border-line text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
                                                     {ident && (
@@ -449,15 +457,26 @@ export default function Home() {
                                                     {busy ? (
                                                         <span className="text-muted">Identifying ({busy})…</span>
                                                     ) : (
-                                                        linkUrl && (
-                                                            <button
-                                                                onClick={() => handleIdentify(a, 'url', { url: linkUrl })}
-                                                                className="border-2 border-plteal text-plteal px-3 py-1 uppercase tracking-wider hover:bg-plteal hover:text-white"
-                                                                title={linkUrl}
-                                                            >
-                                                                Identify from link
-                                                            </button>
-                                                        )
+                                                        <>
+                                                            {linkUrl && (
+                                                                <button
+                                                                    onClick={() => handleIdentify(a, 'url', { url: linkUrl })}
+                                                                    className="border-2 border-plteal text-plteal px-3 py-1 uppercase tracking-wider hover:bg-plteal hover:text-white"
+                                                                    title={linkUrl}
+                                                                >
+                                                                    Identify from link
+                                                                </button>
+                                                            )}
+                                                            {webEligible && (
+                                                                <button
+                                                                    onClick={() => handleIdentify(a, 'web')}
+                                                                    className="border-2 border-line text-muted px-3 py-1 uppercase tracking-wider hover:border-plteal hover:text-plteal"
+                                                                    title="Search the web to identify this spec"
+                                                                >
+                                                                    Look up spec
+                                                                </button>
+                                                            )}
+                                                        </>
                                                     )}
                                                     {idErr && <span className="text-danger">{idErr}</span>}
                                                 </div>
