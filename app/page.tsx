@@ -138,6 +138,8 @@ export default function Home() {
     const [identifyBusy, setIdentifyBusy] = useState<Record<number, string | null>>({});
     const [identifyError, setIdentifyError] = useState<Record<number, string | null>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const identifyFileRef = useRef<HTMLInputElement>(null);
+    const identifyTargetRow = useRef<number | null>(null);
 
     useEffect(() => {
         fetch('/api/recommendations')
@@ -407,12 +409,41 @@ export default function Home() {
                             </div>
                         </section>
 
+                        {/* Shared picker for per-line cut-sheet PDFs */}
+                        <input
+                            ref={identifyFileRef}
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            className="hidden"
+                            onChange={e => {
+                                const f = e.target.files?.[0];
+                                const target = results.find(x => x.lineItem.rowIndex === identifyTargetRow.current);
+                                if (f && target) handleIdentify(target, 'pdf', { file: f });
+                                e.target.value = '';
+                            }}
+                        />
+
                         <section className="mt-6 space-y-4 font-data">
                             {results.map(a => {
                                 const sel = selections[a.lineItem.rowIndex] ?? AS_SPEC;
                                 const top = a.recommendations[0];
                                 return (
-                                    <div key={a.lineItem.rowIndex} className="border-2 border-line bg-white">
+                                    <div
+                                        key={a.lineItem.rowIndex}
+                                        className="border-2 border-line bg-white"
+                                        onDragOver={e => {
+                                            if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+                                        }}
+                                        onDrop={e => {
+                                            const f = e.dataTransfer.files?.[0];
+                                            if (f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleIdentify(a, 'pdf', { file: f });
+                                            }
+                                        }}
+                                        title="Drop a cut-sheet PDF here to identify this line"
+                                    >
                                         {/* Line-item header */}
                                         <div className="flex flex-wrap gap-x-8 gap-y-1 px-4 py-3 bg-offwhite border-b-2 border-line text-sm">
                                             <span className="font-semibold text-heading">{a.lineItem.mark || '—'}</span>
@@ -476,6 +507,16 @@ export default function Home() {
                                                                     Look up spec
                                                                 </button>
                                                             )}
+                                                            <button
+                                                                onClick={() => {
+                                                                    identifyTargetRow.current = li.rowIndex;
+                                                                    identifyFileRef.current?.click();
+                                                                }}
+                                                                className="border-2 border-line text-muted px-3 py-1 uppercase tracking-wider hover:border-plteal hover:text-plteal"
+                                                                title="Upload (or drop anywhere on this card) a manufacturer cut-sheet PDF"
+                                                            >
+                                                                Identify from PDF
+                                                            </button>
                                                         </>
                                                     )}
                                                     {idErr && <span className="text-danger">{idErr}</span>}

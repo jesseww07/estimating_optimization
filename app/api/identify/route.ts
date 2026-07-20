@@ -7,6 +7,10 @@
  *      engine on the identified line.
  *   web  (JSON body):      { mode: 'web', lineItem: ParsedLineItem }
  *      Claude with web search → cited findings → extraction → re-run engine.
+ *   pdf  (multipart/form-data): mode=pdf, lineItem=<JSON>, file=<cut-sheet PDF>
+ *      Claude reads the PDF natively (vision) → extraction → re-run engine.
+ *      Synchronous on maxDuration=300 per the handoff — no job queue until
+ *      real cut sheets prove they blow the budget.
  *
  * Response: { identified: IdentifiedSpec, result: LineItemAnalysis, liveData: boolean }
  *
@@ -41,9 +45,50 @@ async function respondWith(identified: IdentifiedSpec, lineItem: ParsedLineItem)
     return NextResponse.json({ identified, result, liveData: isLiveDataAvailable() });
 }
 
+const MAX_PDF_BYTES = 15 * 1024 * 1024;
+
+async function handlePdfUpload(request: Request): Promise<NextResponse> {
+    let form: FormData;
+    try {
+        form = await request.formData();
+    } catch {
+        return err(400, 'mode "pdf" requires multipart/form-data with lineItem and file fields.');
+    }
+    let lineItem: ParsedLineItem | null = null;
+    try {
+        lineItem = coerceLineItem(JSON.parse(str(form.get('lineItem'))), 0);
+    } catch {
+        /* fall through to the null check */
+    }
+    if (!lineItem) return err(400, 'Missing or invalid "lineItem" field (JSON).');
+
+    const file = form.get('file');
+    if (!(file instanceof File)) return err(400, 'Missing "file" field (the cut-sheet PDF).');
+    if (file.size === 0) return err(400, 'Uploaded PDF is empty.');
+    if (file.size > MAX_PDF_BYTES) return err(413, `PDF too large (max ${MAX_PDF_BYTES / 1024 / 1024} MB).`);
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) return err(415, 'Only PDF cut sheets are supported for per-line identification.');
+
+    try {
+        const base64 = Buffer.from(await file.arrayBuffer()).toString('base64');
+        const identified = await identifyFromPdf(base64, lineItem);
+        return await respondWith(identified, lineItem);
+    } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        console.error('identify route failure (mode=pdf):', e);
+        return err(502, `Identification failed: ${message}`);
+    }
+}
+
 export async function POST(request: Request): Promise<NextResponse> {
     if (!isIdentifyAvailable()) {
         return err(503, 'Identification is unavailable: ANTHROPIC_API_KEY is not configured.');
+    }
+
+    // PDF uploads arrive as multipart; url/web modes as JSON.
+    const contentType = request.headers.get('content-type') ?? '';
+    if (contentType.includes('multipart/form-data')) {
+        return handlePdfUpload(request);
     }
 
     let body: unknown;
