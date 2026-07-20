@@ -4,8 +4,13 @@
  * Estimator UI — upload a converted bid sheet, review VE recommendations,
  * pick substitutions, export the corporate-template workbook.
  *
- * Client-side mirror of the API types (kept structural: only the fields the
- * UI reads). The engine and parsing all live server-side in lib/**.
+ * Typography: brand serifs (Playfair/Cardo) for the header, nav, and section
+ * titles; Inter (--font-data) for all dense card/data content — mirrors the
+ * premier-brand data-typography rule.
+ *
+ * Card content mirrors the Airtable Interface (index.tsx): category chip,
+ * enriched NS spec description/vendor, item attributes, match-detail
+ * breakdown, and the spec swap-metrics strip.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -20,6 +25,19 @@ interface ParsedLineItem {
     rawRow: Record<string, string>;
 }
 
+interface ItemAttributes {
+    category?: string;
+    productCategory?: string;
+    finish?: string;
+    colorTemp?: string;
+    wattage?: string;
+    lightOutput?: string;
+    manufacturer?: string;
+    fanSize?: string;
+    bladeCount?: number;
+    hasLight?: boolean;
+}
+
 interface Recommendation {
     id: string;
     source: string;
@@ -30,12 +48,18 @@ interface Recommendation {
     fanItem?: string;
     matchReason: string;
     swapCount?: number;
+    exactMatchCount?: number;
+    totalSpecAppearances?: number;
     matchDetails?: string[];
+    itemAttributes?: ItemAttributes;
     specManufacturer?: string;
     bidManufacturer?: string;
     projectsUsed?: string[];
     isPassthrough?: boolean;
+    productCategory?: string;
     specDescription?: string;
+    specVendor?: string;
+    specEnrichConfidence?: string;
     matchedOriginalSpec?: string;
 }
 
@@ -60,6 +84,19 @@ function recItemName(rec: Recommendation): string {
 
 function isAuthoritative(rec: Recommendation): boolean {
     return (rec.swapCount ?? 0) >= 3 && rec.confidence >= 95;
+}
+
+function attrChips(attrs?: ItemAttributes): string[] {
+    if (!attrs) return [];
+    const chips: string[] = [];
+    if (attrs.finish) chips.push(attrs.finish);
+    if (attrs.colorTemp) chips.push(attrs.colorTemp);
+    if (attrs.wattage) chips.push(attrs.wattage.match(/w$/i) ? attrs.wattage : `${attrs.wattage}W`);
+    if (attrs.lightOutput) chips.push(attrs.lightOutput.match(/lm$/i) ? attrs.lightOutput : `${attrs.lightOutput} lm`);
+    if (attrs.fanSize) chips.push(attrs.fanSize.match(/"$/) ? attrs.fanSize : `${attrs.fanSize}"`);
+    if (attrs.bladeCount) chips.push(`${attrs.bladeCount} blades`);
+    if (attrs.hasLight !== undefined) chips.push(attrs.hasLight ? 'With light' : 'No light');
+    return chips;
 }
 
 export default function Home() {
@@ -185,7 +222,7 @@ export default function Home() {
     return (
         <div className="flex flex-col min-h-screen">
             {/* Top utility bar */}
-            <div className="bg-ink text-white text-xs tracking-widest uppercase px-6 py-2">
+            <div className="bg-ink text-white text-xs tracking-widest uppercase px-6 py-2 font-data">
                 Premier Lighting — Internal Estimating Tool
             </div>
             {/* Logo bar */}
@@ -196,7 +233,7 @@ export default function Home() {
             {/* Nav strip */}
             <nav className="bg-steel text-white px-6 py-3 flex items-center justify-between">
                 <span className="font-heading text-lg">VE &amp; Estimating — Substitution Finder</span>
-                <span className="text-xs text-bluelight">
+                <span className="text-xs text-bluelight font-data">
                     {health === null
                         ? 'Checking data…'
                         : health.liveData
@@ -207,7 +244,7 @@ export default function Home() {
 
             <main className="flex-1 w-full max-w-6xl mx-auto px-6 py-8">
                 {health !== null && !health.liveData && (
-                    <div className="border-2 border-danger text-danger px-4 py-3 mb-6 text-sm">
+                    <div className="border-2 border-danger text-danger px-4 py-3 mb-6 text-sm font-data">
                         The Airtable connection is not available, so the engine has no catalog or history to
                         match against. Uploads will parse, but no recommendations will come back.
                     </div>
@@ -226,7 +263,7 @@ export default function Home() {
                     }}
                 >
                     <h2 className="text-2xl mb-2">Upload a bid sheet</h2>
-                    <p className="text-muted text-sm mb-6">
+                    <p className="text-muted text-sm mb-6 font-data">
                         Pre-converted CSV or single-sheet Excel with Mark / Qty / Manufacturer / Catalog # columns.
                     </p>
                     <input
@@ -243,20 +280,20 @@ export default function Home() {
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={phase !== 'idle'}
-                        className="bg-plteal text-white px-8 py-3 text-sm tracking-widest uppercase hover:bg-steel disabled:opacity-50"
+                        className="bg-plteal text-white px-8 py-3 text-sm tracking-widest uppercase hover:bg-steel disabled:opacity-50 font-data"
                     >
                         {phase === 'uploading' ? 'Parsing…' : phase === 'analyzing' ? 'Analyzing…' : 'Choose file'}
                     </button>
                     {fileName && phase === 'idle' && (
-                        <p className="text-xs text-muted mt-3">{fileName}</p>
+                        <p className="text-xs text-muted mt-3 font-data">{fileName}</p>
                     )}
                 </section>
 
                 {error && (
-                    <div className="border-2 border-danger text-danger px-4 py-3 mt-6 text-sm">{error}</div>
+                    <div className="border-2 border-danger text-danger px-4 py-3 mt-6 text-sm font-data">{error}</div>
                 )}
                 {warning && (
-                    <div className="border-2 border-warn text-warn px-4 py-3 mt-6 text-sm">{warning}</div>
+                    <div className="border-2 border-warn text-warn px-4 py-3 mt-6 text-sm font-data">{warning}</div>
                 )}
 
                 {/* Results */}
@@ -265,12 +302,12 @@ export default function Home() {
                         <section className="mt-10 flex flex-wrap items-end justify-between gap-4">
                             <div>
                                 <h2 className="text-2xl">{results.length} line items</h2>
-                                <p className="text-sm text-muted">
+                                <p className="text-sm text-muted font-data">
                                     {substituted} substitution{substituted === 1 ? '' : 's'} selected ·{' '}
                                     {results.length - substituted} left as specified
                                 </p>
                             </div>
-                            <div className="flex flex-wrap gap-3 items-end">
+                            <div className="flex flex-wrap gap-3 items-end font-data">
                                 <label className="text-xs uppercase tracking-wider text-muted">
                                     Job name
                                     <input
@@ -307,18 +344,41 @@ export default function Home() {
                             </div>
                         </section>
 
-                        <section className="mt-6 space-y-4">
+                        <section className="mt-6 space-y-4 font-data">
                             {results.map(a => {
                                 const sel = selections[a.lineItem.rowIndex] ?? AS_SPEC;
+                                const top = a.recommendations[0];
                                 return (
                                     <div key={a.lineItem.rowIndex} className="border-2 border-line bg-white">
+                                        {/* Line-item header */}
                                         <div className="flex flex-wrap gap-x-8 gap-y-1 px-4 py-3 bg-offwhite border-b-2 border-line text-sm">
-                                            <span className="font-bold text-heading">{a.lineItem.mark || '—'}</span>
+                                            <span className="font-semibold text-heading">{a.lineItem.mark || '—'}</span>
                                             {a.lineItem.section && <span className="text-muted">{a.lineItem.section}</span>}
                                             <span>Qty {a.lineItem.quantity || '—'}</span>
                                             <span className="text-muted">{a.lineItem.manufacturer}</span>
                                             <span className="font-mono text-xs self-center">{a.lineItem.catalogNumber}</span>
                                         </div>
+
+                                        {/* Swap-metrics strip (Interface parity: consolidated spec history) */}
+                                        {top && (top.totalSpecAppearances ?? 0) > 0 && (
+                                            <div className="px-4 py-2 bg-bluelight/25 border-b border-line text-xs text-steel flex flex-wrap gap-x-6 gap-y-1">
+                                                <span>
+                                                    Spec seen <strong>{top.totalSpecAppearances}</strong> time{top.totalSpecAppearances === 1 ? '' : 's'} in bid history
+                                                </span>
+                                                {(top.exactMatchCount ?? 0) > 0 && (
+                                                    <span>
+                                                        <strong>{top.exactMatchCount}</strong> exact swap{top.exactMatchCount === 1 ? '' : 's'} to {recItemName(top)}
+                                                    </span>
+                                                )}
+                                                {top.specDescription && (
+                                                    <span className="text-muted">
+                                                        NS: {top.specDescription}
+                                                        {top.specVendor ? ` — ${top.specVendor}` : ''}
+                                                        {top.specEnrichConfidence ? ` (${top.specEnrichConfidence})` : ''}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {a.infoMessage && (
                                             <div className="px-4 py-3 text-sm text-info border-b border-line">
@@ -327,49 +387,80 @@ export default function Home() {
                                         )}
 
                                         <div className="px-4 py-3 space-y-2">
-                                            {a.recommendations.map(rec => (
-                                                <label
-                                                    key={rec.id}
-                                                    className={`flex items-start gap-3 border-2 px-3 py-2 cursor-pointer ${sel === rec.id ? 'border-plteal bg-offwhite' : 'border-line'}`}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name={`li-${a.lineItem.rowIndex}`}
-                                                        checked={sel === rec.id}
-                                                        onChange={() =>
-                                                            setSelections(s => ({ ...s, [a.lineItem.rowIndex]: rec.id }))
-                                                        }
-                                                        className="mt-1 accent-[#176e8d]"
-                                                    />
-                                                    <span className="flex-1">
-                                                        <span className="flex flex-wrap items-center gap-2">
-                                                            <span className="font-bold text-heading">{recItemName(rec) || '(as specified)'}</span>
-                                                            {isAuthoritative(rec) && (
-                                                                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-success text-white">
-                                                                    ✓ Bid {rec.swapCount} times
+                                            {a.recommendations.map(rec => {
+                                                const category = rec.productCategory || rec.itemAttributes?.category;
+                                                const chips = attrChips(rec.itemAttributes);
+                                                return (
+                                                    <label
+                                                        key={rec.id}
+                                                        className={`flex items-start gap-3 border-2 px-3 py-2 cursor-pointer ${sel === rec.id ? 'border-plteal bg-offwhite' : 'border-line'}`}
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name={`li-${a.lineItem.rowIndex}`}
+                                                            checked={sel === rec.id}
+                                                            onChange={() =>
+                                                                setSelections(s => ({ ...s, [a.lineItem.rowIndex]: rec.id }))
+                                                            }
+                                                            className="mt-1 accent-[#176e8d]"
+                                                        />
+                                                        <span className="flex-1">
+                                                            <span className="flex flex-wrap items-center gap-2">
+                                                                <span className="font-semibold text-heading">{recItemName(rec) || '(as specified)'}</span>
+                                                                {isAuthoritative(rec) && (
+                                                                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-success text-white">
+                                                                        ✓ Bid {rec.swapCount} times
+                                                                    </span>
+                                                                )}
+                                                                {rec.isPassthrough && (
+                                                                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-muted text-white">
+                                                                        ↻ Left as-spec
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 border border-line text-muted">
+                                                                    {rec.source}
+                                                                </span>
+                                                                {category && (
+                                                                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-steel text-white">
+                                                                        {category}
+                                                                    </span>
+                                                                )}
+                                                                <span className={`text-xs font-semibold ${rec.confidence >= 90 ? 'text-success' : rec.confidence >= 70 ? 'text-warn' : 'text-muted'}`}>
+                                                                    {Math.round(rec.confidence)}%
+                                                                </span>
+                                                            </span>
+                                                            <span className="block text-xs text-muted mt-0.5">{rec.matchReason}</span>
+                                                            {chips.length > 0 && (
+                                                                <span className="flex flex-wrap gap-1 mt-1">
+                                                                    {chips.map(c => (
+                                                                        <span key={c} className="text-[10px] px-1.5 py-0.5 bg-offwhite border border-line text-body">
+                                                                            {c}
+                                                                        </span>
+                                                                    ))}
                                                                 </span>
                                                             )}
-                                                            {rec.isPassthrough && (
-                                                                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-muted text-white">
-                                                                    ↻ Left as-spec
+                                                            {rec.projectsUsed && rec.projectsUsed.length > 0 && (
+                                                                <span className="block text-xs text-muted mt-0.5 italic">
+                                                                    {rec.projectsUsed.slice(0, 3).join(' · ')}
+                                                                    {rec.projectsUsed.length > 3 ? ` · +${rec.projectsUsed.length - 3} more` : ''}
                                                                 </span>
                                                             )}
-                                                            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 border border-line text-muted">
-                                                                {rec.source}
-                                                            </span>
-                                                            <span className={`text-xs font-bold ${rec.confidence >= 90 ? 'text-success' : rec.confidence >= 70 ? 'text-warn' : 'text-muted'}`}>
-                                                                {Math.round(rec.confidence)}%
-                                                            </span>
+                                                            {rec.matchDetails && rec.matchDetails.length > 0 && (
+                                                                <details className="mt-1" onClick={e => e.stopPropagation()}>
+                                                                    <summary className="text-[11px] text-plteal cursor-pointer select-none">
+                                                                        Match details
+                                                                    </summary>
+                                                                    <span className="block text-xs text-muted mt-1 space-y-0.5">
+                                                                        {rec.matchDetails.map((d, i) => (
+                                                                            <span key={i} className="block">• {d}</span>
+                                                                        ))}
+                                                                    </span>
+                                                                </details>
+                                                            )}
                                                         </span>
-                                                        <span className="block text-xs text-muted mt-0.5">{rec.matchReason}</span>
-                                                        {rec.projectsUsed && rec.projectsUsed.length > 0 && (
-                                                            <span className="block text-xs text-muted mt-0.5 italic">
-                                                                {rec.projectsUsed.slice(0, 3).join(' · ')}
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </label>
-                                            ))}
+                                                    </label>
+                                                );
+                                            })}
 
                                             <label
                                                 className={`flex items-center gap-3 border-2 px-3 py-2 cursor-pointer ${sel === AS_SPEC ? 'border-plteal bg-offwhite' : 'border-line'}`}
@@ -397,7 +488,7 @@ export default function Home() {
                 )}
             </main>
 
-            <footer className="bg-ink text-white text-xs px-6 py-4 text-center tracking-wider">
+            <footer className="bg-ink text-white text-xs px-6 py-4 text-center tracking-wider font-data">
                 Premier Lighting — 4024 E Broadway Rd, Suite 1001 Phoenix AZ 85040 — 1-866-907-2669
             </footer>
         </div>

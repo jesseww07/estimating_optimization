@@ -18,6 +18,7 @@
 
     --font-heading: var(--font-playfair), Georgia, "Times New Roman", serif;
     --font-body: var(--font-cardo), Georgia, "Times New Roman", serif;
+    --font-data: var(--font-inter), "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 body {
