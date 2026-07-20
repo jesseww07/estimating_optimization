@@ -15,6 +15,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+interface IdentifiedSpec {
+    manufacturer: string;
+    catalogNumber: string;
+    productName: string;
+    category: string | null;
+    attributes: Record<string, string | undefined>;
+    confidence: 'HIGH' | 'MEDIUM' | 'LOW';
+    source: 'url' | 'web' | 'pdf';
+    evidence: string;
+}
+
 interface ParsedLineItem {
     rowIndex: number;
     section: string;
@@ -23,6 +34,8 @@ interface ParsedLineItem {
     manufacturer: string;
     catalogNumber: string;
     rawRow: Record<string, string>;
+    specUrls?: string[];
+    identified?: IdentifiedSpec;
 }
 
 interface ItemAttributes {
@@ -78,6 +91,16 @@ interface HealthCounts {
 
 const AS_SPEC = 'AS_SPEC';
 
+const IDENTIFY_SOURCE_LABEL: Record<IdentifiedSpec['source'], string> = {
+    url: 'spec link',
+    web: 'web lookup',
+    pdf: 'spec sheet',
+};
+
+function looksLikeUrl(value: string): boolean {
+    return /^https?:\/\//i.test(value.trim()) || /^www\./i.test(value.trim());
+}
+
 function recItemName(rec: Recommendation): string {
     return rec.premierItem || rec.bidItem || rec.fanItem || '';
 }
@@ -112,6 +135,8 @@ export default function Home() {
     const [customer, setCustomer] = useState('');
     const [exporting, setExporting] = useState(false);
     const [dragOver, setDragOver] = useState(false);
+    const [identifyBusy, setIdentifyBusy] = useState<Record<number, string | null>>({});
+    const [identifyError, setIdentifyError] = useState<Record<number, string | null>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -160,6 +185,44 @@ export default function Home() {
             setError(e instanceof Error ? e.message : 'Something went wrong.');
         } finally {
             setPhase('idle');
+        }
+    }
+
+    /** Per-line identification (Phase 2): send one line + evidence pointer, swap in the re-analyzed card. */
+    async function handleIdentify(analysis: LineItemAnalysis, mode: 'url' | 'web' | 'pdf', payload?: { url?: string; file?: File }) {
+        const rowIndex = analysis.lineItem.rowIndex;
+        setIdentifyBusy(s => ({ ...s, [rowIndex]: mode }));
+        setIdentifyError(s => ({ ...s, [rowIndex]: null }));
+        try {
+            let res: Response;
+            if (mode === 'pdf') {
+                const form = new FormData();
+                form.append('mode', 'pdf');
+                form.append('lineItem', JSON.stringify(analysis.lineItem));
+                if (payload?.file) form.append('file', payload.file);
+                res = await fetch('/api/identify', { method: 'POST', body: form });
+            } else {
+                res = await fetch('/api/identify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode, lineItem: analysis.lineItem, url: payload?.url }),
+                });
+            }
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Identification failed (${res.status}).`);
+            const identified: IdentifiedSpec = json.identified;
+            const result: LineItemAnalysis = json.result;
+            setResults(rs => (rs ? rs.map(a => (a.lineItem.rowIndex === rowIndex ? result : a)) : rs));
+            // Confidence gate: LOW identifications never auto-select a recommendation.
+            const top = result.recommendations[0];
+            setSelections(s => ({
+                ...s,
+                [rowIndex]: identified.confidence !== 'LOW' && top && !top.isPassthrough ? top.id : AS_SPEC,
+            }));
+        } catch (e) {
+            setIdentifyError(s => ({ ...s, [rowIndex]: e instanceof Error ? e.message : 'Identification failed.' }));
+        } finally {
+            setIdentifyBusy(s => ({ ...s, [rowIndex]: null }));
         }
     }
 
@@ -358,6 +421,48 @@ export default function Home() {
                                             <span className="text-muted">{a.lineItem.manufacturer}</span>
                                             <span className="font-mono text-xs self-center">{a.lineItem.catalogNumber}</span>
                                         </div>
+
+                                        {/* Identify strip (Phase 2): identification actions + provenance */}
+                                        {(() => {
+                                            const li = a.lineItem;
+                                            const busy = identifyBusy[li.rowIndex];
+                                            const idErr = identifyError[li.rowIndex];
+                                            const linkUrl = li.specUrls?.[0] ?? (looksLikeUrl(li.catalogNumber) ? li.catalogNumber.trim() : undefined);
+                                            const ident = li.identified;
+                                            if (!linkUrl && !ident && !idErr && !busy) return null;
+                                            return (
+                                                <div className="px-4 py-2 border-b border-line text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
+                                                    {ident && (
+                                                        <span
+                                                            className={`uppercase tracking-wider px-2 py-0.5 text-white ${ident.confidence === 'LOW' ? 'bg-warn' : 'bg-plteal'}`}
+                                                            title={ident.evidence}
+                                                        >
+                                                            {ident.confidence === 'LOW' ? '? Possible identification — verify' : `✓ Identified via ${IDENTIFY_SOURCE_LABEL[ident.source]}`}
+                                                        </span>
+                                                    )}
+                                                    {ident && (ident.productName || ident.catalogNumber) && (
+                                                        <span className="text-body">
+                                                            {[ident.manufacturer, ident.catalogNumber].filter(Boolean).join(' ')}
+                                                            {ident.productName ? ` — ${ident.productName}` : ''}
+                                                        </span>
+                                                    )}
+                                                    {busy ? (
+                                                        <span className="text-muted">Identifying ({busy})…</span>
+                                                    ) : (
+                                                        linkUrl && (
+                                                            <button
+                                                                onClick={() => handleIdentify(a, 'url', { url: linkUrl })}
+                                                                className="border-2 border-plteal text-plteal px-3 py-1 uppercase tracking-wider hover:bg-plteal hover:text-white"
+                                                                title={linkUrl}
+                                                            >
+                                                                Identify from link
+                                                            </button>
+                                                        )
+                                                    )}
+                                                    {idErr && <span className="text-danger">{idErr}</span>}
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* Swap-metrics strip (Interface parity: consolidated spec history) */}
                                         {top && (top.totalSpecAppearances ?? 0) > 0 && (

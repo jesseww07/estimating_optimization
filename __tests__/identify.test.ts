@@ -12,6 +12,8 @@ import type { IdentifiedSpec } from '@/lib/identify/types';
 import { applyIdentifiedSpec } from '@/lib/identify/apply';
 import { analyzeLineItem } from '@/lib/engine/recommend';
 import { coerceLineItem } from '@/lib/parse/coerce';
+import { extractUrlsFromCells } from '@/lib/parse/workbook';
+import { htmlToText, isFetchableSpecUrl } from '@/lib/identify/fetchUrl';
 
 const premier = (o: Partial<PremierItemRow> & Pick<PremierItemRow, 'id' | 'itemId' | 'fixtureCategory'>): PremierItemRow => ({
     itemDescription: '',
@@ -93,6 +95,45 @@ describe('engine category override from identification', () => {
         }));
         const result = analyzeLineItem(merged, CTX);
         expect(result.recommendations).toHaveLength(0);
+    });
+});
+
+describe('URL detection in raw rows', () => {
+    it('finds URLs pasted in stray columns and normalizes www.', () => {
+        const urls = extractUrlsFromCells([
+            'P1', '4', 'see https://www.lithonia.com/products/csvt.pdf,',
+            'www.rablighting.com/aled', 'plain text',
+        ]);
+        expect(urls).toEqual([
+            'https://www.lithonia.com/products/csvt.pdf',
+            'https://www.rablighting.com/aled',
+        ]);
+    });
+
+    it('dedupes repeated links', () => {
+        const urls = extractUrlsFromCells(['https://a.com/x', 'https://a.com/x']);
+        expect(urls).toEqual(['https://a.com/x']);
+    });
+});
+
+describe('spec URL fetch guards', () => {
+    it('accepts public http(s) URLs only', () => {
+        expect(isFetchableSpecUrl('https://www.lithonia.com/spec.pdf')).toBe(true);
+        expect(isFetchableSpecUrl('http://example.com')).toBe(true);
+        expect(isFetchableSpecUrl('ftp://example.com/f.pdf')).toBe(false);
+        expect(isFetchableSpecUrl('https://localhost/admin')).toBe(false);
+        expect(isFetchableSpecUrl('https://127.0.0.1/x')).toBe(false);
+        expect(isFetchableSpecUrl('https://192.168.1.10/x')).toBe(false);
+        expect(isFetchableSpecUrl('https://169.254.169.254/latest/meta-data')).toBe(false);
+        expect(isFetchableSpecUrl('not a url')).toBe(false);
+    });
+
+    it('strips HTML to readable text', () => {
+        const text = htmlToText('<html><head><style>.x{}</style><script>evil()</script></head><body><h1>ALED26</h1><p>26W &amp; 5000K</p></body></html>');
+        expect(text).toContain('ALED26');
+        expect(text).toContain('26W & 5000K');
+        expect(text).not.toContain('evil');
+        expect(text).not.toContain('<');
     });
 });
 
