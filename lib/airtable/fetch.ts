@@ -20,12 +20,18 @@ if (typeof window !== 'undefined') {
     throw new Error('lib/airtable/fetch.ts is server-only and must never be bundled for the browser.');
 }
 
+function getApiKey(): string {
+    // Trim defensively: a trailing newline/space pasted into the Vercel env editor
+    // turns into an Airtable 401 (AUTHENTICATION_REQUIRED) that is miserable to spot.
+    return (process.env.AIRTABLE_PAT ?? '').trim();
+}
+
 export function isLiveDataAvailable(): boolean {
-    return Boolean(process.env.AIRTABLE_PAT);
+    return getApiKey().length > 0;
 }
 
 function getBase(): Airtable.Base | null {
-    const apiKey = process.env.AIRTABLE_PAT;
+    const apiKey = getApiKey();
     if (!apiKey) return null;
     return new Airtable({ apiKey }).base(BASE_ID);
 }
