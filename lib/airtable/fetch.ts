@@ -180,11 +180,13 @@ export async function fetchFans(): Promise<FanRow[]> {
 
 /** Fetch the full engine data context (History + all three catalogs). */
 export async function fetchEngineContext(): Promise<EngineContext> {
-    const [history, premierItems, thirdPartyItems, fans] = await Promise.all([
-        fetchHistory(),
-        fetchPremierItems(),
-        fetchThirdPartyItems(),
-        fetchFans(),
-    ]);
+    // Sequential on purpose: Airtable caps a base at 5 requests/second and answers
+    // bursts with a 429 plus a 30-second penalty window. Pages within a table are
+    // already fetched serially, so one table at a time keeps the whole ~130-request
+    // pull safely under the cap (≈30s cold start, then held in the in-memory cache).
+    const history = await fetchHistory();
+    const premierItems = await fetchPremierItems();
+    const thirdPartyItems = await fetchThirdPartyItems();
+    const fans = await fetchFans();
     return { history, premierItems, thirdPartyItems, fans };
 }
