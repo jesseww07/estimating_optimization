@@ -7,19 +7,22 @@
  * engine, return JSON. All logic lives in lib/**.
  */
 
-import { unstable_cache } from 'next/cache';
 import { NextResponse } from 'next/server';
-import { fetchEngineContext, isLiveDataAvailable } from '@/lib/airtable/fetch';
+import { getEngineContext } from '@/lib/airtable/cached';
+import { isLiveDataAvailable } from '@/lib/airtable/fetch';
 import { analyzeLineItems } from '@/lib/engine/recommend';
 import type { ParsedLineItem } from '@/lib/types';
 
 export const runtime = 'nodejs';
+// A cold-start context fetch pages through the whole base (~130 Airtable requests
+// at 5 req/s) — allow well past the 10s default.
+export const maxDuration = 60;
 
-// Cache the full catalog + history read so estimator requests don't re-pull the
-// whole base each time (and stay clear of Airtable rate limits).
-const getCachedEngineContext = unstable_cache(fetchEngineContext, ['engine-context'], {
-    revalidate: 300,
-});
+function errorResponse(err: unknown): NextResponse {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('recommendations route failure:', err);
+    return NextResponse.json({ error: `Upstream data fetch failed: ${message}` }, { status: 502 });
+}
 
 /**
  * GET /api/recommendations — data-path healthcheck.
@@ -31,16 +34,20 @@ export async function GET(): Promise<NextResponse> {
     if (!live) {
         return NextResponse.json({ liveData: false, note: 'AIRTABLE_PAT is not set — engine runs on an empty context.' });
     }
-    const ctx = await getCachedEngineContext();
-    return NextResponse.json({
-        liveData: true,
-        counts: {
-            history: ctx.history.length,
-            premierItems: ctx.premierItems.length,
-            thirdPartyItems: ctx.thirdPartyItems.length,
-            fans: ctx.fans.length,
-        },
-    });
+    try {
+        const ctx = await getEngineContext();
+        return NextResponse.json({
+            liveData: true,
+            counts: {
+                history: ctx.history.length,
+                premierItems: ctx.premierItems.length,
+                thirdPartyItems: ctx.thirdPartyItems.length,
+                fans: ctx.fans.length,
+            },
+        });
+    } catch (err) {
+        return errorResponse(err);
+    }
 }
 
 function coerceLineItem(raw: unknown, index: number): ParsedLineItem | null {
@@ -87,8 +94,11 @@ export async function POST(request: Request): Promise<NextResponse> {
         return NextResponse.json({ error: 'No valid line items in request.' }, { status: 400 });
     }
 
-    const ctx = await getCachedEngineContext();
-    const results = analyzeLineItems(lineItems, ctx);
-
-    return NextResponse.json({ liveData: isLiveDataAvailable(), results });
+    try {
+        const ctx = await getEngineContext();
+        const results = analyzeLineItems(lineItems, ctx);
+        return NextResponse.json({ liveData: isLiveDataAvailable(), results });
+    } catch (err) {
+        return errorResponse(err);
+    }
 }
