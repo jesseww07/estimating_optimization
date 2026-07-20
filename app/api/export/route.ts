@@ -95,6 +95,8 @@ export async function POST(request: Request): Promise<NextResponse> {
         customer: str(o.customer).trim(),
         sourceFileName: str(o.sourceFileName).trim() || undefined,
         bidDate: str(o.bidDate).trim() || undefined,
+        salesRep: str(o.salesRep).trim() || undefined,
+        estimator: str(o.estimator).trim() || undefined,
         rows,
     });
     const buf = workbookToBuffer(wb);

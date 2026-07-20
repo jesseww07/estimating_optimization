@@ -135,6 +135,9 @@ export default function Home() {
     const [jobName, setJobName] = useState('');
     const [jobLocation, setJobLocation] = useState('');
     const [customer, setCustomer] = useState('');
+    const [salesRep, setSalesRep] = useState('');
+    const [estimator, setEstimator] = useState('');
+    const [bidDate, setBidDate] = useState('');
     const [exporting, setExporting] = useState(false);
     const [recordToHistory, setRecordToHistory] = useState(true);
     const [writebackNotice, setWritebackNotice] = useState<string | null>(null);
@@ -260,7 +263,7 @@ export default function Home() {
             const res = await fetch('/api/export', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jobName, jobLocation, customer, sourceFileName: fileName, recordToHistory, rows }),
+                body: JSON.stringify({ jobName, jobLocation, customer, salesRep, estimator, bidDate, sourceFileName: fileName, recordToHistory, rows }),
             });
             if (!res.ok) {
                 const j = await res.json().catch(() => null);
@@ -412,6 +415,31 @@ export default function Home() {
                                         value={customer}
                                         onChange={e => setCustomer(e.target.value)}
                                         className="block border-2 border-line px-2 py-1 text-sm text-body w-36 focus:border-plteal outline-none"
+                                    />
+                                </label>
+                                <label className="text-xs uppercase tracking-wider text-muted">
+                                    Sales rep
+                                    <input
+                                        value={salesRep}
+                                        onChange={e => setSalesRep(e.target.value)}
+                                        className="block border-2 border-line px-2 py-1 text-sm text-body w-32 focus:border-plteal outline-none"
+                                    />
+                                </label>
+                                <label className="text-xs uppercase tracking-wider text-muted">
+                                    Estimator
+                                    <input
+                                        value={estimator}
+                                        onChange={e => setEstimator(e.target.value)}
+                                        className="block border-2 border-line px-2 py-1 text-sm text-body w-32 focus:border-plteal outline-none"
+                                    />
+                                </label>
+                                <label className="text-xs uppercase tracking-wider text-muted">
+                                    Bid date
+                                    <input
+                                        value={bidDate}
+                                        onChange={e => setBidDate(e.target.value)}
+                                        placeholder="M/D/YY"
+                                        className="block border-2 border-line px-2 py-1 text-sm text-body w-24 focus:border-plteal outline-none"
                                     />
                                 </label>
                                 <div className="flex flex-col gap-1">
