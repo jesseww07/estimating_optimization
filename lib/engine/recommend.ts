@@ -33,9 +33,11 @@ import type {
 import {
     calculateCatalogMatchScore,
     calculateMatchScore,
+    categoriesCompatible,
     detectFixtureCategory,
     dimensionsCompatible,
     isLedTape,
+    isRfiPlaceholder,
     isUrlLike,
     looksLikeProse,
     normalizeProductId,
@@ -101,6 +103,16 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
 
     // URL-as-catalog protection: a pasted spec-sheet link must never drive matching.
     const catalogNumber = isUrlLike(lineItem.catalogNumber) ? '' : lineItem.catalogNumber;
+
+    // TBD / missing-spec lines become an RFI, never a fabricated match (domain
+    // rule). Checked before tape: "RFI #2 - HAND RAIL LIGHTING" is an RFI, not tape.
+    if (isRfiPlaceholder(mark, lineItem.catalogNumber, manufacturer)) {
+        return {
+            lineItem,
+            recommendations: [],
+            infoMessage: 'RFI — spec not identified (TBD / missing spec). Request the specification; the engine never fabricates a match for an unidentified item.',
+        };
+    }
 
     // LED tape is suppressed with an informational message, not given swap recs.
     if (isLedTape(mark, lineItem.catalogNumber, manufacturer)) {
@@ -403,13 +415,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             const category = item.fixtureCategory;
 
             // If we have a confident fixture category inference, skip Premier Items
-            // that are clearly in a different category.
-            if (inferredCategory && category) {
-                const catNorm = category.toLowerCase();
-                const infNorm = inferredCategory.toLowerCase();
-                const categoryMismatch = !catNorm.includes(infNorm) && !infNorm.includes(catNorm);
-                if (categoryMismatch) continue;
-            }
+            // whose Fixture Category is outside the inferred label's vocabulary group.
+            if (inferredCategory && category && !categoriesCompatible(inferredCategory, category)) continue;
 
             // Dimension hard-gate: a candidate matching on category but dimensionally
             // incompatible must be blocked, not just demoted.
@@ -591,35 +598,33 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         }
     }
 
-    // ── Prose Description Fallback ────────────────────────────────────────────
-    // When the catalog number is plain English (e.g. "CRETE 7 1/2" W LED LARGE
-    // CONCRETE TIER MINI PENDANT") rather than a structured part number,
-    // text-matching against Premier Item IDs always returns 0. In this case, if we
-    // have an inferred category, search Premier Items by category match + keyword
-    // overlap from the description.
+    // ── Category Fallback (generalized prose fallback) ───────────────────────
+    // When nothing matched but the fixture CATEGORY is known, recommend from the
+    // Premier catalog inside that category: token overlap from the mark/catalog
+    // text ranks first, then Times Used. This is the "spec item not identified"
+    // mitigation from the Camino Del Rio review — site poles, building lights,
+    // vanities, and mirrors always get in-category candidates instead of silence
+    // or cross-category text-match junk.
     const markIsProse = looksLikeProse(mark);
-    if (!hasAnyRecommendations && (catalogIsProse || markIsProse) && inferredCategory) {
+    if (!hasAnyRecommendations && inferredCategory) {
         const stopWords = new Set(['AND', 'OR', 'THE', 'FOR', 'WITH', 'NOT', 'LED', 'A', 'AN', 'IN', 'OF', 'W', 'X', 'FAN', 'LIGHT', 'FIXTURE']);
-        const tokenSource = catalogIsProse ? catalogNumber : mark;
+        const tokenSource = catalogIsProse ? catalogNumber : markIsProse ? mark : `${mark} ${catalogNumber}`;
         const proseTokens = tokenSource.toUpperCase()
             .split(/[\s\-\/,()'"]+/)
             .filter(t => t.length >= 3 && !stopWords.has(t) && !/^\d+(\.\d+)?["']?$/.test(t));
 
-        const proseCandidates: Array<{ score: number; item: (typeof ctx.premierItems)[number]; itemAttributes: ItemAttributes }> = [];
+        const candidates: Array<{ tokenScore: number; usageBonus: number; score: number; item: (typeof ctx.premierItems)[number]; itemAttributes: ItemAttributes }> = [];
 
         for (const item of ctx.premierItems) {
             const category = item.fixtureCategory;
 
-            // Must match inferred category
-            if (!category) continue;
-            const catNorm = category.toLowerCase();
-            const infNorm = inferredCategory.toLowerCase();
-            if (!catNorm.includes(infNorm) && !infNorm.includes(catNorm)) continue;
+            // Must belong to the inferred category's vocabulary group.
+            if (!category || !categoriesCompatible(inferredCategory, category)) continue;
 
-            // Dimension hard-gate applies to prose-matched candidates too.
+            // Dimension hard-gate applies to fallback candidates too.
             if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
 
-            // Score by token overlap with item ID + description
+            // Score by token overlap with item ID + description, then usage.
             const searchTarget = (item.itemId + ' ' + item.itemDescription).toUpperCase();
             let tokenScore = 0;
             for (const token of proseTokens) {
@@ -628,33 +633,45 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
 
             const usageBonus = Math.min(10, Math.floor(item.timesUsed / 2));
 
-            const totalScore = tokenScore * 8 + usageBonus;
-            if (totalScore >= 8) { // at least 1 token match
-                proseCandidates.push({
-                    score: totalScore,
-                    item,
-                    itemAttributes: {
-                        category: category || undefined,
-                        finish: item.finish || undefined,
-                        colorTemp: item.colorTemp || undefined,
-                        wattage: item.maxWattage || undefined,
-                    },
-                });
-            }
+            candidates.push({
+                tokenScore,
+                usageBonus,
+                score: tokenScore * 8 + usageBonus,
+                item,
+                itemAttributes: {
+                    category: category || undefined,
+                    finish: item.finish || undefined,
+                    colorTemp: item.colorTemp || undefined,
+                    wattage: item.maxWattage || undefined,
+                },
+            });
         }
 
-        proseCandidates.sort((a, b) => b.score - a.score);
-        for (const cand of proseCandidates.slice(0, 3)) {
+        candidates.sort((a, b) => b.score - a.score || b.item.timesUsed - a.item.timesUsed);
+        // Prefer candidates with a real signal (token match or usage history);
+        // fall back to the top in-category items so the estimator still sees the
+        // right family instead of "No recommendations".
+        const withSignal = candidates.filter(cand => cand.tokenScore > 0 || cand.item.timesUsed > 0);
+        const chosen = (withSignal.length > 0 ? withSignal : candidates).slice(0, 3);
+        for (const cand of chosen) {
+            const descriptionBased = cand.tokenScore > 0;
             recommendations.push({
                 id: cand.item.id,
                 source: 'Premier Items',
                 matchType: 'partial',
-                confidence: Math.min(60, cand.score), // cap at 60 — prose matching is imprecise
+                confidence: descriptionBased
+                    ? Math.min(60, Math.max(15, cand.score)) // cap at 60 — prose matching is imprecise
+                    : Math.min(45, 15 + Math.min(30, cand.item.timesUsed)),
                 premierItem: cand.item.itemId || undefined,
                 recordId: cand.item.id,
-                matchReason: `Category match: ${inferredCategory} (description-based)`,
+                matchReason: descriptionBased
+                    ? `Category match: ${inferredCategory} (description-based)`
+                    : `Category match: ${inferredCategory} — most-used catalog items (spec not identified at item level)`,
                 itemAttributes: cand.itemAttributes,
-                matchDetails: [`Category: ${cand.item.fixtureCategory}`, 'Matched from prose description'],
+                matchDetails: [
+                    `Category: ${cand.item.fixtureCategory}`,
+                    descriptionBased ? 'Matched from description tokens' : `Used ${cand.item.timesUsed} time${cand.item.timesUsed === 1 ? '' : 's'} before`,
+                ],
                 productCategory: cand.item.fixtureCategory || undefined,
             });
         }

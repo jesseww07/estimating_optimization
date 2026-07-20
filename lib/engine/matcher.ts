@@ -127,7 +127,27 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
     if (/SMOKE|CARBON\s*MONO/i.test(mark) && !/LIGHT|FIXTURE/.test(m)) return null; // smoke/CO detectors
     if (/CEILING\s*FAN|BEDROOM.*FAN/i.test(mark)) return 'Ceiling Fan';
     if (/\b(SGL|DBL|DOUBLE|SINGLE|DUAL)\s*VANITY/i.test(mark)) return 'Vanity';
-    if (/CABINET\s*LED|UNDER\s*CAB/i.test(mark)) return 'Linear';
+    if (/CABINET\s*LED|UNDER\s*CAB/i.test(mark)) return 'Undercabinet';
+
+    // ── High-signal words — checked against BOTH mark and catalog ─────────────
+    // Bid sheets carry the identifying word wherever the estimator typed it
+    // ("U-WM1 - 24"X36" Backlit Mirror", "U-SS1B - 22" Vanity", "OP1A - 20' POLE").
+    // The Camino Del Rio review showed these misrouted when only the catalog was
+    // checked. Order matters: mirror before vanity ("vanity mirror" is a mirror),
+    // both before the generic mark-code chains below.
+    const t = `${m} ${c}`;
+    if (/BACK.?LIT|LED\s*MIRROR|\bMIRROR\b/.test(t)) return 'Mirror';
+    if (/\bVANITY\b|\bBATH\s*BAR\b/.test(t)) return 'Vanity';
+    // Site poles & heads: an entire department builds these for every job — they
+    // must always classify so the in-category fallback can offer Premier builds.
+    if (/\bPOLE\b|\bPOST\s*TOP\b|\bBOLLARD\b|\b(SGL|DBL|SINGLE|DOUBLE|TWIN|QUAD)\s*HEAD\b/.test(t) || /^OP\d/.test(m)) {
+        return 'Outdoor Pole';
+    }
+    // Undercabinet fixtures (U-UC marks, AFX ELNU series) — a real category in the
+    // Premier vocabulary, distinct from tape.
+    if (/\bU?-?UC\d/.test(m) || /^ELNU|UNDERCAB/.test(c)) return 'Undercabinet';
+    // Unit surface disks (U-SD/SDE marks, LITON LCMPD series) — Premier Disk Light territory.
+    if (/\bU-SDE?\d|\bSDE?\d+\s*\(/.test(m) || /^LCMPD/.test(c)) return 'Recessed';
 
     // ── Ceiling Fan ────────────────────────────────────────────────────────────
     // Must be tested FIRST — CLF, CF, and fan-brand mfrs are unambiguous.
@@ -226,7 +246,9 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
     const isLinear =
         /\bF\d+\b|\bLIN\b|\bSTRIP\b|\bTROF\b/.test(m) || // F1E, F2, F4
         /LINEAR|STRIP|TROFFER|LED.?STRIP|UNDERCAB/.test(c) ||
-        /^LBL|^WL4|^ZL2/.test(c);                 // Lithonia linear products
+        /^LBL|^WL4|^ZL2/.test(c) ||               // Lithonia linear products
+        /^CSVT|^BLWP|^BLW\d/.test(c) ||           // Lithonia vapor-tight / wall-bracket linear (building lights → EFS/EFV family)
+        /VAPOR.?TIGHT|STAIRWELL|STAIRCASE/.test(c);
     if (isLinear) return 'Linear';
 
     // ── Ceiling / Flush Mount ──────────────────────────────────────────────────
@@ -255,8 +277,68 @@ export function looksLikeProse(s: string): boolean {
     // Prose indicators: contains common English words for fixture types, or
     // has a high ratio of spaces to total length (phrase vs. part number)
     const spaceRatio = (s.split(' ').length - 1) / s.length;
-    const hasProseWords = /\b(PENDANT|SCONCE|VANITY|BATH|CEILING|FLUSH|SURFACE|MOUNT|LIGHT|FIXTURE|ROUND|WIDE|TALL|LED|SLIM|MINI|LARGE|SMALL|CONCRETE|BRONZE|NICKEL|BLACK|WHITE|BRUSHED|CHROME|GLASS|FROSTED|OPEN|CLOSED|TIER|GLOBE|CONE|DOME|DRUM|RING|LINEAR|STRIP|PANEL|BACKLIT|MIRROR|FAN|BLADE|REMOTE)\b/.test(upper);
+    const hasProseWords = /\b(PENDANT|SCONCE|VANITY|BATH|CEILING|FLUSH|SURFACE|MOUNT|LIGHT|FIXTURE|ROUND|WIDE|TALL|LED|SLIM|MINI|LARGE|SMALL|CONCRETE|BRONZE|NICKEL|BLACK|WHITE|BRUSHED|CHROME|GLASS|FROSTED|OPEN|CLOSED|TIER|GLOBE|CONE|DOME|DRUM|RING|LINEAR|STRIP|PANEL|BACKLIT|MIRROR|FAN|BLADE|REMOTE|POLE|BOLLARD|HANDRAIL|STAIR)\b/.test(upper);
     return hasProseWords && spaceRatio > 0.05;
+}
+
+// ── Category vocabulary mapping ───────────────────────────────────────────────
+// The detector's labels are broad groupings; the Premier Items "Fixture Category"
+// singleSelect carries 30+ specific choices ("Post/Pier Head", "LED Mirror",
+// "Disk Light", …). Pulled from the live base 2026-07-20. The old substring
+// overlap silently matched almost nothing ("Outdoor" vs "Post/Pier Head") —
+// gate through this map instead.
+export const CATEGORY_GROUPS: Record<string, string[]> = {
+    'Ceiling Fan': ['Ceiling Fan', 'Ceiling Fans + Accessories'],
+    'Vanity': ['Vanity'],
+    'Mirror': ['LED Mirror'],
+    'Pendant': ['Pendant', 'Chandelier', 'Linear / Island Chandeliers'],
+    'Sconce': ['Sconce', 'Wall Sconce', 'Wall Mount', 'Outdoor Wall Sconce'],
+    'Outdoor Pole': ['Post/Pier Head', 'Post & Bollard'],
+    'Outdoor': ['Post/Pier Head', 'Post & Bollard', 'Flood Light', 'Outdoor Wall Sconce', 'Wall Mount'],
+    'Exit/Emergency': ['Exit Sign', 'Exit Sign / EMG'],
+    'Recessed': ['Disk Light', 'Downlight'],
+    'Linear': ['Linear Surface Mount', 'Surface Mount'],
+    'Undercabinet': ['Undercabinet / Tape Light + Connectors', 'Surface Mount'],
+    'Ceiling': ['Ceiling Mount', 'Flush / Surface Mount', 'Surface Mount'],
+};
+
+/**
+ * True when a catalog item's Fixture Category is acceptable for the inferred
+ * label. Falls back to the legacy substring overlap for labels not in the map
+ * (so unknown future labels degrade the old way instead of blocking everything).
+ */
+export function categoriesCompatible(inferredLabel: string, itemCategory: string): boolean {
+    if (!inferredLabel || !itemCategory) return true; // no signal — don't gate
+    const group = CATEGORY_GROUPS[inferredLabel];
+    if (group) {
+        const cat = itemCategory.trim().toLowerCase();
+        return group.some(g => g.toLowerCase() === cat);
+    }
+    const catNorm = itemCategory.toLowerCase();
+    const infNorm = inferredLabel.toLowerCase();
+    return catNorm.includes(infNorm) || infNorm.includes(catNorm);
+}
+
+// ── RFI / TBD placeholder detection (domain rule: never fabricate a match) ────
+
+const UNKNOWN_MFRS = new Set(['', 'TBD', 'RFI', 'N/A', 'NA', '-', '?', 'UNKNOWN', 'BY OTHERS']);
+
+/**
+ * True when a bid line has no identifiable spec — a TBD manufacturer with a
+ * placeholder catalog value (the mark repeated, a ceiling-height note like
+ * `(c.h. 10'0" aff 0'0")`, or an explicit RFI/NO SPEC marker). These lines get
+ * an RFI message, never a fabricated recommendation.
+ */
+export function isRfiPlaceholder(mark: string, catalogNumber: string, manufacturer: string): boolean {
+    const mfrUnknown = UNKNOWN_MFRS.has(manufacturer.trim().toUpperCase());
+    const cat = catalogNumber.trim();
+    const placeholderCatalog =
+        cat === '' ||
+        cat === mark.trim() ||
+        /MISSING\s+SPEC|NO\s+SPEC/i.test(cat) ||
+        (/^\s*\(/.test(cat) && /\bAFF\b|C\.?H\.?\s*\d/i.test(cat));
+    if (!placeholderCatalog) return false;
+    return mfrUnknown || /\bRFI\s*#?\s*\d/i.test(`${mark} ${cat}`);
 }
 
 // ── URL / junk protection (must-survive: invalid-rec-filter) ─────────────────
@@ -270,11 +352,19 @@ export function isUrlLike(value: string): boolean {
 
 // ── LED tape detection (must-survive: led-tape-suppress) ─────────────────────
 
-const TAPE_BRANDS = ['DIODE LED', 'DIODELED', 'AMERICAN LIGHTING', 'ELEMENTAL LED', 'ENVIRONMENTAL LIGHTS', 'Q-TRAN', 'QTRAN', 'LUMINII', 'GM LIGHTING'];
+const TAPE_BRANDS = ['DIODE LED', 'DIODELED', 'AMERICAN LIGHTING', 'ELEMENTAL LED', 'ENVIRONMENTAL LIGHTS', 'Q-TRAN', 'QTRAN', 'LUMINII', 'GM LIGHTING', 'TIVOLI', 'FEELUX'];
 
 /**
  * LED tape / flexible strip is suppressed with an informational message — it is
  * bid as-spec (channel, driver, and footage are project-specific), never swapped.
+ *
+ * Detected forms (Camino Del Rio review, 2026-07-20):
+ *  - explicit TAPE / flexible-strip wording
+ *  - tape-in-channel component specs: the catalog cell lists CHANNEL: plus a
+ *    DRIVER:/XMFR: breakdown (CORE LNE/LSM, TIVOLI, FEELUX systems)
+ *  - handrail / footage-run LED strip lines ("HR-STRIP - 14'0"", "LED STRIP LIGHT; HANDRAILS")
+ * Architectural linear fixtures (A-Light G3, Lithonia CSVT) carry none of these
+ * signatures and must NOT be suppressed.
  */
 export function isLedTape(mark: string, catalogNumber: string, manufacturer: string): boolean {
     const m = mark.toUpperCase();
@@ -283,9 +373,22 @@ export function isLedTape(mark: string, catalogNumber: string, manufacturer: str
 
     if (/LED\s*TAPE|TAPE\s*LIGHT|TAPE\s*LED|\bTAPE\b/.test(m) || /LED\s*TAPE|TAPE\s*LIGHT|\bTAPE\b/.test(c)) return true;
     if (/FLEX(IBLE)?\s*(LED\s*)?STRIP|RIBBON\s*LIGHT/.test(c) || /FLEX(IBLE)?\s*(LED\s*)?STRIP/.test(m)) return true;
+
+    // Tape-in-channel component spec: CHANNEL: always means a tape system; a
+    // DRIVER:/XMFR: breakdown with a 12/24V token does too.
+    const hasChannel = /(?:MOUNTING\s+)?CHANNEL\s*:/.test(c);
+    const hasDriver = /\b(?:DRIVER|XMFR|TRANSFORMER|PSU)\s*:/.test(c);
+    const lowVolt = /\b(?:12|24)\s*V\b|-(?:12|24)\b/.test(c);
+    if (hasChannel) return true;
+    if (hasDriver && lowVolt) return true;
+
+    // Handrail / cove strip runs measured in feet ("HR-STRIP - 14'0"").
+    if (/\bHR-?STRIP\b|HAND\s*RAIL/.test(`${m} ${c}`)) return true;
+    if (/LED\s*STRIP\s*LIGHT/.test(c) && (/HANDRAIL|COVE/.test(c) || /\d+\s*'\s*\d*\s*"?/.test(m))) return true;
+
     // Known tape product families / low-voltage strip signatures from tape brands
     const fromTapeBrand = TAPE_BRANDS.some(b => mfr.includes(b));
-    if (fromTapeBrand && (/\b(12|24)V\b|BLAZE|VALENT|FLUID.?VIEW|TRULUX|SPEC.?GRADE\s*TAPE/.test(c) || /\bSTRIP\b/.test(c))) return true;
+    if (fromTapeBrand && (/\b(12|24)V\b|BLAZE|VALENT|FLUID.?VIEW|TRULUX|SPEC.?GRADE\s*TAPE/.test(c) || /\bSTRIP\b/.test(c) || hasDriver)) return true;
     return false;
 }
 
