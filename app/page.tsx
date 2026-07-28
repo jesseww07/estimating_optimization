@@ -126,7 +126,7 @@ function attrChips(attrs?: ItemAttributes): string[] {
 
 export default function Home() {
     const [health, setHealth] = useState<{ liveData: boolean; counts?: HealthCounts } | null>(null);
-    const [phase, setPhase] = useState<'idle' | 'uploading' | 'analyzing'>('idle');
+    const [phase, setPhase] = useState<'idle' | 'uploading' | 'reading-pdf' | 'analyzing'>('idle');
     const [error, setError] = useState<string | null>(null);
     const [warning, setWarning] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
@@ -161,7 +161,7 @@ export default function Home() {
         setResults(null);
         setSelections({});
         setFileName(file.name);
-        setPhase('uploading');
+        setPhase(file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf' ? 'reading-pdf' : 'uploading');
         try {
             const form = new FormData();
             form.append('file', file);
@@ -345,14 +345,15 @@ export default function Home() {
                         if (f) handleFile(f);
                     }}
                 >
-                    <h2 className="text-2xl mb-2">Upload a bid sheet</h2>
+                    <h2 className="text-2xl mb-2">Upload a bid sheet or fixture schedule</h2>
                     <p className="text-muted text-sm mb-6 font-data">
-                        Pre-converted CSV or single-sheet Excel with Mark / Qty / Manufacturer / Catalog # columns.
+                        CSV / single-sheet Excel with Mark / Qty / Manufacturer / Catalog # columns —
+                        or a fixture-schedule PDF (read automatically; takes a minute or two).
                     </p>
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb"
+                        accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,.pdf,application/pdf"
                         className="hidden"
                         onChange={e => {
                             const f = e.target.files?.[0];
@@ -365,7 +366,7 @@ export default function Home() {
                         disabled={phase !== 'idle'}
                         className="bg-plteal text-white px-8 py-3 text-sm tracking-widest uppercase hover:bg-steel disabled:opacity-50 font-data"
                     >
-                        {phase === 'uploading' ? 'Parsing…' : phase === 'analyzing' ? 'Analyzing…' : 'Choose file'}
+                        {phase === 'uploading' ? 'Parsing…' : phase === 'reading-pdf' ? 'Reading PDF…' : phase === 'analyzing' ? 'Analyzing…' : 'Choose file'}
                     </button>
                     {fileName && phase === 'idle' && (
                         <p className="text-xs text-muted mt-3 font-data">{fileName}</p>

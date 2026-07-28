@@ -167,3 +167,30 @@ describe('coerceLineItem identified/specUrls passthrough', () => {
         expect(item?.identified?.category).toBeNull();
     });
 });
+
+describe('schedule PDF row mapping', async () => {
+    const { scheduleRowsToLineItems } = await import('@/lib/identify/schedule');
+
+    it('maps extracted rows to line items with sections, urls, and raw columns', () => {
+        const items = scheduleRowsToLineItems([
+            { mark: 'CG-400', quantity: '98', manufacturer: 'Electric Mirror', catalogNumber: 'VAL1.1-48.00X36.00', section: 'Vanity', description: 'Front Lit-Mirror', specUrl: 'https://electricmirror.com/val' },
+            { mark: 'CG-403.B', quantity: '309', manufacturer: 'SATCO', catalogNumber: 'S9594', section: 'Kitchen', description: '', specUrl: null },
+        ]);
+        expect(items).toHaveLength(2);
+        expect(items[0]!.rowIndex).toBe(0);
+        expect(items[0]!.section).toBe('Vanity');
+        expect(items[0]!.specUrls).toEqual(['https://electricmirror.com/val']);
+        expect(items[0]!.rawRow.DESCRIPTION).toBe('Front Lit-Mirror');
+        expect(items[1]!.catalogNumber).toBe('S9594');
+        expect(items[1]!.specUrls).toBeUndefined();
+    });
+
+    it('falls back to the description when a row has no catalog number, and drops empty rows', () => {
+        const items = scheduleRowsToLineItems([
+            { mark: 'P1', quantity: '4', manufacturer: '', catalogNumber: '', section: 'Site', description: '20FT POLE DOUBLE HEAD', specUrl: null },
+            { mark: '', quantity: '', manufacturer: '', catalogNumber: '', section: '', description: '', specUrl: null },
+        ]);
+        expect(items).toHaveLength(1);
+        expect(items[0]!.catalogNumber).toBe('20FT POLE DOUBLE HEAD');
+    });
+});
