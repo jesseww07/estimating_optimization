@@ -75,6 +75,23 @@ export function looksLikeCatalogNumber(value: string): boolean {
            hasTypicalPatterns;
 }
 
+// Estimators paste spec-sheet links into stray columns — surface every URL in
+// the row so the UI can offer "Identify from link" (Phase 2).
+const URL_IN_CELL_RE = /(?:https?:\/\/|www\.)[^\s"'<>()]+/gi;
+
+export function extractUrlsFromCells(cells: string[]): string[] {
+    const urls: string[] = [];
+    for (const cell of cells) {
+        if (!cell) continue;
+        for (const match of cell.match(URL_IN_CELL_RE) ?? []) {
+            const cleaned = match.replace(/[.,;]+$/, '');
+            const normalized = cleaned.startsWith('www.') ? `https://${cleaned}` : cleaned;
+            if (!urls.includes(normalized)) urls.push(normalized);
+        }
+    }
+    return urls;
+}
+
 /** Parse XLSX/XLS bytes (first sheet only) into a string grid. */
 export function parseExcelBuffer(buffer: ArrayBuffer | Buffer): string[][] {
     const workbook = XLSX.read(buffer, { type: buffer instanceof ArrayBuffer ? 'array' : 'buffer' });
@@ -434,6 +451,8 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
                 finalMark.length > 120;         // paragraph text in mark column
             if (isJunkRow) continue;
 
+            const specUrls = extractUrlsFromCells(row.map(c => String(c ?? '')));
+
             items.push({
                 rowIndex: i,
                 section: sectionValue || currentSection,
@@ -442,6 +461,7 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
                 manufacturer: mfgValue,
                 catalogNumber: finalCatalog,
                 rawRow,
+                ...(specUrls.length > 0 ? { specUrls } : {}),
             });
         }
     }

@@ -31,17 +31,22 @@ import type {
     Recommendation,
 } from '../types';
 import {
+    CATEGORY_GROUPS,
     calculateCatalogMatchScore,
     calculateMatchScore,
     categoriesCompatible,
     detectFixtureCategory,
     dimensionsCompatible,
+    extractLampAttributes,
+    isBulbLampLine,
     isLedTape,
     isRfiPlaceholder,
+    isSatcoLampNumber,
     isUrlLike,
     looksLikeProse,
     normalizeProductId,
     normalizeSpecKey,
+    thirdPartyCategoriesCompatible,
 } from './matcher';
 import {
     OWN_BRAND_BONUS,
@@ -89,6 +94,168 @@ function isPassthroughDecorative(manufacturer: string, inferredCategory: string 
 const CODE_FRAGMENT_RE = /function|return|const|let|var|=>|===|\?\s*:/i;
 const CODE_PREFIX_RE = /^if\s+(it|this|the)/i;
 
+// ── Bulb / lamp lines (Candlewood tuning, 2026-07-28) ────────────────────────
+// Hospitality bids pair every fixture with a companion bulb line. A bulb line
+// gets lamps, never fixtures: candidates come from the 3rd-party Light Bulb
+// catalog, scored by lamp attributes (shape / kelvin / wattage) extracted from
+// the spec prose plus how often that lamp has actually been bid.
+
+function isLampCatalogItem(item: { itemId: string; manufacturer: string; productCategories: string }): boolean {
+    if (item.productCategories.toLowerCase().includes('light bulb')) return true;
+    return isSatcoLampNumber(item.itemId) && item.manufacturer.toLowerCase().includes('satco');
+}
+
+/** How many times each lamp (by normalized item number) was bid across all history. */
+function lampUsageCounts(ctx: EngineContext): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const row of ctx.history) {
+        if (!isSatcoLampNumber(row.bidItem)) continue;
+        const key = normalizeProductId(row.bidItem);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+}
+
+function analyzeBulbLine(lineItem: ParsedLineItem, ctx: EngineContext, catalogNumber: string): LineItemAnalysis {
+    const usage = lampUsageCounts(ctx);
+    const lamps = ctx.thirdPartyItems.filter(isLampCatalogItem);
+    const normCat = normalizeProductId(catalogNumber);
+
+    // The spec already IS a specific lamp number (e.g. "S9594") — confirm it,
+    // never text-match it against fixture SKUs.
+    if (isSatcoLampNumber(catalogNumber)) {
+        const exact = lamps.find(l => normalizeProductId(l.itemId) === normCat);
+        const timesBid = usage.get(normCat) ?? 0;
+        return {
+            lineItem,
+            recommendations: [{
+                id: exact?.id ?? `bulb-asspec-${lineItem.rowIndex}`,
+                source: '3rd Party',
+                matchType: 'exact',
+                confidence: 99,
+                bidItem: catalogNumber,
+                recordId: exact?.id,
+                matchReason: 'Already a specified SATCO lamp — carry as spec',
+                matchDetails: [
+                    ...(exact ? [`Catalog: ${exact.itemDescription}`.slice(0, 120)] : []),
+                    ...(timesBid > 0 ? [`Bid ${timesBid} time${timesBid === 1 ? '' : 's'} across history`] : []),
+                ],
+                itemAttributes: exact ? {
+                    category: 'Light Bulb',
+                    colorTemp: exact.colorTemp || undefined,
+                    wattage: exact.maxWattage || undefined,
+                    manufacturer: exact.manufacturer || undefined,
+                } : { category: 'Light Bulb' },
+                ...(exact ? { thirdPartyLinkId: exact.id } : {}),
+                isPassthrough: true,
+            }],
+        };
+    }
+
+    // Prose bulb description ("Bulb @ Pendent Light - 5W LED A15, 3000K"):
+    // attribute-match against the lamp catalog. History swaps for the same
+    // normalized spec (as write-back accumulates them) add direct evidence.
+    const specAttrs = extractLampAttributes(`${lineItem.mark} ${catalogNumber}`);
+    const hasAttrSignal = !!(specAttrs.shape || specAttrs.kelvin || specAttrs.watts);
+    const normalizedSpecKey = normalizeSpecKey(catalogNumber);
+    const swapCounts = new Map<string, number>();
+    for (const row of ctx.history) {
+        if (!isSatcoLampNumber(row.bidItem)) continue;
+        if (normalizedSpecKey.length >= 6 && normalizeSpecKey(row.originalSpec) === normalizedSpecKey) {
+            const key = normalizeProductId(row.bidItem);
+            swapCounts.set(key, (swapCounts.get(key) ?? 0) + 1);
+        }
+    }
+
+    const scored: Array<{ score: number; reasons: string[]; details: string[]; item: (typeof lamps)[number] }> = [];
+    for (const item of lamps) {
+        const candText = `${item.itemId} ${item.itemDescription}`;
+        const candAttrs = extractLampAttributes(candText);
+        if (!candAttrs.kelvin && item.colorTemp) {
+            const k = Number(String(item.colorTemp).replace(/[^0-9]/g, ''));
+            if (k >= 1800 && k <= 6500) candAttrs.kelvin = k;
+        }
+        if (candAttrs.watts === undefined && item.maxWattage) {
+            const w = Number(String(item.maxWattage).replace(/[^0-9.]/g, ''));
+            if (Number.isFinite(w) && w > 0) candAttrs.watts = w;
+        }
+
+        // Hard gates: a declared shape or kelvin must not contradict.
+        if (specAttrs.shape && candAttrs.shape && specAttrs.shape !== candAttrs.shape) continue;
+        if (specAttrs.kelvin && candAttrs.kelvin && specAttrs.kelvin !== candAttrs.kelvin) continue;
+
+        const key = normalizeProductId(item.itemId);
+        const timesBid = usage.get(key) ?? 0;
+        const swaps = swapCounts.get(key) ?? 0;
+        const reasons: string[] = [];
+        const details: string[] = [`Catalog: ${item.itemDescription}`.slice(0, 120)];
+        let score = 20; // it is a lamp, and this is a lamp line
+
+        if (specAttrs.shape && candAttrs.shape === specAttrs.shape) {
+            score += 30;
+            reasons.push(specAttrs.shape);
+        }
+        if (specAttrs.kelvin && candAttrs.kelvin === specAttrs.kelvin) {
+            score += 20;
+            reasons.push(`${specAttrs.kelvin}K`);
+        }
+        if (specAttrs.watts !== undefined && candAttrs.watts !== undefined) {
+            const diff = Math.abs(specAttrs.watts - candAttrs.watts);
+            if (diff <= 1) { score += 15; reasons.push(`${candAttrs.watts}W`); }
+            else if (diff <= 3) { score += 8; }
+        }
+        score += Math.min(20, timesBid * 2);
+        if (timesBid > 0) details.push(`Bid ${timesBid} time${timesBid === 1 ? '' : 's'} across history`);
+        if (swaps > 0) {
+            score += Math.min(25, swaps * 8);
+            details.push(`${swaps} matching swap${swaps === 1 ? '' : 's'}: same bulb spec → this lamp`);
+        }
+
+        // With no attribute signal at all, only usage ranks — keep confidence honest.
+        if (!hasAttrSignal && swaps === 0) {
+            if (timesBid === 0) continue;
+            score = Math.min(55, 20 + timesBid * 2);
+        }
+
+        scored.push({
+            score,
+            reasons,
+            details,
+            item,
+        });
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+    const recommendations: Recommendation[] = scored.slice(0, 3).map(cand => ({
+        id: cand.item.id,
+        source: '3rd Party' as const,
+        matchType: cand.score >= 70 ? 'exact' as const : cand.score >= 45 ? 'fuzzy' as const : 'partial' as const,
+        confidence: Math.min(96, Math.round(cand.score)),
+        premierItem: cand.item.itemId,
+        recordId: cand.item.id,
+        matchReason: cand.reasons.length > 0
+            ? `Lamp match: ${cand.reasons.join(' · ')}`
+            : 'Most-used lamp in bid history (bulb spec carries no attributes)',
+        itemAttributes: {
+            category: 'Light Bulb',
+            colorTemp: cand.item.colorTemp || undefined,
+            wattage: cand.item.maxWattage || undefined,
+            manufacturer: cand.item.manufacturer || undefined,
+        },
+        matchDetails: cand.details,
+        productCategory: 'Light Bulb',
+        thirdPartyLinkId: cand.item.id,
+    }));
+
+    return {
+        lineItem,
+        recommendations,
+        ...(recommendations.length === 0
+            ? { infoMessage: 'Bulb/lamp line — no matching lamp found in the catalog; bid as specified.' }
+            : {}),
+    };
+}
+
 /**
  * Parity-runner entry point (BIND 1): one parsed line item + the data context,
  * returns Recommendation[] ranked best-first.
@@ -123,17 +290,33 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         };
     }
 
+    // A bulb/lamp companion line ("CG-404.B", SATCO, "Bulb @ ...") takes the
+    // dedicated lamp path: lamps in, fixtures never (Candlewood tuning).
+    if (isBulbLampLine(mark, lineItem.catalogNumber, manufacturer)) {
+        return analyzeBulbLine(lineItem, ctx, catalogNumber);
+    }
+
     // Extract fixture type hint from any raw column that holds a short fixture-type label.
     // Many bid trackers repurpose columns (e.g. "QTY LAMPS") to hold values like
     // "VANITY", "FAN", "POST TOP", "DISC" — use these to sharpen category detection.
+    // The LOCATION column is excluded: a room name like "Vanity" is where the fixture
+    // hangs, not what it is (Candlewood: Electric Mirror lines misrouted to Vanity).
     const FIXTURE_HINT_RE = /^(fan|ceiling fan|vanity|bath bar|pendant|sconce|can|recessed|disc|disk|downlight|linear|strip|strip light|canopy|troffer|surface|flush|semi|semi-flush|post top|post|outdoor|bollard|pole|exit|exit sign|emergency|egress|up.?down|wall pack|flood|area light|closet|shelf|cabinet)$/i;
+    const sectionNorm = (lineItem.section || '').trim().toUpperCase();
     const fixtureTypeHint = Object.values(lineItem.rawRow).find(v => {
         const t = (v || '').trim();
-        return t.length >= 3 && t.length <= 20 && FIXTURE_HINT_RE.test(t);
+        return t.length >= 3 && t.length <= 20 && t.toUpperCase() !== sectionNorm && FIXTURE_HINT_RE.test(t);
     }) || '';
 
-    // Infer fixture category once — used to gate Fans and Premier Items matching
-    const inferredCategory = detectFixtureCategory(mark, catalogNumber, manufacturer, fixtureTypeHint);
+    // Infer fixture category once — used to gate Fans and Premier Items matching.
+    // A category from a per-line identification (URL/web/PDF, Phase 2) is authoritative
+    // over the text heuristic: it was extracted from the actual spec sheet / product page
+    // and is already expressed in the detector's vocabulary.
+    const identifiedCategory =
+        lineItem.identified?.category && CATEGORY_GROUPS[lineItem.identified.category]
+            ? lineItem.identified.category
+            : null;
+    const inferredCategory = identifiedCategory ?? detectFixtureCategory(mark, catalogNumber, manufacturer, fixtureTypeHint);
 
     // The dimension signature the spec exposes — candidates are gated against this.
     const specDimensionText = `${mark} ${catalogNumber}`;
@@ -394,6 +577,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             specEnrichConfidence: firstMatch?.specEnrichConfidence,
             matchedOriginalSpec: firstMatch?.originalSpec,
             catalogSource,
+            premierLinkId: resolvedPremier?.id,
+            thirdPartyLinkId: resolvedThirdParty?.id,
         });
     }
 
@@ -481,6 +666,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     itemAttributes,
                     matchDetails,
                     productCategory: category || undefined,
+                    premierLinkId: item.id,
                 });
             }
         }
@@ -613,7 +799,27 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             .split(/[\s\-\/,()'"]+/)
             .filter(t => t.length >= 3 && !stopWords.has(t) && !/^\d+(\.\d+)?["']?$/.test(t));
 
-        const candidates: Array<{ tokenScore: number; usageBonus: number; score: number; item: (typeof ctx.premierItems)[number]; itemAttributes: ItemAttributes }> = [];
+        interface FallbackCandidate {
+            tokenScore: number;
+            usageBonus: number;
+            score: number;
+            tier: 'premier' | 'third_party';   // own-brand catalog first, 3rd-party budget tier second
+            id: string;
+            itemId: string;
+            category: string;
+            timesUsed: number;
+            itemAttributes: ItemAttributes;
+        }
+        const candidates: FallbackCandidate[] = [];
+
+        const tokenScoreFor = (itemId: string, description: string): number => {
+            const searchTarget = (itemId + ' ' + description).toUpperCase();
+            let tokenScore = 0;
+            for (const token of proseTokens) {
+                if (searchTarget.includes(token)) tokenScore++;
+            }
+            return tokenScore;
+        };
 
         for (const item of ctx.premierItems) {
             const category = item.fixtureCategory;
@@ -625,19 +831,18 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
 
             // Score by token overlap with item ID + description, then usage.
-            const searchTarget = (item.itemId + ' ' + item.itemDescription).toUpperCase();
-            let tokenScore = 0;
-            for (const token of proseTokens) {
-                if (searchTarget.includes(token)) tokenScore++;
-            }
-
+            const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
             const usageBonus = Math.min(10, Math.floor(item.timesUsed / 2));
 
             candidates.push({
                 tokenScore,
                 usageBonus,
                 score: tokenScore * 8 + usageBonus,
-                item,
+                tier: 'premier',
+                id: item.id,
+                itemId: item.itemId,
+                category,
+                timesUsed: item.timesUsed,
                 itemAttributes: {
                     category: category || undefined,
                     finish: item.finish || undefined,
@@ -647,32 +852,67 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             });
         }
 
-        candidates.sort((a, b) => b.score - a.score || b.item.timesUsed - a.item.timesUsed);
+        // 3rd-party items join the fallback as the budget-alternative tier
+        // (SATCO/Westgate). No Times Used on that table, so their signal is
+        // token overlap only — and the tier ordering below guarantees they never
+        // rank above an own-brand candidate with equal signal.
+        for (const item of ctx.thirdPartyItems) {
+            if (!thirdPartyCategoriesCompatible(inferredCategory, item.productCategories)) continue;
+            if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
+
+            const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
+            candidates.push({
+                tokenScore,
+                usageBonus: 0,
+                score: tokenScore * 8,
+                tier: 'third_party',
+                id: item.id,
+                itemId: item.itemId,
+                category: item.productCategories,
+                timesUsed: 0,
+                itemAttributes: {
+                    category: item.productCategories || undefined,
+                    finish: item.finish || undefined,
+                    colorTemp: item.colorTemp || undefined,
+                    wattage: item.maxWattage || undefined,
+                    manufacturer: item.manufacturer || undefined,
+                },
+            });
+        }
+
+        candidates.sort((a, b) =>
+            b.score - a.score ||
+            // Equal signal: own-brand always outranks the 3rd-party tier.
+            (a.tier === b.tier ? 0 : a.tier === 'premier' ? -1 : 1) ||
+            b.timesUsed - a.timesUsed);
         // Prefer candidates with a real signal (token match or usage history);
         // fall back to the top in-category items so the estimator still sees the
         // right family instead of "No recommendations".
-        const withSignal = candidates.filter(cand => cand.tokenScore > 0 || cand.item.timesUsed > 0);
+        const withSignal = candidates.filter(cand => cand.tokenScore > 0 || cand.timesUsed > 0);
         const chosen = (withSignal.length > 0 ? withSignal : candidates).slice(0, 3);
         for (const cand of chosen) {
             const descriptionBased = cand.tokenScore > 0;
+            const isThirdParty = cand.tier === 'third_party';
             recommendations.push({
-                id: cand.item.id,
-                source: 'Premier Items',
+                id: cand.id,
+                source: isThirdParty ? '3rd Party' : 'Premier Items',
                 matchType: 'partial',
                 confidence: descriptionBased
                     ? Math.min(60, Math.max(15, cand.score)) // cap at 60 — prose matching is imprecise
-                    : Math.min(45, 15 + Math.min(30, cand.item.timesUsed)),
-                premierItem: cand.item.itemId || undefined,
-                recordId: cand.item.id,
+                    : Math.min(45, 15 + Math.min(30, cand.timesUsed)),
+                premierItem: cand.itemId || undefined,
+                recordId: cand.id,
                 matchReason: descriptionBased
-                    ? `Category match: ${inferredCategory} (description-based)`
+                    ? `Category match: ${inferredCategory} (description-based${isThirdParty ? ', 3rd-party alternative' : ''})`
                     : `Category match: ${inferredCategory} — most-used catalog items (spec not identified at item level)`,
                 itemAttributes: cand.itemAttributes,
                 matchDetails: [
-                    `Category: ${cand.item.fixtureCategory}`,
-                    descriptionBased ? 'Matched from description tokens' : `Used ${cand.item.timesUsed} time${cand.item.timesUsed === 1 ? '' : 's'} before`,
+                    `Category: ${cand.category}`,
+                    descriptionBased ? 'Matched from description tokens' : `Used ${cand.timesUsed} time${cand.timesUsed === 1 ? '' : 's'} before`,
+                    ...(isThirdParty ? ['3rd-party budget alternative'] : []),
                 ],
-                productCategory: cand.item.fixtureCategory || undefined,
+                productCategory: cand.category || undefined,
+                ...(isThirdParty ? { thirdPartyLinkId: cand.id } : { premierLinkId: cand.id }),
             });
         }
         hasAnyRecommendations = recommendations.length > 0;

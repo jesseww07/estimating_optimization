@@ -29,8 +29,10 @@ beforeAll(async () => {
 });
 
 // ── generic assertion helpers ───────────────────────────────────────────────
-const idxOf = (recs: Recommendation[], premierItem: string) =>
-    recs.findIndex((r) => r.premierItem === premierItem);
+/** The item value a recommendation surfaces, whichever field carries it. */
+const recItem = (r: Recommendation) => r.premierItem ?? r.bidItem ?? r.fanItem;
+const idxOf = (recs: Recommendation[], item: string) =>
+    recs.findIndex((r) => recItem(r) === item);
 
 function assertExpectations(recs: Recommendation[], e: ExpectSpec) {
     const top = recs[0];
@@ -54,11 +56,11 @@ function assertExpectations(recs: Recommendation[], e: ExpectSpec) {
         expect((top.matchReason ?? '').toLowerCase()).toContain(e.matchReasonContains.toLowerCase());
 
     if (e.mustInclude) {
-        const present = new Set(recs.map((r) => r.premierItem));
+        const present = new Set(recs.map(recItem));
         for (const sku of e.mustInclude) expect(present, `must include ${sku}`).toContain(sku);
     }
     if (e.mustNotInclude) {
-        const present = new Set(recs.map((r) => r.premierItem));
+        const present = new Set(recs.map(recItem));
         for (const sku of e.mustNotInclude) expect(present, `must NOT include ${sku}`).not.toContain(sku);
     }
     if (e.mustRankAbove) {

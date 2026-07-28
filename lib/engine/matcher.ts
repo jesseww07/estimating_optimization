@@ -136,7 +136,9 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
     // checked. Order matters: mirror before vanity ("vanity mirror" is a mirror),
     // both before the generic mark-code chains below.
     const t = `${m} ${c}`;
-    if (/BACK.?LIT|LED\s*MIRROR|\bMIRROR\b/.test(t)) return 'Mirror';
+    // Electric Mirror is a mirror manufacturer — brand alone identifies the category
+    // (Candlewood review 2026-07-28: their Front Lit-Mirror lines misrouted to Vanity).
+    if (/BACK.?LIT|LED\s*MIRROR|\bMIRROR\b/.test(t) || mfr.includes('ELECTRIC MIRROR')) return 'Mirror';
     if (/\bVANITY\b|\bBATH\s*BAR\b/.test(t)) return 'Vanity';
     // Site poles & heads: an entire department builds these for every job — they
     // must always classify so the in-category fallback can offer Premier builds.
@@ -254,7 +256,7 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
     // ── Ceiling / Flush Mount ──────────────────────────────────────────────────
     const isCeiling =
         /\bCL\b|\bCM\b|\bSF\b|\bFM\b/.test(m) ||
-        /FLUSH.?MOUNT|SEMI.?FLUSH|CLOSE.?TO.?CEIL/.test(c);
+        /FLUSH.?MOUNT|SEMI.?FLUSH|CLOSE.?TO.?CEIL|CEILING.?MOUNT/.test(c);
     if (isCeiling) return 'Ceiling';
 
     return null;
@@ -317,6 +319,77 @@ export function categoriesCompatible(inferredLabel: string, itemCategory: string
     const catNorm = itemCategory.toLowerCase();
     const infNorm = inferredLabel.toLowerCase();
     return catNorm.includes(infNorm) || infNorm.includes(catNorm);
+}
+
+// ── Bulb / lamp lines (Candlewood review 2026-07-28) ─────────────────────────
+// Hospitality bids pair every fixture with a companion bulb line ("CG-404.B",
+// SATCO, "Bulb @ Pendent Light - 5W LED A15, 3000K"). These are LAMP lines:
+// the engine must never offer fixtures for them, and the SATCO S-series
+// exclusion (which protects FIXTURE specs from being swapped to bulbs) must
+// not starve them either.
+
+/** SATCO S-series lamp number, e.g. S9594 / S12407. (normalizeProductId lowercases.) */
+export function isSatcoLampNumber(value: string): boolean {
+    return /^s\d{4,5}$/.test(normalizeProductId(value));
+}
+
+// Lookbehind instead of \b on the left: SATCO writes "9.5A19/LED/3000K", where
+// the digit touching the shape defeats a word boundary.
+const LAMP_SHAPE_RE = /(?<![A-Z])(A15|A19|A21|B10|B11|CA10|CA11|BR20|BR30|BR40|PAR16|PAR20|PAR30|PAR38|MR11|MR16|G9|G16|G25|G30|G40|GU10|GU24|ST19|ST64|T[2-9]|T1[02])\b/;
+
+export interface LampAttributes {
+    shape?: string;     // A15, A19, BR30, G40, …
+    kelvin?: number;    // 2700, 3000, … (normalizes "30K" → 3000)
+    watts?: number;
+    base?: string;      // E26, E12, MEDIUM, CANDELABRA
+}
+
+export function extractLampAttributes(text: string): LampAttributes {
+    const t = (text || '').toUpperCase();
+    const attrs: LampAttributes = {};
+    const shape = t.match(LAMP_SHAPE_RE)?.[1];
+    if (shape) attrs.shape = shape;
+    const k4 = t.match(/\b([23][0-9]{3})\s*K\b/);
+    const k2 = t.match(/\b([23][0-9])K\b/);
+    if (k4) attrs.kelvin = Number(k4[1]);
+    else if (k2) attrs.kelvin = Number(k2[1]) * 100;
+    const w = t.match(/\b(\d{1,3}(?:\.\d{1,2})?)\s*(?:W\b|WATTS?\b)/);
+    if (w) attrs.watts = Number(w[1]);
+    const base = t.match(/\b(E26|E12|GU24|MED(?:IUM)?\s*BASE|CANDELABRA)\b/)?.[1];
+    if (base) attrs.base = base.startsWith('MED') ? 'E26' : base === 'CANDELABRA' ? 'E12' : base;
+    return attrs;
+}
+
+/**
+ * True when a bid line IS a bulb/lamp (not a fixture): explicit "Bulb …"
+ * wording, a bare SATCO S-number, or the ".B" companion-line convention /
+ * lamp-shaped SATCO prose. Bulb lines take the dedicated lamp-matching path.
+ */
+export function isBulbLampLine(mark: string, catalogNumber: string, manufacturer: string): boolean {
+    const m = (mark || '').toUpperCase().trim();
+    const c = (catalogNumber || '').toUpperCase();
+    if (/\bBULBS?\b/.test(c) || /\bBULBS?\b/.test(m)) return true;
+    if (isSatcoLampNumber(catalogNumber)) return true;
+    const satcoMfr = (manufacturer || '').toUpperCase().includes('SATCO');
+    if (satcoMfr && /\.B\d*$/.test(m)) return true;                       // CG-404.B pairing convention
+    if (satcoMfr && (LAMP_SHAPE_RE.test(c) || /\bLED\b/.test(c))) return true;
+    return false;
+}
+
+/**
+ * Category gate for 3rd Party Domestic Items, whose "Product Categories" field
+ * is a display string of linked category names (possibly several, comma
+ * joined) rather than a single select. Conservative: an item with no category
+ * signal never qualifies for the in-category fallback.
+ */
+export function thirdPartyCategoriesCompatible(inferredLabel: string, productCategories: string): boolean {
+    if (!inferredLabel || !productCategories) return false;
+    const cats = productCategories.toLowerCase();
+    const group = CATEGORY_GROUPS[inferredLabel];
+    if (group) {
+        return group.some(g => cats.includes(g.toLowerCase()));
+    }
+    return cats.includes(inferredLabel.toLowerCase());
 }
 
 // ── RFI / TBD placeholder detection (domain rule: never fabricate a match) ────

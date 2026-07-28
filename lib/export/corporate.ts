@@ -26,6 +26,9 @@ export interface ExportSubstitution {
     source: string;
     confidence: number;
     matchReason: string;
+    /** Catalog record ids backing the selection — used by the History write-back link, not the workbook. */
+    premierLinkId?: string;
+    thirdPartyLinkId?: string;
 }
 
 export interface ExportRow {
@@ -42,6 +45,10 @@ export interface ExportRequest {
     sourceFileName?: string;
     /** Bid date shown in the header; defaults to today (US format). */
     bidDate?: string;
+    /** Sales rep name for the header block (SALES - …). */
+    salesRep?: string;
+    /** Estimator name for the header block (ESTIMATOR - …). */
+    estimator?: string;
     rows: ExportRow[];
 }
 
@@ -104,10 +111,10 @@ function headerRows(req: ExportRequest, gridLabel: string): (string | number | n
     rows.push(r6);                                                                     // 6
     const r7: (string | null)[] = [];
     r7[COL.MARK] = `JOB LOCATION - ${req.jobLocation.toUpperCase()}`;
-    r7[COL.MAN] = 'SALES - ';
+    r7[COL.MAN] = `SALES - ${(req.salesRep ?? '').toUpperCase()}`;
     rows.push(r7);                                                                     // 7
     const r8: (string | null)[] = [];
-    r8[COL.MAN] = 'ESTIMATOR - ';
+    r8[COL.MAN] = `ESTIMATOR - ${(req.estimator ?? '').toUpperCase()}`;
     rows.push(r8);                                                                     // 8
     rows.push([], []);                                                                 // 9-10
     for (const note of STANDARD_NOTES) {
@@ -194,11 +201,20 @@ function buildSheet(req: ExportRequest, mode: 'VE' | 'ORIGINAL'): XLSX.WorkSheet
     aoa.push(tot);
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    // Subtotal formula over the EXTENDED COST column (left blank for pricing).
     if (req.rows.length > 0) {
-        const colLetter = XLSX.utils.encode_col(COL.EXTENDED);
+        const qtyCol = XLSX.utils.encode_col(COL.QTY);
+        const unitCol = XLSX.utils.encode_col(COL.UNIT_COST);
+        const extCol = XLSX.utils.encode_col(COL.EXTENDED);
+        // Extended cost per row: =QTY*unit. The unit-cost column stays blank for
+        // the estimator; the formula fills in as soon as pricing is entered.
+        for (let excelRow = firstDataRow; excelRow <= lastDataRow; excelRow++) {
+            const cell = XLSX.utils.encode_cell({ r: excelRow - 1, c: COL.EXTENDED });
+            ws[cell] = { t: 'n', f: `${qtyCol}${excelRow}*${unitCol}${excelRow}` };
+        }
+        // Subtotal over the EXTENDED COST column — the range spans exactly the
+        // formula rows above.
         const subCell = XLSX.utils.encode_cell({ r: aoa.length - 3, c: COL.EXTENDED });
-        ws[subCell] = { t: 'n', f: `SUM(${colLetter}${firstDataRow}:${colLetter}${lastDataRow})` };
+        ws[subCell] = { t: 'n', f: `SUM(${extCol}${firstDataRow}:${extCol}${lastDataRow})` };
     }
     ws['!cols'] = Array.from({ length: 20 }, (_, i) => {
         if (i === COL.MARK) return { wch: 22 };

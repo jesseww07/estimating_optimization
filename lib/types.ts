@@ -8,6 +8,8 @@
  * Next.js, no Airtable SDK imports anywhere in this file.
  */
 
+import type { IdentifiedSpec } from './identify/types';
+
 export interface ParsedLineItem {
     rowIndex: number;
     section: string;
@@ -16,6 +18,10 @@ export interface ParsedLineItem {
     manufacturer: string;
     catalogNumber: string;
     rawRow: Record<string, string>;
+    /** Spec-sheet URLs found anywhere in the raw row (estimators paste links in stray columns). */
+    specUrls?: string[];
+    /** Set when the line was identified via URL / web lookup / PDF — provenance for the UI. */
+    identified?: IdentifiedSpec;
 }
 
 export interface HistoryMatch {
@@ -48,7 +54,7 @@ export interface ItemAttributes {
 
 export interface Recommendation {
     id: string;
-    source: 'History' | 'Premier Items' | 'Fans' | 'Manual';
+    source: 'History' | 'Premier Items' | '3rd Party' | 'Fans' | 'Manual';
     matchType: 'exact' | 'fuzzy' | 'partial' | 'manual';
     confidence: number;
     bidItem?: string;
@@ -77,6 +83,10 @@ export interface Recommendation {
     specEnrichConfidence?: string; // HIGH | MEDIUM | LOW
     matchedOriginalSpec?: string;  // the actual Original Spec value from history that triggered this match
     catalogSource?: 'premier' | 'third_party'; // which catalog the linked item came from (undefined for non-history-sourced recs)
+    /** Premier Items record id backing this rec — carried through export for the History write-back link. */
+    premierLinkId?: string;
+    /** 3rd Party Domestic Items record id backing this rec — same role as premierLinkId. */
+    thirdPartyLinkId?: string;
     /** True when this is a "leave as spec" passthrough card, not a substitution. */
     isPassthrough?: boolean;
 }

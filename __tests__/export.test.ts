@@ -49,6 +49,8 @@ describe('buildCorporateWorkbook', () => {
         jobLocation: 'New Port Richey, FL',
         customer: 'REKS',
         bidDate: '6/16/26',
+        salesRep: 'Pat Rivera',
+        estimator: 'Sam Doyle',
         rows,
     });
 
@@ -107,6 +109,35 @@ describe('buildCorporateWorkbook', () => {
             k => !k.startsWith('!') && (ws[k] as XLSX.CellObject).f?.startsWith('SUM('),
         );
         expect(cellWithFormula).toBeDefined();
+    });
+
+    it('carries sales rep / estimator into both sheets\' headers', () => {
+        for (const name of ['VE DRAFT', 'ORIGINAL SPEC'] as const) {
+            const grid = sheetToGrid(wb.Sheets[name]);
+            expect(grid[6][COL.MAN]).toBe('SALES - PAT RIVERA');
+            expect(grid[7][COL.MAN]).toBe('ESTIMATOR - SAM DOYLE');
+        }
+    });
+
+    it('writes an extended-cost formula (=QTY*unit) on every data row, covered by the Subtotal range', () => {
+        const ws = wb.Sheets['VE DRAFT'];
+        const grid = sheetToGrid(ws);
+        const headerRow = grid.findIndex(r => r?.[COL.MARK] === 'MARK');
+        const firstDataRow = headerRow + 2; // 1-based Excel row of first line item
+        const qtyCol = XLSX.utils.encode_col(COL.QTY);
+        const unitCol = XLSX.utils.encode_col(COL.UNIT_COST);
+        const extCol = XLSX.utils.encode_col(COL.EXTENDED);
+        for (let i = 0; i < rows.length; i++) {
+            const excelRow = firstDataRow + i;
+            const cell = ws[`${extCol}${excelRow}`] as XLSX.CellObject | undefined;
+            expect(cell?.f).toBe(`${qtyCol}${excelRow}*${unitCol}${excelRow}`);
+        }
+        const lastDataRow = firstDataRow + rows.length - 1;
+        const subtotal = Object.keys(ws)
+            .filter(k => !k.startsWith('!'))
+            .map(k => (ws[k] as XLSX.CellObject).f)
+            .find(f => f?.startsWith('SUM('));
+        expect(subtotal).toBe(`SUM(${extCol}${firstDataRow}:${extCol}${lastDataRow})`);
     });
 });
 

@@ -33,6 +33,14 @@ function refresh(): Promise<EngineContext> {
     return inflight;
 }
 
+/**
+ * Drop the cached context (e.g. after a successful History write batch) so the
+ * next analysis sees the new rows immediately instead of waiting out the TTL.
+ */
+export function invalidateEngineContext(): void {
+    cached = null;
+}
+
 export async function getEngineContext(): Promise<EngineContext> {
     if (cached) {
         if (Date.now() - cached.fetchedAt >= TTL_MS) {

@@ -15,6 +15,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+interface IdentifiedSpec {
+    manufacturer: string;
+    catalogNumber: string;
+    productName: string;
+    category: string | null;
+    attributes: Record<string, string | undefined>;
+    confidence: 'HIGH' | 'MEDIUM' | 'LOW';
+    source: 'url' | 'web' | 'pdf';
+    evidence: string;
+}
+
 interface ParsedLineItem {
     rowIndex: number;
     section: string;
@@ -23,6 +34,8 @@ interface ParsedLineItem {
     manufacturer: string;
     catalogNumber: string;
     rawRow: Record<string, string>;
+    specUrls?: string[];
+    identified?: IdentifiedSpec;
 }
 
 interface ItemAttributes {
@@ -56,6 +69,8 @@ interface Recommendation {
     bidManufacturer?: string;
     projectsUsed?: string[];
     isPassthrough?: boolean;
+    premierLinkId?: string;
+    thirdPartyLinkId?: string;
     productCategory?: string;
     specDescription?: string;
     specVendor?: string;
@@ -77,6 +92,16 @@ interface HealthCounts {
 }
 
 const AS_SPEC = 'AS_SPEC';
+
+const IDENTIFY_SOURCE_LABEL: Record<IdentifiedSpec['source'], string> = {
+    url: 'spec link',
+    web: 'web lookup',
+    pdf: 'spec sheet',
+};
+
+function looksLikeUrl(value: string): boolean {
+    return /^https?:\/\//i.test(value.trim()) || /^www\./i.test(value.trim());
+}
 
 function recItemName(rec: Recommendation): string {
     return rec.premierItem || rec.bidItem || rec.fanItem || '';
@@ -101,7 +126,7 @@ function attrChips(attrs?: ItemAttributes): string[] {
 
 export default function Home() {
     const [health, setHealth] = useState<{ liveData: boolean; counts?: HealthCounts } | null>(null);
-    const [phase, setPhase] = useState<'idle' | 'uploading' | 'analyzing'>('idle');
+    const [phase, setPhase] = useState<'idle' | 'uploading' | 'reading-pdf' | 'analyzing'>('idle');
     const [error, setError] = useState<string | null>(null);
     const [warning, setWarning] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
@@ -110,9 +135,18 @@ export default function Home() {
     const [jobName, setJobName] = useState('');
     const [jobLocation, setJobLocation] = useState('');
     const [customer, setCustomer] = useState('');
+    const [salesRep, setSalesRep] = useState('');
+    const [estimator, setEstimator] = useState('');
+    const [bidDate, setBidDate] = useState('');
     const [exporting, setExporting] = useState(false);
+    const [recordToHistory, setRecordToHistory] = useState(true);
+    const [writebackNotice, setWritebackNotice] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState(false);
+    const [identifyBusy, setIdentifyBusy] = useState<Record<number, string | null>>({});
+    const [identifyError, setIdentifyError] = useState<Record<number, string | null>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const identifyFileRef = useRef<HTMLInputElement>(null);
+    const identifyTargetRow = useRef<number | null>(null);
 
     useEffect(() => {
         fetch('/api/recommendations')
@@ -127,7 +161,7 @@ export default function Home() {
         setResults(null);
         setSelections({});
         setFileName(file.name);
-        setPhase('uploading');
+        setPhase(file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf' ? 'reading-pdf' : 'uploading');
         try {
             const form = new FormData();
             form.append('file', file);
@@ -163,6 +197,44 @@ export default function Home() {
         }
     }
 
+    /** Per-line identification (Phase 2): send one line + evidence pointer, swap in the re-analyzed card. */
+    async function handleIdentify(analysis: LineItemAnalysis, mode: 'url' | 'web' | 'pdf', payload?: { url?: string; file?: File }) {
+        const rowIndex = analysis.lineItem.rowIndex;
+        setIdentifyBusy(s => ({ ...s, [rowIndex]: mode }));
+        setIdentifyError(s => ({ ...s, [rowIndex]: null }));
+        try {
+            let res: Response;
+            if (mode === 'pdf') {
+                const form = new FormData();
+                form.append('mode', 'pdf');
+                form.append('lineItem', JSON.stringify(analysis.lineItem));
+                if (payload?.file) form.append('file', payload.file);
+                res = await fetch('/api/identify', { method: 'POST', body: form });
+            } else {
+                res = await fetch('/api/identify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode, lineItem: analysis.lineItem, url: payload?.url }),
+                });
+            }
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Identification failed (${res.status}).`);
+            const identified: IdentifiedSpec = json.identified;
+            const result: LineItemAnalysis = json.result;
+            setResults(rs => (rs ? rs.map(a => (a.lineItem.rowIndex === rowIndex ? result : a)) : rs));
+            // Confidence gate: LOW identifications never auto-select a recommendation.
+            const top = result.recommendations[0];
+            setSelections(s => ({
+                ...s,
+                [rowIndex]: identified.confidence !== 'LOW' && top && !top.isPassthrough ? top.id : AS_SPEC,
+            }));
+        } catch (e) {
+            setIdentifyError(s => ({ ...s, [rowIndex]: e instanceof Error ? e.message : 'Identification failed.' }));
+        } finally {
+            setIdentifyBusy(s => ({ ...s, [rowIndex]: null }));
+        }
+    }
+
     async function handleExport() {
         if (!results) return;
         setExporting(true);
@@ -180,19 +252,30 @@ export default function Home() {
                             source: rec.source,
                             confidence: rec.confidence,
                             matchReason: rec.matchReason,
+                            premierLinkId: rec.premierLinkId,
+                            thirdPartyLinkId: rec.thirdPartyLinkId,
                         }
                         : null,
                     note: a.infoMessage ?? (rec?.isPassthrough ? 'Left as specified (high-end decorative)' : ''),
                 };
             });
+            setWritebackNotice(null);
             const res = await fetch('/api/export', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jobName, jobLocation, customer, sourceFileName: fileName, rows }),
+                body: JSON.stringify({ jobName, jobLocation, customer, salesRep, estimator, bidDate, sourceFileName: fileName, recordToHistory, rows }),
             });
             if (!res.ok) {
                 const j = await res.json().catch(() => null);
                 throw new Error(j?.error || `Export failed (${res.status}).`);
+            }
+            const wbMode = res.headers.get('X-Writeback-Mode');
+            if (wbMode === 'dry_run') {
+                setWritebackNotice(`Bid history: DRY RUN — ${res.headers.get('X-Writeback-Attempted') ?? 0} row(s) inspected, nothing written (flip HISTORY_WRITEBACK=live to enable).`);
+            } else if (wbMode === 'live') {
+                setWritebackNotice(`Bid history: ${res.headers.get('X-Writeback-Written') ?? 0} row(s) recorded, ${res.headers.get('X-Writeback-Skipped') ?? 0} skipped as duplicates.`);
+            } else if (wbMode === 'error' || wbMode === 'unavailable') {
+                setWritebackNotice('Bid history write-back did not run (see server logs) — the export itself is unaffected.');
             }
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
@@ -262,14 +345,15 @@ export default function Home() {
                         if (f) handleFile(f);
                     }}
                 >
-                    <h2 className="text-2xl mb-2">Upload a bid sheet</h2>
+                    <h2 className="text-2xl mb-2">Upload a bid sheet or fixture schedule</h2>
                     <p className="text-muted text-sm mb-6 font-data">
-                        Pre-converted CSV or single-sheet Excel with Mark / Qty / Manufacturer / Catalog # columns.
+                        CSV / single-sheet Excel with Mark / Qty / Manufacturer / Catalog # columns —
+                        or a fixture-schedule PDF (read automatically; takes a minute or two).
                     </p>
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb"
+                        accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,.pdf,application/pdf"
                         className="hidden"
                         onChange={e => {
                             const f = e.target.files?.[0];
@@ -282,7 +366,7 @@ export default function Home() {
                         disabled={phase !== 'idle'}
                         className="bg-plteal text-white px-8 py-3 text-sm tracking-widest uppercase hover:bg-steel disabled:opacity-50 font-data"
                     >
-                        {phase === 'uploading' ? 'Parsing…' : phase === 'analyzing' ? 'Analyzing…' : 'Choose file'}
+                        {phase === 'uploading' ? 'Parsing…' : phase === 'reading-pdf' ? 'Reading PDF…' : phase === 'analyzing' ? 'Analyzing…' : 'Choose file'}
                     </button>
                     {fileName && phase === 'idle' && (
                         <p className="text-xs text-muted mt-3 font-data">{fileName}</p>
@@ -334,22 +418,93 @@ export default function Home() {
                                         className="block border-2 border-line px-2 py-1 text-sm text-body w-36 focus:border-plteal outline-none"
                                     />
                                 </label>
-                                <button
-                                    onClick={handleExport}
-                                    disabled={exporting}
-                                    className="bg-steel text-white px-6 py-2 text-sm tracking-widest uppercase hover:bg-plteal disabled:opacity-50"
-                                >
-                                    {exporting ? 'Building…' : 'Export Bid Selections'}
-                                </button>
+                                <label className="text-xs uppercase tracking-wider text-muted">
+                                    Sales rep
+                                    <input
+                                        value={salesRep}
+                                        onChange={e => setSalesRep(e.target.value)}
+                                        className="block border-2 border-line px-2 py-1 text-sm text-body w-32 focus:border-plteal outline-none"
+                                    />
+                                </label>
+                                <label className="text-xs uppercase tracking-wider text-muted">
+                                    Estimator
+                                    <input
+                                        value={estimator}
+                                        onChange={e => setEstimator(e.target.value)}
+                                        className="block border-2 border-line px-2 py-1 text-sm text-body w-32 focus:border-plteal outline-none"
+                                    />
+                                </label>
+                                <label className="text-xs uppercase tracking-wider text-muted">
+                                    Bid date
+                                    <input
+                                        value={bidDate}
+                                        onChange={e => setBidDate(e.target.value)}
+                                        placeholder="M/D/YY"
+                                        className="block border-2 border-line px-2 py-1 text-sm text-body w-24 focus:border-plteal outline-none"
+                                    />
+                                </label>
+                                <div className="flex flex-col gap-1">
+                                    <label className="flex items-center gap-2 text-xs text-body cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={recordToHistory}
+                                            onChange={e => setRecordToHistory(e.target.checked)}
+                                            className="accent-[#176e8d]"
+                                        />
+                                        Record selections to bid history ({substituted} row{substituted === 1 ? '' : 's'})
+                                    </label>
+                                    <button
+                                        onClick={handleExport}
+                                        disabled={exporting}
+                                        className="bg-steel text-white px-6 py-2 text-sm tracking-widest uppercase hover:bg-plteal disabled:opacity-50"
+                                    >
+                                        {exporting ? 'Building…' : 'Export Bid Selections'}
+                                    </button>
+                                </div>
                             </div>
                         </section>
+
+                        {writebackNotice && (
+                            <div className="border-2 border-line bg-offwhite text-body px-4 py-3 mt-4 text-sm font-data">
+                                {writebackNotice}
+                            </div>
+                        )}
+
+                        {/* Shared picker for per-line cut-sheet PDFs */}
+                        <input
+                            ref={identifyFileRef}
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            className="hidden"
+                            onChange={e => {
+                                const f = e.target.files?.[0];
+                                const target = results.find(x => x.lineItem.rowIndex === identifyTargetRow.current);
+                                if (f && target) handleIdentify(target, 'pdf', { file: f });
+                                e.target.value = '';
+                            }}
+                        />
 
                         <section className="mt-6 space-y-4 font-data">
                             {results.map(a => {
                                 const sel = selections[a.lineItem.rowIndex] ?? AS_SPEC;
                                 const top = a.recommendations[0];
                                 return (
-                                    <div key={a.lineItem.rowIndex} className="border-2 border-line bg-white">
+                                    <div
+                                        key={a.lineItem.rowIndex}
+                                        className="border-2 border-line bg-white"
+                                        onDragOver={e => {
+                                            if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+                                        }}
+                                        onDrop={e => {
+                                            const f = e.dataTransfer.files?.[0];
+                                            if (f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleIdentify(a, 'pdf', { file: f });
+                                            }
+                                        }}
+                                        title="Drop a cut-sheet PDF here to identify this line"
+                                    >
                                         {/* Line-item header */}
                                         <div className="flex flex-wrap gap-x-8 gap-y-1 px-4 py-3 bg-offwhite border-b-2 border-line text-sm">
                                             <span className="font-semibold text-heading">{a.lineItem.mark || '—'}</span>
@@ -358,6 +513,77 @@ export default function Home() {
                                             <span className="text-muted">{a.lineItem.manufacturer}</span>
                                             <span className="font-mono text-xs self-center">{a.lineItem.catalogNumber}</span>
                                         </div>
+
+                                        {/* Identify strip (Phase 2): identification actions + provenance */}
+                                        {(() => {
+                                            const li = a.lineItem;
+                                            const busy = identifyBusy[li.rowIndex];
+                                            const idErr = identifyError[li.rowIndex];
+                                            const linkUrl = li.specUrls?.[0] ?? (looksLikeUrl(li.catalogNumber) ? li.catalogNumber.trim() : undefined);
+                                            const ident = li.identified;
+                                            // Web lookup: offered when the line has something to search for,
+                                            // recommendations are weak, and the line isn't RFI/tape-suppressed.
+                                            const topConfidence = a.recommendations[0]?.confidence ?? 0;
+                                            const webEligible =
+                                                !a.infoMessage &&
+                                                (li.manufacturer.trim() !== '' || li.catalogNumber.trim() !== '') &&
+                                                !looksLikeUrl(li.catalogNumber) &&
+                                                topConfidence < 70;
+                                            if (!linkUrl && !webEligible && !ident && !idErr && !busy) return null;
+                                            return (
+                                                <div className="px-4 py-2 border-b border-line text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
+                                                    {ident && (
+                                                        <span
+                                                            className={`uppercase tracking-wider px-2 py-0.5 text-white ${ident.confidence === 'LOW' ? 'bg-warn' : 'bg-plteal'}`}
+                                                            title={ident.evidence}
+                                                        >
+                                                            {ident.confidence === 'LOW' ? '? Possible identification — verify' : `✓ Identified via ${IDENTIFY_SOURCE_LABEL[ident.source]}`}
+                                                        </span>
+                                                    )}
+                                                    {ident && (ident.productName || ident.catalogNumber) && (
+                                                        <span className="text-body">
+                                                            {[ident.manufacturer, ident.catalogNumber].filter(Boolean).join(' ')}
+                                                            {ident.productName ? ` — ${ident.productName}` : ''}
+                                                        </span>
+                                                    )}
+                                                    {busy ? (
+                                                        <span className="text-muted">Identifying ({busy})…</span>
+                                                    ) : (
+                                                        <>
+                                                            {linkUrl && (
+                                                                <button
+                                                                    onClick={() => handleIdentify(a, 'url', { url: linkUrl })}
+                                                                    className="border-2 border-plteal text-plteal px-3 py-1 uppercase tracking-wider hover:bg-plteal hover:text-white"
+                                                                    title={linkUrl}
+                                                                >
+                                                                    Identify from link
+                                                                </button>
+                                                            )}
+                                                            {webEligible && (
+                                                                <button
+                                                                    onClick={() => handleIdentify(a, 'web')}
+                                                                    className="border-2 border-line text-muted px-3 py-1 uppercase tracking-wider hover:border-plteal hover:text-plteal"
+                                                                    title="Search the web to identify this spec"
+                                                                >
+                                                                    Look up spec
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => {
+                                                                    identifyTargetRow.current = li.rowIndex;
+                                                                    identifyFileRef.current?.click();
+                                                                }}
+                                                                className="border-2 border-line text-muted px-3 py-1 uppercase tracking-wider hover:border-plteal hover:text-plteal"
+                                                                title="Upload (or drop anywhere on this card) a manufacturer cut-sheet PDF"
+                                                            >
+                                                                Identify from PDF
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {idErr && <span className="text-danger">{idErr}</span>}
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* Swap-metrics strip (Interface parity: consolidated spec history) */}
                                         {top && (top.totalSpecAppearances ?? 0) > 0 && (
