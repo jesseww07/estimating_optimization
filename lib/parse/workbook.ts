@@ -5,9 +5,11 @@
  * normalizeColumnName, findColumnIndex, parseCSVContent, looksLikeCatalogNumber,
  * parseUploadedFileFromRows. The only rewrite is the Excel entry point: the
  * Interface used the browser File API; here parseWorkbook takes the raw bytes a
- * route handler receives. Phase 1 input contract: a pre-converted CSV or
- * single-sheet XLSX whose columns mirror the first sheet of the two-sheet
- * history-source workbooks. No OCR, no PDF/DOCX.
+ * route handler receives. Input contract: a CSV, or an XLSX whose bid sheet
+ * mirrors the first sheet of the two-sheet history-source workbooks —
+ * multi-sheet workbooks are handled by parsing every sheet and keeping the one
+ * that yields the most line items. No OCR here; fixture-schedule PDFs go
+ * through lib/identify/schedule.ts instead.
  */
 
 import * as XLSX from 'xlsx';
@@ -36,6 +38,44 @@ export function findColumnIndex(headers: string[], aliases: string[]): number {
         }
     }
     return -1;
+}
+
+interface CatalogCandidate {
+    colIdx: number;
+    /** Index into COLUMN_ALIASES.catalogNumber — lower = more catalog-like. */
+    aliasRank: number;
+}
+
+/**
+ * Every column in a header row matching a catalogNumber alias, tagged with the
+ * best (lowest) alias index it matched. Alias order encodes priority: a column
+ * labeled "CATALOG #" must beat one labeled "Product Code" even when it sits
+ * further right. (Collective MedSpa regression: an empty Product Code column
+ * hijacked the mapping left-to-right and every L-series line was dropped.)
+ */
+export function findCatalogCandidates(row: string[]): CatalogCandidate[] {
+    const aliases = COLUMN_ALIASES.catalogNumber ?? [];
+    const candidates: CatalogCandidate[] = [];
+    for (let colIdx = 0; colIdx < row.length; colIdx++) {
+        const normalized = normalizeColumnName(String(row[colIdx] ?? ''));
+        if (!normalized) continue;
+        for (let a = 0; a < aliases.length; a++) {
+            const alias = aliases[a];
+            if (normalized === alias || normalized.includes(alias) || alias.includes(normalized)) {
+                candidates.push({ colIdx, aliasRank: a });
+                break;
+            }
+        }
+    }
+    return candidates;
+}
+
+export function chooseCatalogColumn(candidates: CatalogCandidate[]): number {
+    let chosen: CatalogCandidate | undefined;
+    for (const c of candidates) {
+        if (!chosen || c.aliasRank < chosen.aliasRank) chosen = c;
+    }
+    return chosen ? chosen.colIdx : -1;
 }
 
 export function parseCSVContent(content: string): string[][] {
@@ -92,16 +132,7 @@ export function extractUrlsFromCells(cells: string[]): string[] {
     return urls;
 }
 
-/** Parse XLSX/XLS bytes (first sheet only) into a string grid. */
-export function parseExcelBuffer(buffer: ArrayBuffer | Buffer): string[][] {
-    const workbook = XLSX.read(buffer, { type: buffer instanceof ArrayBuffer ? 'array' : 'buffer' });
-
-    const firstSheetName = workbook.SheetNames[0];
-    if (!firstSheetName) return [];
-
-    const worksheet = workbook.Sheets[firstSheetName];
-    if (!worksheet) return [];
-
+function sheetToGrid(worksheet: XLSX.WorkSheet): string[][] {
     const jsonData = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
         header: 1,
         defval: '',
@@ -124,6 +155,23 @@ export function parseExcelBuffer(buffer: ArrayBuffer | Buffer): string[][] {
     return result;
 }
 
+/** Parse XLSX/XLS bytes into one string grid per sheet, in workbook order. */
+export function parseExcelBufferSheets(buffer: ArrayBuffer | Buffer): Array<{ name: string; rows: string[][] }> {
+    const workbook = XLSX.read(buffer, { type: buffer instanceof ArrayBuffer ? 'array' : 'buffer' });
+    const sheets: Array<{ name: string; rows: string[][] }> = [];
+    for (const name of workbook.SheetNames) {
+        const worksheet = workbook.Sheets[name];
+        if (!worksheet) continue;
+        sheets.push({ name, rows: sheetToGrid(worksheet) });
+    }
+    return sheets;
+}
+
+/** Parse XLSX/XLS bytes (first sheet only) into a string grid. */
+export function parseExcelBuffer(buffer: ArrayBuffer | Buffer): string[][] {
+    return parseExcelBufferSheets(buffer)[0]?.rows ?? [];
+}
+
 export function isExcelFileName(fileName: string, contentType?: string): boolean {
     const excelExtensions = ['.xlsx', '.xls', '.xlsm', '.xlsb'];
     const lower = fileName.toLowerCase();
@@ -132,12 +180,54 @@ export function isExcelFileName(fileName: string, contentType?: string): boolean
            contentType === 'application/vnd.ms-excel';
 }
 
-/** Route-handler entry point: file bytes + name → ParsedLineItem[]. */
+const AIRTABLE_RECORD_ID_RE = /^rec[a-zA-Z0-9]{14}$/;
+
+/**
+ * How many parsed items look like genuine fixture lines. Degenerate sheets
+ * (Airtable-import staging tabs, pivot exports) parse into many rows whose
+ * "catalog" is an Airtable record ID, the manufacturer repeated, or just the
+ * mark echoed back — those score zero here so a clean 13-line bid sheet beats
+ * a junk 27-row tab. Relative scoring only: a sheet full of weak lines still
+ * wins when it is the only sheet that parses at all.
+ */
+function healthyItemCount(items: ParsedLineItem[]): number {
+    let count = 0;
+    for (const item of items) {
+        const catalog = item.catalogNumber.trim().toLowerCase();
+        if (!catalog) continue;
+        if (AIRTABLE_RECORD_ID_RE.test(item.catalogNumber.trim())) continue;
+        if (catalog === item.manufacturer.trim().toLowerCase()) continue;
+        if (catalog === item.mark.trim().toLowerCase()) continue;
+        count++;
+    }
+    return count;
+}
+
+/**
+ * Route-handler entry point: file bytes + name → ParsedLineItem[].
+ *
+ * Multi-sheet workbooks: every sheet is parsed and the one yielding the most
+ * healthy-looking line items wins (ties → earliest sheet). Estimators upload
+ * combined workbooks (bid + cleaned + import sheets) — the old
+ * first-sheet-only contract silently parsed whichever sheet happened to be
+ * first.
+ */
 export function parseWorkbook(buffer: Buffer, fileName: string, contentType?: string): ParsedLineItem[] {
-    const rows = isExcelFileName(fileName, contentType)
-        ? parseExcelBuffer(buffer)
-        : parseCSVContent(buffer.toString('utf-8'));
-    return parseUploadedFileFromRows(rows);
+    if (!isExcelFileName(fileName, contentType)) {
+        return parseUploadedFileFromRows(parseCSVContent(buffer.toString('utf-8')));
+    }
+
+    let best: ParsedLineItem[] = [];
+    let bestScore = -1;
+    for (const sheet of parseExcelBufferSheets(buffer)) {
+        const items = parseUploadedFileFromRows(sheet.rows);
+        const score = healthyItemCount(items);
+        if (score > bestScore) {
+            bestScore = score;
+            best = items;
+        }
+    }
+    return best;
 }
 
 export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
@@ -182,12 +272,22 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
         return SECTION_HEADER_PATTERNS.some(pattern => pattern.test(trimmed));
     };
 
+    let bestCatalogCandidates: CatalogCandidate[] = [];
+
     for (let i = 0; i < Math.min(rows.length, 30); i++) {
         const row = rows[i];
         if (!row || row.length === 0) continue;
 
         let currentScore = 0;
         const currentIndices: Record<string, number> = {};
+        let quantityExact = false;
+
+        const rowCatalogCandidates = findCatalogCandidates(row.map(c => String(c ?? '')));
+        const catalogChoice = chooseCatalogColumn(rowCatalogCandidates);
+        if (catalogChoice !== -1) {
+            currentIndices.catalogNumber = catalogChoice;
+            currentScore += 15;
+        }
 
         for (let colIdx = 0; colIdx < row.length; colIdx++) {
             const cellValue = row[colIdx];
@@ -195,17 +295,6 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
 
             const normalizedCell = normalizeColumnName(cellValue);
             if (!normalizedCell) continue;
-
-            const catalogAliases = COLUMN_ALIASES.catalogNumber ?? [];
-            for (const alias of catalogAliases) {
-                if (normalizedCell === alias || normalizedCell.includes(alias) || alias.includes(normalizedCell)) {
-                    if (currentIndices.catalogNumber === undefined) {
-                        currentIndices.catalogNumber = colIdx;
-                        currentScore += 15;
-                    }
-                    break;
-                }
-            }
 
             const markAliases = COLUMN_ALIASES.mark ?? [];
             for (const alias of markAliases) {
@@ -224,6 +313,12 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
                     if (currentIndices.quantity === undefined) {
                         currentIndices.quantity = colIdx;
                         currentScore += 5;
+                        quantityExact = normalizedCell === alias;
+                    } else if (!quantityExact && normalizedCell === alias) {
+                        // "QTY" must beat a substring hit like "QTY LAMPS"
+                        // regardless of column order.
+                        currentIndices.quantity = colIdx;
+                        quantityExact = true;
                     }
                     break;
                 }
@@ -281,6 +376,7 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
         if (hasRequiredColumns && currentScore > bestScore) {
             bestScore = currentScore;
             headerRowIndex = i;
+            bestCatalogCandidates = rowCatalogCandidates;
             columnIndices = {
                 mark: currentIndices.mark ?? -1,
                 quantity: currentIndices.quantity ?? -1,
@@ -298,6 +394,29 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
     }
 
     if (headerRowIndex === -1) return [];
+
+    // The best-ranked catalog label can still be an empty column (some layouts
+    // carry both a blank "CATALOG #" and a populated "Description"). If the
+    // chosen column has no data at all below the header while another catalog
+    // candidate does, remap to the best-ranked candidate that holds values.
+    if (bestCatalogCandidates.length > 1 && columnIndices.catalogNumber !== -1) {
+        const density = new Map<number, number>();
+        const scanEnd = Math.min(rows.length, headerRowIndex + 1 + 500);
+        for (let r = headerRowIndex + 1; r < scanEnd; r++) {
+            const row = rows[r];
+            if (!row) continue;
+            for (const c of bestCatalogCandidates) {
+                if (String(row[c.colIdx] ?? '').trim() !== '') {
+                    density.set(c.colIdx, (density.get(c.colIdx) ?? 0) + 1);
+                }
+            }
+        }
+        if ((density.get(columnIndices.catalogNumber) ?? 0) === 0) {
+            const withData = bestCatalogCandidates.filter(c => (density.get(c.colIdx) ?? 0) > 0);
+            const fallback = chooseCatalogColumn(withData);
+            if (fallback !== -1) columnIndices.catalogNumber = fallback;
+        }
+    }
 
     if (columnIndices.section === -1 && columnIndices.location !== undefined && columnIndices.location !== -1) {
         columnIndices.section = columnIndices.location;
@@ -356,7 +475,7 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
 
         if (isHeaderRow) {
             const newMarkIdx = findColumnIndex(row, COLUMN_ALIASES.mark ?? []);
-            const newCatalogIdx = findColumnIndex(row, COLUMN_ALIASES.catalogNumber ?? []);
+            const newCatalogIdx = chooseCatalogColumn(findCatalogCandidates(row.map(c => String(c ?? ''))));
             if (newMarkIdx !== -1 || newCatalogIdx !== -1) {
                 const newSectionIdx = findColumnIndex(row, COLUMN_ALIASES.section ?? []);
                 const newLocationIdx = findColumnIndex(row, ['location', 'area', 'zone', 'group', 'site lighting', 'building', 'unit', 'common', 'amenity', 'garage', 'clubhouse', 'landscape', 'pool']);
@@ -445,8 +564,11 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
             // Skip rows that are clearly not fixture line items:
             // RFI notes, totals, legal/tariff boilerplate, and over-long text cells.
             const isJunkRow =
-                /^rfi#?\s*\d/i.test(finalMark) ||
-                /^(rfi#|subtotal|total\b|tax\b|tariff|freight|payment\s|terms\s|conditions\s|notes\s+only|building\s*&\s*unit)/i.test(finalMark) ||
+                /^rfi\s*#?\s*\d/i.test(finalMark) ||
+                /^(rfi\s*#|rfi\b|subtotal|total\b|tax\b|tariff|freight|payment\s|terms\s|conditions\s|notes\s+only|building\s*&\s*unit)/i.test(finalMark) ||
+                // Summary/boilerplate rows have no mark and a label like
+                // "Subtotal" / "Tax" / "*Pricing includes..." in the catalog column.
+                (!finalMark && /^(subtotal|total\b|tax\b|\*?\s*pricing|\*?\s*any\s+future|excluded)/i.test(finalCatalog)) ||
                 finalCatalog.length > 150 ||   // paragraph / legal text in catalog column
                 finalMark.length > 120;         // paragraph text in mark column
             if (isJunkRow) continue;
