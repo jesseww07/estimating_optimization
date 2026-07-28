@@ -194,3 +194,116 @@ describe('3rd-party items in the in-category fallback (Phase 2 backlog)', () => 
         expect(ids.indexOf('GC-VAN-LED-22-30K')).toBeLessThan(ids.indexOf('SAT-VAN-22'));
     });
 });
+
+// ── Candlewood live-use review (2026-07-28) ──────────────────────────────────
+// A hospitality bid: Electric Mirror mirrors misrouted to Vanity because the
+// LOCATION column said "Vanity", and the SATCO bulb companion lines (".B")
+// got fixture junk instead of lamp recommendations.
+describe('Candlewood tuning', () => {
+    const lamp = (id: string, itemId: string, itemDescription: string, colorTemp = '3000', maxWattage = '') => ({
+        id, itemId, itemDescription,
+        manufacturer: 'Satco',
+        finish: '', lightOutput: '',
+        colorTemp, maxWattage,
+        productCategories: 'Light Bulb',
+    });
+
+    const hist = (bidItem: string, originalSpec = 'SOME-FIXTURE-SPEC') => ({
+        id: `h-${bidItem}-${Math.random().toString(36).slice(2, 6)}`,
+        mark: 'X', bidItem, originalSpec, project: 'Old Hotel', bidDate: '',
+        specManufacturer: '', bidManufacturer: '', specMfrBackup: '', bidMfrBackup: 'SATCO',
+        matchType: 'EXACT', productCategory: '', specDescription: '', specVendor: '',
+        specEnrichConfidence: '', premierLinkIds: [], thirdPartyLinkIds: [],
+    });
+
+    const ctx: EngineContext = {
+        history: [hist('S9594'), hist('S9594'), hist('S9594'), hist('S12407'), hist('S11400')],
+        fans: [],
+        premierItems: [
+            premier({ id: 'v22', itemId: 'GC-VAN-LED-22-30K', fixtureCategory: 'Vanity', itemDescription: '22" LED VANITY BAR', timesUsed: 18 }),
+            premier({ id: 'mir', itemId: 'GC-MIR-4836-BL', fixtureCategory: 'LED Mirror', itemDescription: '48"X36" BACKLIT LED FRONT LIT MIRROR', timesUsed: 9 }),
+            premier({ id: 'sc', itemId: 'GC-WB337-BK', fixtureCategory: 'Sconce', itemDescription: 'WALL SCONCE BLACK', timesUsed: 22 }),
+            premier({ id: 'bol', itemId: '4" RD-120-94', fixtureCategory: 'Post & Bollard', itemDescription: '4 INCH BOLLARD', timesUsed: 3 }),
+        ],
+        thirdPartyItems: [
+            lamp('t-a15', 'S12407', '8.2W A15 MED BASE LED 30K DIM 90CRI', '3000', '8.20'),
+            lamp('t-a19', 'S9594', '- Energy-efficient LED bulb. 9.5A19/LED/3000K/ND/120V', '3000', '9.50'),
+            lamp('t-27k', 'S11400', '6W A19 LED 2700K Medium base', '2700', '6.00'),
+        ],
+    };
+
+    const cwLine = (mark: string, section: string, manufacturer: string, catalogNumber: string): ParsedLineItem => ({
+        rowIndex: 1,
+        section,
+        mark,
+        quantity: '10',
+        manufacturer,
+        catalogNumber,
+        rawRow: { MARK: mark, Location: section, MAN: manufacturer, 'CATALOG #': catalogNumber },
+    });
+
+    it('classifies Electric Mirror front-lit mirrors as Mirror even when the LOCATION column says Vanity', () => {
+        const r = analyzeLineItem(
+            cwLine('CG-400', 'Vanity', 'Electric Mirror', 'VAL1.1-48.00X36.00-LHO-OS-30K : Front Lit-Mirror 48"W x 36"H x 1 7/8"D'),
+            ctx,
+        );
+        expect(r.recommendations.length).toBeGreaterThan(0);
+        expect(r.recommendations.every(x => x.productCategory === 'LED Mirror')).toBe(true);
+        expect(r.recommendations.map(x => x.premierItem)).not.toContain('GC-VAN-LED-22-30K');
+    });
+
+    it('matches a prose bulb line to the right lamp by shape + kelvin', () => {
+        const r = analyzeLineItem(
+            cwLine('CG-404.B', 'One Bedroom Kitchen', 'SATCO', 'Bulb @ Pendent Light - 5W LED A15, 3000K'),
+            ctx,
+        );
+        expect(r.recommendations[0]?.premierItem).toBe('S12407');       // the A15 30K lamp
+        expect(r.recommendations[0]?.source).toBe('3rd Party');
+        expect(r.recommendations[0]?.confidence).toBeGreaterThanOrEqual(70);
+        // The 2700K lamp contradicts the declared 3000K and must be gated out.
+        expect(r.recommendations.map(x => x.premierItem)).not.toContain('S11400');
+    });
+
+    it('never offers fixtures for a bulb line', () => {
+        const r = analyzeLineItem(
+            cwLine('CG-409.B', 'Desk, Studio', 'SATCO', 'Bulb @ Wall sconce (1 per lamp)'),
+            ctx,
+        );
+        const ids = r.recommendations.map(x => x.premierItem ?? x.bidItem);
+        expect(ids).not.toContain('GC-WB337-BK');                        // no sconces for a bulb
+        expect(r.recommendations.every(x => x.productCategory === 'Light Bulb')).toBe(true);
+        // Attribute-less spec: usage-ranked, honest moderate confidence.
+        expect(r.recommendations[0]?.premierItem).toBe('S9594');
+        expect(r.recommendations[0]?.confidence).toBeLessThanOrEqual(60);
+    });
+
+    it('confirms a bare SATCO S-number as-spec instead of text-matching it to fixture SKUs', () => {
+        const r = analyzeLineItem(cwLine('CG-403.B', 'Kitchen', 'SATCO', 'S9594'), ctx);
+        expect(r.recommendations).toHaveLength(1);
+        const rec = r.recommendations[0]!;
+        expect(rec.isPassthrough).toBe(true);
+        expect(rec.confidence).toBe(99);
+        expect(rec.bidItem).toBe('S9594');
+        expect(rec.matchReason).toContain('SATCO lamp');
+        // The old failure: S9594 text-matched to the 4" bollard.
+        expect(r.recommendations.map(x => x.premierItem)).not.toContain('4" RD-120-94');
+    });
+
+    it('uses written-back bulb swaps as direct evidence once they exist', () => {
+        const ctxWithSwaps: EngineContext = {
+            ...ctx,
+            history: [
+                ...ctx.history,
+                hist('S12407', 'Bulb @ Pendent Light - 5W LED A15, 3000K'),
+                hist('S12407', 'Bulb @ Pendent Light - 5W LED A15, 3000K'),
+            ],
+        };
+        const r = analyzeLineItem(
+            cwLine('CG-404.B', 'One Bedroom Kitchen', 'SATCO', 'Bulb @ Pendent Light - 5W LED A15, 3000K'),
+            ctxWithSwaps,
+        );
+        expect(r.recommendations[0]?.premierItem).toBe('S12407');
+        expect(r.recommendations[0]?.confidence).toBeGreaterThanOrEqual(85);
+        expect(r.recommendations[0]?.matchDetails?.join(' ')).toContain('matching swap');
+    });
+});
