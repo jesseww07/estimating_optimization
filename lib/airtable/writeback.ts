@@ -7,9 +7,9 @@
  *
  * Safety contract (handoff guardrails):
  *   - CREATE-ONLY. This module never updates or deletes records.
- *   - Ships behind HISTORY_WRITEBACK=dry_run by default: the exact payload is
- *     logged for inspection and nothing is written until the env is flipped
- *     to "live" (after Jesse inspects a dry-run payload).
+ *   - Mode: HISTORY_WRITEBACK env var (live/dry_run/off) always wins. When
+ *     unset, production defaults to "live" (approved by Jesse 2026-07-28);
+ *     previews and local dev default to "dry_run" (payload logged, no writes).
  *   - Dedupe guard: a row whose (project, normalized mark, normalized Original
  *     Spec, normalized Bid Item) already exists in History is skipped.
  *
@@ -32,8 +32,10 @@ export function getWritebackMode(): WritebackMode {
     const raw = (process.env.HISTORY_WRITEBACK ?? '').trim().toLowerCase();
     if (raw === 'live') return 'live';
     if (raw === 'off' || raw === 'disabled') return 'off';
-    // Default is dry_run — flipping to live is an explicit decision.
-    return 'dry_run';
+    if (raw === 'dry_run') return 'dry_run';
+    // Unset: live on production deployments only. Previews and local dev stay
+    // dry_run so non-production exports never write to History.
+    return process.env.VERCEL_ENV === 'production' ? 'live' : 'dry_run';
 }
 
 export interface WritebackRow {

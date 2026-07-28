@@ -48,11 +48,29 @@ const hist = (o: Partial<HistoryRow>): HistoryRow => ({
 describe('writeback mode', () => {
     afterEach(() => {
         delete process.env.HISTORY_WRITEBACK;
+        delete process.env.VERCEL_ENV;
     });
 
-    it('defaults to dry_run when unset (ship-safe default)', () => {
+    it('defaults to dry_run when unset outside production (ship-safe default)', () => {
         delete process.env.HISTORY_WRITEBACK;
+        delete process.env.VERCEL_ENV;
         expect(getWritebackMode()).toBe('dry_run');
+        process.env.VERCEL_ENV = 'preview';
+        expect(getWritebackMode()).toBe('dry_run');
+    });
+
+    it('defaults to live on production deployments when unset', () => {
+        delete process.env.HISTORY_WRITEBACK;
+        process.env.VERCEL_ENV = 'production';
+        expect(getWritebackMode()).toBe('live');
+    });
+
+    it('env var always overrides the environment default', () => {
+        process.env.VERCEL_ENV = 'production';
+        process.env.HISTORY_WRITEBACK = 'dry_run';
+        expect(getWritebackMode()).toBe('dry_run');
+        process.env.HISTORY_WRITEBACK = 'off';
+        expect(getWritebackMode()).toBe('off');
     });
 
     it('honors live and off', () => {
