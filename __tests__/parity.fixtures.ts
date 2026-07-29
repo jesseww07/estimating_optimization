@@ -93,8 +93,8 @@ export const PARITY_CASES: ParityCase[] = [
     },
     {
         id: 'dimension-hard-gate',
-        rule: 'A candidate matching on category/brand but dimensionally incompatible must be blocked',
-        sourceBid: 'Premier catalog family GC-REC-{4|6}-DL-MX32W-POWER (both "Disk Light") — 6" spec must gate out the 4" sibling',
+        rule: 'Accessory SKUs (drivers) never substitute for a fixture spec — even same-family, right-size ones',
+        sourceBid: 'Premier catalog family GC-REC-{4|6}-DL-MX32W-POWER — per Jesse (2026-07-28) these are DRIVERS for the wattage-selectable downlight system, not fixtures',
         ready: true,
         input: {
             rowIndex: 20,
@@ -106,10 +106,15 @@ export const PARITY_CASES: ParityCase[] = [
             rawRow: row({}),
         },
         expect: {
-            mustNotInclude: ['GC-REC-4-DL-MX32W-POWER'],
-            mustInclude: ['GC-REC-6-DL-MX32W-POWER'],
+            // Originally this fixture pinned the dimension gate (6" spec gates
+            // out the 4" sibling) — but both frozen candidates are drivers, so
+            // the accessory exclusion now correctly removes them BOTH. The
+            // dimension gate itself stays pinned by the 22"/34" vanity case in
+            // tuning.test.ts.
+            expectNoRecommendations: true,
+            mustNotInclude: ['GC-REC-4-DL-MX32W-POWER', 'GC-REC-6-DL-MX32W-POWER'],
         },
-        bindNote: 'The gate drops the wrong-size item entirely (pre-scoring), so mustNotInclude is the right assertion.',
+        bindNote: 'Recommending a driver as a VE substitution for a downlight fixture spec was always wrong; the Collective MedSpa accessory rule (2026-07-29) makes this family unmatchable for fixture specs.',
     },
     {
         id: 'premier-own-brand-rank',
