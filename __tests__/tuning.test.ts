@@ -346,6 +346,12 @@ describe('Collective MedSpa: category + matching fixes', () => {
     it('flags accessory SKUs and keeps them out of fixture candidates', () => {
         expect(isAccessoryItem('MOUNTING CLIPS FOR TAPE LIGHT', 'MOUNTING CLIPS')).toBe(true);
         expect(isAccessoryItem('R-SLIM-DISK-12W-5CCT-WH', '12W SLIM DISK')).toBe(false);
+        // GC wattage-selectable downlight system (per Jesse 2026-07-28):
+        // -POWER and EMGDRIVER are drivers; -TUNABLE and -EM are fixtures.
+        expect(isAccessoryItem('GC-REC-6-DL-MX32W-POWER', 'POWER FOR "6"" LED Split Deep Regress Mini Downlight')).toBe(true);
+        expect(isAccessoryItem('GC-REC-4-EMGDRIVER', 'EMERGENCY DRIVER')).toBe(true);
+        expect(isAccessoryItem('GC-REC-4-DL-MX32W-TUNABLE', '4" LED DOWNLIGHT TUNABLE WHITE')).toBe(false);
+        expect(isAccessoryItem('GC-REC-4-DL-MX22W-EM', '4" LED DOWNLIGHT EMERGENCY BATTERY')).toBe(false);
         const r = analyzeLineItem(line('L7', 'LUMENS', 'CANNELE PICTURE LIGHT'), MEDSPA_CTX);
         expect(r.recommendations.map(x => x.premierItem)).not.toContain('MOUNTING CLIPS FOR TAPE LIGHT');
         expect(r.recommendations.map(x => x.premierItem)).not.toContain('FLAIRE 5 LIGHT SEMI-FLUSH MOUNT');

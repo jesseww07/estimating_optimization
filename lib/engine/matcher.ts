@@ -411,11 +411,12 @@ export function thirdPartyCategoriesCompatible(inferredLabel: string, productCat
 // substitution candidates for a FIXTURE spec — only when the spec itself asks
 // for an accessory.
 
-// NOTE: "POWER FOR ..." (GC-REC-*-POWER) is deliberately NOT matched — in the
-// GC catalog that suffix reads as the wattage-selectable variant of the
-// fixture, not a separate power supply. Revisit if those SKUs turn out to be
-// true accessories.
-const ACCESSORY_TEXT_RE = /\bMOUNTING\s+(CLIP|PLATE|BRACKET|KIT)|(^|\s)CLIPS?\b|\bBRACKET\b|\bCANOPY\s+KIT\b|\bDRIVER\b|\bXMFR\b|\bTRANSFORMER\b|\bPOWER\s+SUPPLY\b|\bCONNECTOR\b|\bSPLICE\b|\bEND\s+CAP\b|\bTRIM\s+RING\b|\bREMOTE\s+CONTROL\b|\bACCESSOR/i;
+// Per Jesse (2026-07-28): GC-REC-*-POWER items ARE drivers for the
+// wattage-selectable downlight system (alongside -EM battery and -TUNABLE
+// fixture variants, and GC-REC-*-EMGDRIVER emergency drivers) — "POWER FOR"
+// descriptions and EMGDRIVER ids are accessories. -TUNABLE/-EM stay matchable:
+// those are fixtures.
+const ACCESSORY_TEXT_RE = /\bMOUNTING\s+(CLIP|PLATE|BRACKET|KIT)|(^|\s)CLIPS?\b|\bBRACKET\b|\bCANOPY\s+KIT\b|\bDRIVER\b|EMG\s*DRIVER|\bXMFR\b|\bTRANSFORMER\b|\bPOWER\s+(SUPPLY|FOR)\b|\bCONNECTOR\b|\bSPLICE\b|\bEND\s+CAP\b|\bTRIM\s+RING\b|\bREMOTE\s+CONTROL\b|\bACCESSOR/i;
 
 /** True when a catalog item reads as an accessory rather than a fixture. */
 export function isAccessoryItem(itemId: string, description: string): boolean {
