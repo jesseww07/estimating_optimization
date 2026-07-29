@@ -1,0 +1,53 @@
+name: CI
+
+# Runs the checks the primer lists as pre-ship requirements, so they no longer
+# depend on someone remembering to run them locally. Most importantly this is
+# what makes the accuracy eval ratchet enforcing: __tests__/eval.test.ts
+# replays the committed dataset and fails when a headline metric regresses
+# against __tests__/eval.baseline.json.
+#
+# `next build` is deliberately NOT repeated here — the Vercel integration
+# already builds every pull request and reports its own check, so duplicating
+# it would only add a minute of runtime.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same branch supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typecheck, lint, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` (not `install`) so the committed lockfile is authoritative.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # Includes the accuracy eval regression guard. No Airtable credentials
+      # are needed: the eval dataset is the committed snapshot
+      # (__tests__/eval.context.json.gz), and the engine tests run against
+      # frozen fixtures.
+      - name: Tests
+        run: npx vitest run

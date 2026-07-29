@@ -32,6 +32,11 @@
   outcome**, so a PR that flips cases shows exactly which ones in its diff.
 - `__tests__/eval.test.ts` — unit tests (always run) + the dataset guard
   (skips with a notice if the snapshot is missing).
+- `.github/workflows/ci.yml` — runs `tsc --noEmit`, `npm run lint`, and
+  `vitest run` on every pull request and every push to `main`. This is what
+  makes the ratchet below *enforcing* rather than advisory. It needs no
+  Airtable credentials, because the dataset is the committed snapshot.
+  (`next build` is not repeated there — Vercel already builds every PR.)
 
 ## How a case is built
 
@@ -103,6 +108,10 @@ and per-project.
 Intentional engine changes therefore ship as: change → `npm run eval` →
 review the case flips it prints → `npm run eval:update` → commit code +
 baseline together. The baseline diff in the PR *is* the accuracy review.
+
+Skipping that flow is not an option in practice: CI runs the same guard on
+every pull request, so an accuracy regression turns the PR red instead of
+merging quietly behind Vercel's green deployment check.
 
 ## Initial baseline (2026-07-29, engine @ PR #5 state)
 
