@@ -128,10 +128,13 @@ export async function POST(request: Request): Promise<NextResponse> {
                         originalSpec: r.lineItem.catalogNumber,
                         bidItem: sub.item,
                         specManufacturer: r.lineItem.manufacturer,
+                        // Prefix inference first; writeSelectionsToHistory
+                        // backfills the rest from prior History rows.
                         bidManufacturer: sub.manufacturer || inferSubManufacturer(sub.item),
                         bidDate: today,
                         premierLinkId: sub.premierLinkId,
                         thirdPartyLinkId: sub.thirdPartyLinkId,
+                        matchConfidence: sub.confidence,
                     };
                 });
             try {

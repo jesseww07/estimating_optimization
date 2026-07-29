@@ -46,6 +46,12 @@ export function normalizeSpecKey(spec: string): string {
     return normalizeProductId(spec);
 }
 
+// Tokens too generic to carry a text match on their own: "CANNELE PICTURE
+// LIGHT" must not reach 43% against "MOUNTING CLIPS FOR TAPE LIGHT" because
+// both contain "LIGHT" (Collective MedSpa L7). Category/attribute matching owns
+// these words; the token matcher only gets distinctive ones.
+const GENERIC_MATCH_TOKENS = new Set(['LIGHT', 'LED', 'FIXTURE', 'MOUNT', 'KIT', 'WITH', 'THE', 'FOR', 'AND']);
+
 export function calculateCatalogMatchScore(catalogNumber: string, originalSpec: string): number {
     if (!catalogNumber || !originalSpec) return 0;
 
@@ -63,7 +69,9 @@ export function calculateCatalogMatchScore(catalogNumber: string, originalSpec: 
 
     let exactMatches = 0;
     let partialMatches = 0;
-    const significantParts = catalogParts.filter(p => p.length >= 3 && !/^\d+$/.test(p));
+    const significantParts = catalogParts.filter(
+        p => p.length >= 3 && !/^\d+$/.test(p) && !GENERIC_MATCH_TOKENS.has(p),
+    );
 
     for (const catalogPart of significantParts) {
         for (const specPart of specParts) {
@@ -217,6 +225,10 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
         /\bLF-?\d/.test(m) ||                    // LF-1, LF-2, LF-7 (light fixtures/pendants)
         /\bPD\b|\bPEN\b/.test(m) ||
         /PENDANT|MINI.?PENDANT|HANG/.test(c) ||
+        // Chandeliers live in the Pendant vocabulary group (CATEGORY_GROUPS);
+        // without this branch every "X CHANDELIER" prose spec fell to null and
+        // text-matched the whole catalog (Collective MedSpa L2/L3/L8).
+        /CHANDELIER/.test(c) ||
         /TRAPEZOID|TIER.?PENDANT|CONE.?PENDANT/.test(c) ||
         /GLOBE.?SUSP|SUSPENSION/.test(c);
     if (isPendant) return 'Pendant';
@@ -390,6 +402,29 @@ export function thirdPartyCategoriesCompatible(inferredLabel: string, productCat
         return group.some(g => cats.includes(g.toLowerCase()));
     }
     return cats.includes(inferredLabel.toLowerCase());
+}
+
+// ── Accessory detection (Collective MedSpa review, 2026-07-28) ───────────────
+// Mounting clips, drivers, brackets, and other accessory SKUs live inside
+// fixture categories in the catalog ("MOUNTING CLIPS FOR TAPE LIGHT" under tape,
+// "GC-REC-…-POWER" power supplies under Disk Light). They must never surface as
+// substitution candidates for a FIXTURE spec — only when the spec itself asks
+// for an accessory.
+
+// NOTE: "POWER FOR ..." (GC-REC-*-POWER) is deliberately NOT matched — in the
+// GC catalog that suffix reads as the wattage-selectable variant of the
+// fixture, not a separate power supply. Revisit if those SKUs turn out to be
+// true accessories.
+const ACCESSORY_TEXT_RE = /\bMOUNTING\s+(CLIP|PLATE|BRACKET|KIT)|(^|\s)CLIPS?\b|\bBRACKET\b|\bCANOPY\s+KIT\b|\bDRIVER\b|\bXMFR\b|\bTRANSFORMER\b|\bPOWER\s+SUPPLY\b|\bCONNECTOR\b|\bSPLICE\b|\bEND\s+CAP\b|\bTRIM\s+RING\b|\bREMOTE\s+CONTROL\b|\bACCESSOR/i;
+
+/** True when a catalog item reads as an accessory rather than a fixture. */
+export function isAccessoryItem(itemId: string, description: string): boolean {
+    return ACCESSORY_TEXT_RE.test(`${itemId} ${description}`);
+}
+
+/** True when the SPEC line itself is asking for an accessory (so accessories may match). */
+export function specWantsAccessory(mark: string, catalogNumber: string): boolean {
+    return ACCESSORY_TEXT_RE.test(`${mark} ${catalogNumber}`);
 }
 
 // ── RFI / TBD placeholder detection (domain rule: never fabricate a match) ────

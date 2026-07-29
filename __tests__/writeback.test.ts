@@ -5,12 +5,15 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+    backfillBidManufacturers,
     getWritebackMode,
     isWritebackEligible,
     partitionAgainstHistory,
+    toAirtableFields,
     writebackKey,
     type WritebackRow,
 } from '@/lib/airtable/writeback';
+import { HISTORY_FIELDS } from '@/lib/airtable/schema';
 import type { HistoryRow } from '@/lib/types';
 
 const row = (o: Partial<WritebackRow>): WritebackRow => ({
@@ -109,5 +112,42 @@ describe('eligibility', () => {
         expect(isWritebackEligible(row({ originalSpec: '' }))).toBe(false);
         expect(isWritebackEligible(row({ bidItem: 'x' }))).toBe(false);
         expect(isWritebackEligible(row({ project: ' ' }))).toBe(false);
+    });
+});
+
+describe('Airtable field payload (Collective MedSpa review)', () => {
+    it('records Spec Match Confidence when the export carries a confidence', () => {
+        const fields = toAirtableFields(row({ matchConfidence: 30.4 }));
+        expect(fields[HISTORY_FIELDS.SPEC_MATCH_CONFIDENCE]).toBe('30%');
+        expect(fields[HISTORY_FIELDS.MATCH_TYPE]).toBe('EXACT');
+    });
+
+    it('omits Spec Match Confidence when no confidence was provided', () => {
+        const fields = toAirtableFields(row({}));
+        expect(HISTORY_FIELDS.SPEC_MATCH_CONFIDENCE in fields).toBe(false);
+    });
+});
+
+describe('bid manufacturer backfill from history majority', () => {
+    it('fills empty bidManufacturer from prior rows for the same bid item', () => {
+        const rows = [row({ bidItem: 'REMINGTON-IRON-ROUND-CHANDELIER-50\'\'BZ', bidManufacturer: '' })];
+        backfillBidManufacturers(rows, [
+            hist({ bidItem: 'REMINGTON-IRON-ROUND-CHANDELIER-50\'\'BZ', bidManufacturer: 'GLOBAL CONCEPTS' }),
+            hist({ bidItem: 'REMINGTON-IRON-ROUND-CHANDELIER-50\'\'BZ', bidMfrBackup: 'GLOBAL CONCEPTS' }),
+            hist({ bidItem: 'REMINGTON-IRON-ROUND-CHANDELIER-50\'\'BZ', bidManufacturer: 'REMINGTON' }),
+        ]);
+        expect(rows[0]?.bidManufacturer).toBe('GLOBAL CONCEPTS');
+    });
+
+    it('never overwrites a manufacturer that is already set', () => {
+        const rows = [row({ bidManufacturer: 'SATCO' })];
+        backfillBidManufacturers(rows, [hist({ bidItem: rows[0]!.bidItem, bidManufacturer: 'GLOBAL CONCEPTS' })]);
+        expect(rows[0]?.bidManufacturer).toBe('SATCO');
+    });
+
+    it('leaves the field empty when history has no vote for that item', () => {
+        const rows = [row({ bidItem: 'FLAIRE 5 LIGHT SEMI-FLUSH MOUNT', bidManufacturer: '' })];
+        backfillBidManufacturers(rows, [hist({ bidItem: 'SOMETHING ELSE', bidManufacturer: 'X' })]);
+        expect(rows[0]?.bidManufacturer).toBe('');
     });
 });
