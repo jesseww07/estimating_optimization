@@ -187,11 +187,16 @@ export const PARITY_CASES: ParityCase[] = [
         expect: {
             // The ONLY history row matching this spec in the frozen context is the
             // SATCO S-series lamp — with the exclusion applied the engine must
-            // return silence, never the lamp.
-            expectNoRecommendations: true,
+            // never surface the lamp. Since the Collective MedSpa review
+            // (2026-07-29) LUMENS is a passthrough-decorative brand, so the line
+            // now carries the "Left as-spec" badge instead of total silence —
+            // the SATCO exclusion stays pinned via mustNotInclude.
+            topSource: 'Manual',
+            topMatchType: 'manual',
+            mustInclude: ['ALE2497327'],
             mustNotInclude: ['S28574'],
         },
-        bindNote: 'The frozen catalog has no Vanity items, so a correct exclusion leaves zero recommendations; if the SATCO skip regressed, a history rec carrying bidItem S28574 would appear.',
+        bindNote: 'The frozen catalog has no Vanity items; the only card is the passthrough badge. If the SATCO skip regressed, a history rec carrying bidItem S28574 would appear.',
     },
     {
         id: 'recency-weight',

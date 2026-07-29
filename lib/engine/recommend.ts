@@ -38,6 +38,7 @@ import {
     detectFixtureCategory,
     dimensionsCompatible,
     extractLampAttributes,
+    isAccessoryItem,
     isBulbLampLine,
     isLedTape,
     isRfiPlaceholder,
@@ -46,6 +47,7 @@ import {
     looksLikeProse,
     normalizeProductId,
     normalizeSpecKey,
+    specWantsAccessory,
     thirdPartyCategoriesCompatible,
 } from './matcher';
 import {
@@ -59,7 +61,11 @@ import {
 export interface LineItemAnalysis {
     lineItem: ParsedLineItem;
     recommendations: Recommendation[];
-    /** Set when recommendations are intentionally empty (e.g. LED tape suppression). */
+    /**
+     * Informational banner for the line (LED tape suppression, RFI notice).
+     * May coexist with recommendations: an RFI line whose text names a fixture
+     * category carries the notice plus category-level suggestions.
+     */
     infoMessage?: string;
 }
 
@@ -80,6 +86,17 @@ const PASSTHROUGH_DECORATIVE_BRANDS = [
     'FINE ART',         // Fine Art Lamps / Handcrafted
     'TECH LIGHTING',
     'KELLY WEARSTLER',
+    // Consumer/designer retail brands from decorative fixture schedules
+    // (Collective MedSpa 2026-07-28) — no wholesale VE path, quote as specified
+    // unless the estimator identifies a substitutable equivalent.
+    'LUMENS',
+    'LULU AND GEORGIA',
+    'ARTHAUS',
+    'ETSY',
+    'NAAYASTUDIO',
+    'ETHNIKLIVING',
+    'ETHINKLIVING',     // as typed on real bid sheets
+    'LAS SOLAS',
 ];
 
 function isPassthroughDecorative(manufacturer: string, inferredCategory: string | null): boolean {
@@ -264,6 +281,158 @@ export function recommendForLineItem(lineItem: ParsedLineItem, ctx: EngineContex
     return analyzeLineItem(lineItem, ctx).recommendations;
 }
 
+/**
+ * In-category fallback: token overlap from the mark/catalog text ranks first,
+ * then Times Used. This is the "spec item not identified" mitigation from the
+ * Camino Del Rio review — site poles, building lights, vanities, and mirrors
+ * always get in-category candidates instead of silence or cross-category
+ * text-match junk. Extracted so the RFI branch and the post-dedupe retry can
+ * reuse it (Collective MedSpa review: line A ended silent though its category
+ * was known).
+ */
+function categoryFallbackRecommendations(
+    lineItem: ParsedLineItem,
+    ctx: EngineContext,
+    inferredCategory: string,
+    specDimensionText: string,
+    catalogNumber: string,
+): Recommendation[] {
+    const { mark } = lineItem;
+    const recommendations: Recommendation[] = [];
+    const catalogIsProse = looksLikeProse(catalogNumber);
+    const markIsProse = looksLikeProse(mark);
+    // Accessory SKUs (clips, drivers, power supplies) never substitute for a
+    // fixture spec — only for a spec that is itself an accessory.
+    const allowAccessories = specWantsAccessory(mark, catalogNumber);
+
+    const stopWords = new Set(['AND', 'OR', 'THE', 'FOR', 'WITH', 'NOT', 'LED', 'A', 'AN', 'IN', 'OF', 'W', 'X', 'FAN', 'LIGHT', 'FIXTURE']);
+    const tokenSource = catalogIsProse ? catalogNumber : markIsProse ? mark : `${mark} ${catalogNumber}`;
+    const proseTokens = tokenSource.toUpperCase()
+        .split(/[\s\-\/,()'"]+/)
+        .filter(t => t.length >= 3 && !stopWords.has(t) && !/^\d+(\.\d+)?["']?$/.test(t));
+
+    interface FallbackCandidate {
+        tokenScore: number;
+        usageBonus: number;
+        score: number;
+        tier: 'premier' | 'third_party';   // own-brand catalog first, 3rd-party budget tier second
+        id: string;
+        itemId: string;
+        category: string;
+        timesUsed: number;
+        itemAttributes: ItemAttributes;
+    }
+    const candidates: FallbackCandidate[] = [];
+
+    const tokenScoreFor = (itemId: string, description: string): number => {
+        const searchTarget = (itemId + ' ' + description).toUpperCase();
+        let tokenScore = 0;
+        for (const token of proseTokens) {
+            if (searchTarget.includes(token)) tokenScore++;
+        }
+        return tokenScore;
+    };
+
+    for (const item of ctx.premierItems) {
+        const category = item.fixtureCategory;
+
+        // Must belong to the inferred category's vocabulary group.
+        if (!category || !categoriesCompatible(inferredCategory, category)) continue;
+
+        // Dimension hard-gate applies to fallback candidates too.
+        if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
+
+        if (!allowAccessories && isAccessoryItem(item.itemId, item.itemDescription)) continue;
+
+        // Score by token overlap with item ID + description, then usage.
+        const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
+        const usageBonus = Math.min(10, Math.floor(item.timesUsed / 2));
+
+        candidates.push({
+            tokenScore,
+            usageBonus,
+            score: tokenScore * 8 + usageBonus,
+            tier: 'premier',
+            id: item.id,
+            itemId: item.itemId,
+            category,
+            timesUsed: item.timesUsed,
+            itemAttributes: {
+                category: category || undefined,
+                finish: item.finish || undefined,
+                colorTemp: item.colorTemp || undefined,
+                wattage: item.maxWattage || undefined,
+            },
+        });
+    }
+
+    // 3rd-party items join the fallback as the budget-alternative tier
+    // (SATCO/Westgate). No Times Used on that table, so their signal is
+    // token overlap only — and the tier ordering below guarantees they never
+    // rank above an own-brand candidate with equal signal.
+    for (const item of ctx.thirdPartyItems) {
+        if (!thirdPartyCategoriesCompatible(inferredCategory, item.productCategories)) continue;
+        if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
+        if (!allowAccessories && isAccessoryItem(item.itemId, item.itemDescription)) continue;
+
+        const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
+        candidates.push({
+            tokenScore,
+            usageBonus: 0,
+            score: tokenScore * 8,
+            tier: 'third_party',
+            id: item.id,
+            itemId: item.itemId,
+            category: item.productCategories,
+            timesUsed: 0,
+            itemAttributes: {
+                category: item.productCategories || undefined,
+                finish: item.finish || undefined,
+                colorTemp: item.colorTemp || undefined,
+                wattage: item.maxWattage || undefined,
+                manufacturer: item.manufacturer || undefined,
+            },
+        });
+    }
+
+    candidates.sort((a, b) =>
+        b.score - a.score ||
+        // Equal signal: own-brand always outranks the 3rd-party tier.
+        (a.tier === b.tier ? 0 : a.tier === 'premier' ? -1 : 1) ||
+        b.timesUsed - a.timesUsed);
+    // Prefer candidates with a real signal (token match or usage history);
+    // fall back to the top in-category items so the estimator still sees the
+    // right family instead of "No recommendations".
+    const withSignal = candidates.filter(cand => cand.tokenScore > 0 || cand.timesUsed > 0);
+    const chosen = (withSignal.length > 0 ? withSignal : candidates).slice(0, 3);
+    for (const cand of chosen) {
+        const descriptionBased = cand.tokenScore > 0;
+        const isThirdParty = cand.tier === 'third_party';
+        recommendations.push({
+            id: cand.id,
+            source: isThirdParty ? '3rd Party' : 'Premier Items',
+            matchType: 'partial',
+            confidence: descriptionBased
+                ? Math.min(60, Math.max(15, cand.score)) // cap at 60 — prose matching is imprecise
+                : Math.min(45, 15 + Math.min(30, cand.timesUsed)),
+            premierItem: cand.itemId || undefined,
+            recordId: cand.id,
+            matchReason: descriptionBased
+                ? `Category match: ${inferredCategory} (description-based${isThirdParty ? ', 3rd-party alternative' : ''})`
+                : `Category match: ${inferredCategory} — most-used catalog items (spec not identified at item level)`,
+            itemAttributes: cand.itemAttributes,
+            matchDetails: [
+                `Category: ${cand.category}`,
+                descriptionBased ? 'Matched from description tokens' : `Used ${cand.timesUsed} time${cand.timesUsed === 1 ? '' : 's'} before`,
+                ...(isThirdParty ? ['3rd-party budget alternative'] : []),
+            ],
+            productCategory: cand.category || undefined,
+            ...(isThirdParty ? { thirdPartyLinkId: cand.id } : { premierLinkId: cand.id }),
+        });
+    }
+    return recommendations;
+}
+
 export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): LineItemAnalysis {
     const recommendations: Recommendation[] = [];
     const { mark, manufacturer } = lineItem;
@@ -273,10 +442,25 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
 
     // TBD / missing-spec lines become an RFI, never a fabricated match (domain
     // rule). Checked before tape: "RFI #2 - HAND RAIL LIGHTING" is an RFI, not tape.
+    // When the RFI text still names a fixture CATEGORY ("MISSING SPEC — RECESSED
+    // DOWNLIGHT"), offer the in-category most-used candidates alongside the RFI
+    // notice instead of silence — they are suggestions, never auto-selected
+    // (matchType 'partial' is excluded from auto-select), and RFI lines are
+    // excluded from History write-back regardless of selection.
     if (isRfiPlaceholder(mark, lineItem.catalogNumber, manufacturer)) {
+        const rfiCategory = detectFixtureCategory(mark, catalogNumber, manufacturer);
+        const rfiRecs = rfiCategory
+            ? categoryFallbackRecommendations(lineItem, ctx, rfiCategory, `${mark} ${catalogNumber}`, catalogNumber)
+            : [];
+        for (const rec of rfiRecs) {
+            if (!rec.isPassthrough && isPremierOwnBrand(rec)) {
+                rec.confidence = Math.min(100, rec.confidence + OWN_BRAND_BONUS);
+            }
+        }
+        rfiRecs.sort(compareRecommendations);
         return {
             lineItem,
-            recommendations: [],
+            recommendations: rfiRecs.slice(0, 3),
             infoMessage: 'RFI — spec not identified (TBD / missing spec). Request the specification; the engine never fabricates a match for an unidentified item.',
         };
     }
@@ -590,6 +774,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
 
     if (!hasHistoryMatches) {
         const normalizedCatalog = normalizeProductId(catalogNumber);
+        const allowAccessories = specWantsAccessory(mark, catalogNumber);
 
         for (const item of ctx.premierItems) {
             let score = 0;
@@ -606,6 +791,10 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             // Dimension hard-gate: a candidate matching on category but dimensionally
             // incompatible must be blocked, not just demoted.
             if (!dimensionsCompatible(specDimensionText, `${itemId} ${item.itemDescription}`)) continue;
+
+            // Accessory SKUs never substitute for a fixture spec (MedSpa L7:
+            // tape-light mounting clips offered for a picture light).
+            if (!allowAccessories && isAccessoryItem(itemId, item.itemDescription)) continue;
 
             if (itemId) {
                 const normalizedItemId = normalizeProductId(itemId);
@@ -753,7 +942,6 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     }
 
     let hasAnyRecommendations = recommendations.length > 0;
-    const catalogIsProse = looksLikeProse(catalogNumber);
 
     // ── Already a Premier / Global Concepts Item ──────────────────────────────
     // When the spec IS already one of our items, there is no substitution to
@@ -786,135 +974,9 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
 
     // ── Category Fallback (generalized prose fallback) ───────────────────────
     // When nothing matched but the fixture CATEGORY is known, recommend from the
-    // Premier catalog inside that category: token overlap from the mark/catalog
-    // text ranks first, then Times Used. This is the "spec item not identified"
-    // mitigation from the Camino Del Rio review — site poles, building lights,
-    // vanities, and mirrors always get in-category candidates instead of silence
-    // or cross-category text-match junk.
-    const markIsProse = looksLikeProse(mark);
+    // Premier catalog inside that category (categoryFallbackRecommendations).
     if (!hasAnyRecommendations && inferredCategory) {
-        const stopWords = new Set(['AND', 'OR', 'THE', 'FOR', 'WITH', 'NOT', 'LED', 'A', 'AN', 'IN', 'OF', 'W', 'X', 'FAN', 'LIGHT', 'FIXTURE']);
-        const tokenSource = catalogIsProse ? catalogNumber : markIsProse ? mark : `${mark} ${catalogNumber}`;
-        const proseTokens = tokenSource.toUpperCase()
-            .split(/[\s\-\/,()'"]+/)
-            .filter(t => t.length >= 3 && !stopWords.has(t) && !/^\d+(\.\d+)?["']?$/.test(t));
-
-        interface FallbackCandidate {
-            tokenScore: number;
-            usageBonus: number;
-            score: number;
-            tier: 'premier' | 'third_party';   // own-brand catalog first, 3rd-party budget tier second
-            id: string;
-            itemId: string;
-            category: string;
-            timesUsed: number;
-            itemAttributes: ItemAttributes;
-        }
-        const candidates: FallbackCandidate[] = [];
-
-        const tokenScoreFor = (itemId: string, description: string): number => {
-            const searchTarget = (itemId + ' ' + description).toUpperCase();
-            let tokenScore = 0;
-            for (const token of proseTokens) {
-                if (searchTarget.includes(token)) tokenScore++;
-            }
-            return tokenScore;
-        };
-
-        for (const item of ctx.premierItems) {
-            const category = item.fixtureCategory;
-
-            // Must belong to the inferred category's vocabulary group.
-            if (!category || !categoriesCompatible(inferredCategory, category)) continue;
-
-            // Dimension hard-gate applies to fallback candidates too.
-            if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
-
-            // Score by token overlap with item ID + description, then usage.
-            const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
-            const usageBonus = Math.min(10, Math.floor(item.timesUsed / 2));
-
-            candidates.push({
-                tokenScore,
-                usageBonus,
-                score: tokenScore * 8 + usageBonus,
-                tier: 'premier',
-                id: item.id,
-                itemId: item.itemId,
-                category,
-                timesUsed: item.timesUsed,
-                itemAttributes: {
-                    category: category || undefined,
-                    finish: item.finish || undefined,
-                    colorTemp: item.colorTemp || undefined,
-                    wattage: item.maxWattage || undefined,
-                },
-            });
-        }
-
-        // 3rd-party items join the fallback as the budget-alternative tier
-        // (SATCO/Westgate). No Times Used on that table, so their signal is
-        // token overlap only — and the tier ordering below guarantees they never
-        // rank above an own-brand candidate with equal signal.
-        for (const item of ctx.thirdPartyItems) {
-            if (!thirdPartyCategoriesCompatible(inferredCategory, item.productCategories)) continue;
-            if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
-
-            const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
-            candidates.push({
-                tokenScore,
-                usageBonus: 0,
-                score: tokenScore * 8,
-                tier: 'third_party',
-                id: item.id,
-                itemId: item.itemId,
-                category: item.productCategories,
-                timesUsed: 0,
-                itemAttributes: {
-                    category: item.productCategories || undefined,
-                    finish: item.finish || undefined,
-                    colorTemp: item.colorTemp || undefined,
-                    wattage: item.maxWattage || undefined,
-                    manufacturer: item.manufacturer || undefined,
-                },
-            });
-        }
-
-        candidates.sort((a, b) =>
-            b.score - a.score ||
-            // Equal signal: own-brand always outranks the 3rd-party tier.
-            (a.tier === b.tier ? 0 : a.tier === 'premier' ? -1 : 1) ||
-            b.timesUsed - a.timesUsed);
-        // Prefer candidates with a real signal (token match or usage history);
-        // fall back to the top in-category items so the estimator still sees the
-        // right family instead of "No recommendations".
-        const withSignal = candidates.filter(cand => cand.tokenScore > 0 || cand.timesUsed > 0);
-        const chosen = (withSignal.length > 0 ? withSignal : candidates).slice(0, 3);
-        for (const cand of chosen) {
-            const descriptionBased = cand.tokenScore > 0;
-            const isThirdParty = cand.tier === 'third_party';
-            recommendations.push({
-                id: cand.id,
-                source: isThirdParty ? '3rd Party' : 'Premier Items',
-                matchType: 'partial',
-                confidence: descriptionBased
-                    ? Math.min(60, Math.max(15, cand.score)) // cap at 60 — prose matching is imprecise
-                    : Math.min(45, 15 + Math.min(30, cand.timesUsed)),
-                premierItem: cand.itemId || undefined,
-                recordId: cand.id,
-                matchReason: descriptionBased
-                    ? `Category match: ${inferredCategory} (description-based${isThirdParty ? ', 3rd-party alternative' : ''})`
-                    : `Category match: ${inferredCategory} — most-used catalog items (spec not identified at item level)`,
-                itemAttributes: cand.itemAttributes,
-                matchDetails: [
-                    `Category: ${cand.category}`,
-                    descriptionBased ? 'Matched from description tokens' : `Used ${cand.timesUsed} time${cand.timesUsed === 1 ? '' : 's'} before`,
-                    ...(isThirdParty ? ['3rd-party budget alternative'] : []),
-                ],
-                productCategory: cand.category || undefined,
-                ...(isThirdParty ? { thirdPartyLinkId: cand.id } : { premierLinkId: cand.id }),
-            });
-        }
+        recommendations.push(...categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber));
         hasAnyRecommendations = recommendations.length > 0;
     }
 
@@ -946,7 +1008,24 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     }
     recommendations.sort(compareRecommendations);
 
-    const dedupedRecommendations = deduplicateRecommendations(recommendations, catalogNumber);
+    let dedupedRecommendations = deduplicateRecommendations(recommendations, catalogNumber);
+
+    // Dedupe can delete every candidate (the "don't recommend the input back"
+    // rule) AFTER the fallback decision was made on the pre-dedupe list — the
+    // line would end silent even though its category is known (MedSpa line A:
+    // "RECESSED DOWNLIGHT" admitted a same-name item, dedupe removed it). Retry
+    // with the in-category fallback so a known category never ends empty.
+    if (dedupedRecommendations.length === 0 && recommendations.length > 0 && inferredCategory) {
+        const retry = categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber);
+        for (const rec of retry) {
+            if (!rec.isPassthrough && isPremierOwnBrand(rec)) {
+                rec.confidence = Math.min(100, rec.confidence + OWN_BRAND_BONUS);
+            }
+        }
+        retry.sort(compareRecommendations);
+        dedupedRecommendations = deduplicateRecommendations(retry, catalogNumber);
+    }
+
     return { lineItem, recommendations: dedupedRecommendations.slice(0, 3) };
 }
 

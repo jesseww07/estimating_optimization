@@ -48,6 +48,28 @@ export function isPremierOwnBrand(rec: Pick<Recommendation, 'premierItem' | 'bid
 /** Confidence bonus applied to own-brand recommendations before ranking. */
 export const OWN_BRAND_BONUS = 15;
 
+// ── Auto-select gate (Collective MedSpa review, 2026-07-28) ──────────────────
+// The UI pre-checks the top recommendation. Pre-checking a 30% category guess
+// makes it exportable — and export writes History, which feeds recency
+// weighting and (after 3 exports) the authoritative tier: a self-reinforcing
+// loop for a guess nobody endorsed. Only pre-check candidates with real
+// evidence; everything else defaults to "Leave as specified" and stays one
+// click away.
+
+/** Minimum confidence for the UI to pre-check a recommendation. */
+export const MIN_AUTOSELECT_CONFIDENCE = 50;
+
+/**
+ * True when a recommendation is strong enough to be the default selection:
+ * confident AND better-than-'partial' evidence (category fallbacks are
+ * hard-coded 'partial' — never a default, whatever their score).
+ */
+export function shouldAutoSelect(rec: { confidence: number; matchType: string; isPassthrough?: boolean } | undefined | null): boolean {
+    if (!rec || rec.isPassthrough) return false;
+    if (rec.matchType === 'partial') return false;
+    return rec.confidence >= MIN_AUTOSELECT_CONFIDENCE;
+}
+
 /**
  * Ranking comparator: History always beats Premier Items / Fans; within the same
  * source tier, higher confidence first (own-brand bonus already baked in), with

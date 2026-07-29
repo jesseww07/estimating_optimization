@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { shouldAutoSelect } from '@/lib/engine/ranking';
 
 interface IdentifiedSpec {
     manufacturer: string;
@@ -186,8 +187,11 @@ export default function Home() {
             setResults(analyses);
             const initial: Record<number, string> = {};
             for (const a of analyses) {
+                // Only pre-check strong evidence — low-confidence category
+                // guesses stay one click away instead of becoming the default
+                // (and thus a History row) by inertia.
                 const top = a.recommendations[0];
-                initial[a.lineItem.rowIndex] = top && !top.isPassthrough ? top.id : AS_SPEC;
+                initial[a.lineItem.rowIndex] = shouldAutoSelect(top) ? top!.id : AS_SPEC;
             }
             setSelections(initial);
         } catch (e) {
@@ -222,11 +226,12 @@ export default function Home() {
             const identified: IdentifiedSpec = json.identified;
             const result: LineItemAnalysis = json.result;
             setResults(rs => (rs ? rs.map(a => (a.lineItem.rowIndex === rowIndex ? result : a)) : rs));
-            // Confidence gate: LOW identifications never auto-select a recommendation.
+            // Confidence gates: LOW identifications never auto-select, and the
+            // recommendation itself must clear the auto-select bar too.
             const top = result.recommendations[0];
             setSelections(s => ({
                 ...s,
-                [rowIndex]: identified.confidence !== 'LOW' && top && !top.isPassthrough ? top.id : AS_SPEC,
+                [rowIndex]: identified.confidence !== 'LOW' && shouldAutoSelect(top) ? top!.id : AS_SPEC,
             }));
         } catch (e) {
             setIdentifyError(s => ({ ...s, [rowIndex]: e instanceof Error ? e.message : 'Identification failed.' }));

@@ -51,6 +51,12 @@ export interface WritebackRow {
     bidDate: string;
     premierLinkId?: string;
     thirdPartyLinkId?: string;
+    /**
+     * Engine confidence (0-100) of the selected recommendation at export time.
+     * Recorded to "Spec Match Confidence" so a 30% category guess an estimator
+     * accepted is distinguishable in History from a 95% authoritative swap.
+     */
+    matchConfidence?: number;
 }
 
 export interface WritebackResult {
@@ -76,7 +82,8 @@ export function isWritebackEligible(row: WritebackRow): boolean {
     return row.originalSpec.trim().length >= 3 && row.bidItem.trim().length >= 3 && row.project.trim().length > 0;
 }
 
-function toAirtableFields(row: WritebackRow): Record<string, unknown> {
+/** Exported for tests — the exact field payload a live create would send. */
+export function toAirtableFields(row: WritebackRow): Record<string, unknown> {
     const F = HISTORY_FIELDS;
     const fields: Record<string, unknown> = {
         [F.MARK]: row.mark,
@@ -84,13 +91,56 @@ function toAirtableFields(row: WritebackRow): Record<string, unknown> {
         [F.ORIGINAL_SPEC]: row.originalSpec,
         [F.PROJECT]: row.project,
         [F.BID_DATE]: row.bidDate,
+        // "EXACT" describes the spec→item LINKAGE (we know exactly which item
+        // was bid — it came from a user selection), matching the singleSelect's
+        // existing EXACT / NON-ITEM / UNMAPPED vocabulary. Swap QUALITY lives
+        // in Spec Match Confidence below.
         [F.MATCH_TYPE]: 'EXACT',
     };
     if (row.specManufacturer) fields[F.SPEC_MFR_BACKUP] = row.specManufacturer;
     if (row.bidManufacturer) fields[F.BID_MFR_BACKUP] = row.bidManufacturer;
     if (row.premierLinkId) fields[F.PREMIER_LINK] = [row.premierLinkId];
     else if (row.thirdPartyLinkId) fields[F.THIRD_PARTY_LINK] = [row.thirdPartyLinkId];
+    if (typeof row.matchConfidence === 'number' && Number.isFinite(row.matchConfidence)) {
+        fields[F.SPEC_MATCH_CONFIDENCE] = `${Math.round(row.matchConfidence)}%`;
+    }
     return fields;
+}
+
+/**
+ * Fill an empty bidManufacturer from prior History rows for the same bid item
+ * (majority vote). Ground truth from past bids — never a brand guess. The
+ * MedSpa export left "Bid Manufacturer (text)" blank on items whose prefix
+ * inference failed (REMINGTON…, FLAIRE…).
+ */
+export function backfillBidManufacturers(rows: WritebackRow[], existing: HistoryRow[]): void {
+    const needed = rows.filter(r => !r.bidManufacturer.trim());
+    if (needed.length === 0) return;
+
+    const votes = new Map<string, Map<string, number>>();
+    for (const h of existing) {
+        const mfr = (h.bidManufacturer || h.bidMfrBackup || '').trim();
+        if (!mfr) continue;
+        const key = normalizeProductId(h.bidItem);
+        if (!key) continue;
+        const tally = votes.get(key) ?? new Map<string, number>();
+        tally.set(mfr, (tally.get(mfr) ?? 0) + 1);
+        votes.set(key, tally);
+    }
+
+    for (const row of needed) {
+        const tally = votes.get(normalizeProductId(row.bidItem));
+        if (!tally) continue;
+        let best = '';
+        let bestCount = 0;
+        for (const [mfr, count] of tally) {
+            if (count > bestCount) {
+                best = mfr;
+                bestCount = count;
+            }
+        }
+        if (best) row.bidManufacturer = best;
+    }
 }
 
 /**
@@ -119,6 +169,7 @@ const CHUNK_DELAY_MS = 250;        // stay under the 5 req/s base cap
 export async function writeSelectionsToHistory(rows: WritebackRow[], existingHistory: HistoryRow[]): Promise<WritebackResult> {
     const mode = getWritebackMode();
     const eligible = rows.filter(isWritebackEligible);
+    backfillBidManufacturers(eligible, existingHistory);
     const { fresh, duplicates } = partitionAgainstHistory(eligible, existingHistory);
     const result: WritebackResult = {
         mode,

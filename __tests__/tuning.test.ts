@@ -14,7 +14,8 @@
 import { describe, expect, it } from 'vitest';
 import type { EngineContext, ParsedLineItem, PremierItemRow } from '@/lib/types';
 import { analyzeLineItem } from '@/lib/engine/recommend';
-import { detectFixtureCategory, isLedTape, isRfiPlaceholder } from '@/lib/engine/matcher';
+import { calculateCatalogMatchScore, detectFixtureCategory, isAccessoryItem, isLedTape, isRfiPlaceholder } from '@/lib/engine/matcher';
+import { shouldAutoSelect } from '@/lib/engine/ranking';
 
 const premier = (o: Partial<PremierItemRow> & Pick<PremierItemRow, 'id' | 'itemId' | 'fixtureCategory'>): PremierItemRow => ({
     itemDescription: '',
@@ -305,5 +306,87 @@ describe('Candlewood tuning', () => {
         expect(r.recommendations[0]?.premierItem).toBe('S12407');
         expect(r.recommendations[0]?.confidence).toBeGreaterThanOrEqual(85);
         expect(r.recommendations[0]?.matchDetails?.join(' ')).toContain('matching swap');
+    });
+});
+
+// ── Collective MedSpa tuning (2026-07-29) ─────────────────────────────────────
+// Real fixture-schedule run: decorative consumer brands, no catalog numbers.
+// Pins: chandelier category detection, accessory exclusion, generic-token
+// stop list, RFI lines with a detectable category, post-dedupe fallback
+// retry, and the auto-select gate.
+
+describe('Collective MedSpa: category + matching fixes', () => {
+    const MEDSPA_CTX: EngineContext = {
+        history: [],
+        fans: [],
+        premierItems: [
+            ...CTX.premierItems,
+            premier({ id: 'disk12', itemId: 'R-SLIM-DISK-12W-5CCT-WH', fixtureCategory: 'Disk Light', itemDescription: '12W SLIM DISK 5CCT WHITE', timesUsed: 35 }),
+            premier({ id: 'disk8', itemId: 'R-SLIM-DISK-8W-5CCT-WH', fixtureCategory: 'Disk Light', itemDescription: '8W SLIM DISK 5CCT WHITE', timesUsed: 31 }),
+            premier({ id: 'rdkit', itemId: 'RECESSED DOWNLIGHT RETRO', fixtureCategory: 'Downlight', itemDescription: 'LED RECESSED DOWNLIGHT RETROFIT', timesUsed: 2 }),
+            premier({ id: 'flaire', itemId: 'FLAIRE 5 LIGHT SEMI-FLUSH MOUNT', fixtureCategory: 'Flush / Surface Mount', itemDescription: 'FIVE LIGHT SEMI FLUSH', timesUsed: 4 }),
+            premier({ id: 'clips', itemId: 'MOUNTING CLIPS FOR TAPE LIGHT', fixtureCategory: 'Undercabinet / Tape Light + Connectors', itemDescription: 'MOUNTING CLIPS', timesUsed: 6 }),
+            premier({ id: 'dawn', itemId: 'GC-DAWN 44 CHANDELIER', fixtureCategory: 'Chandelier', itemDescription: '44" CHANDELIER BRONZE', timesUsed: 8 }),
+        ],
+        thirdPartyItems: [],
+    };
+
+    it('classifies chandelier prose specs as Pendant', () => {
+        expect(detectFixtureCategory('L2', 'DAITH CHANDELIER', 'LUMENS')).toBe('Pendant');
+        expect(detectFixtureCategory('L8', 'PALOMA CHANDELIER', 'ARTHAUS')).toBe('Pendant');
+    });
+
+    it('generic tokens alone cannot manufacture a text match', () => {
+        expect(calculateCatalogMatchScore('CANNELE PICTURE LIGHT', 'MOUNTING CLIPS FOR TAPE LIGHT')).toBe(0);
+        expect(calculateCatalogMatchScore('CANNELE PICTURE LIGHT', 'FLAIRE 5 LIGHT SEMI-FLUSH MOUNT')).toBe(0);
+        // Distinctive tokens still match.
+        expect(calculateCatalogMatchScore('DAITH CHANDELIER', 'GC-DAWN 44 CHANDELIER')).toBeGreaterThan(0);
+    });
+
+    it('flags accessory SKUs and keeps them out of fixture candidates', () => {
+        expect(isAccessoryItem('MOUNTING CLIPS FOR TAPE LIGHT', 'MOUNTING CLIPS')).toBe(true);
+        expect(isAccessoryItem('R-SLIM-DISK-12W-5CCT-WH', '12W SLIM DISK')).toBe(false);
+        const r = analyzeLineItem(line('L7', 'LUMENS', 'CANNELE PICTURE LIGHT'), MEDSPA_CTX);
+        expect(r.recommendations.map(x => x.premierItem)).not.toContain('MOUNTING CLIPS FOR TAPE LIGHT');
+        expect(r.recommendations.map(x => x.premierItem)).not.toContain('FLAIRE 5 LIGHT SEMI-FLUSH MOUNT');
+    });
+
+    it('unmatched decorative-retail brands get the passthrough badge, not junk', () => {
+        const r = analyzeLineItem(line('L7', 'LUMENS', 'CANNELE PICTURE LIGHT'), MEDSPA_CTX);
+        expect(r.recommendations).toHaveLength(1);
+        expect(r.recommendations[0]?.isPassthrough).toBe(true);
+    });
+
+    it('RFI lines with a detectable category get in-category suggestions plus the RFI notice', () => {
+        const r = analyzeLineItem(line('A (rfi #1)', 'TBD', 'MISSING SPEC - RECESSED DOWNLIGHT'), MEDSPA_CTX);
+        expect(r.infoMessage ?? '').toContain('RFI');
+        expect(r.recommendations.length).toBeGreaterThan(0);
+        expect(r.recommendations[0]?.matchReason).toContain('Category match');
+        // Suggestions on an RFI line are never strong enough to auto-select.
+        expect(shouldAutoSelect(r.recommendations[0])).toBe(false);
+    });
+
+    it('RFI lines with no category signal still return zero recommendations', () => {
+        const r = analyzeLineItem(line('PDE1 (rfi #1)', 'TBD', '(c.h. 10\'0" aff 0\'0")'), MEDSPA_CTX);
+        expect(r.recommendations).toHaveLength(0);
+        expect(r.infoMessage ?? '').toContain('RFI');
+    });
+
+    it('falls back in-category when dedupe deletes every direct candidate (line A)', () => {
+        // "RECESSED DOWNLIGHT" text-matches the RECESSED DOWNLIGHT RETRO item
+        // (substring rule), which dedupe then removes as "the input echoed
+        // back" — the line must end with disk-light fallbacks, not silence.
+        const r = analyzeLineItem(line('A', 'TBD', 'RECESSED DOWNLIGHT'), MEDSPA_CTX);
+        expect(r.recommendations.length).toBeGreaterThan(0);
+        expect(r.recommendations.map(x => x.premierItem)).toContain('R-SLIM-DISK-12W-5CCT-WH');
+    });
+
+    it('auto-select gate: strong evidence only', () => {
+        expect(shouldAutoSelect({ confidence: 61, matchType: 'fuzzy' })).toBe(true);
+        expect(shouldAutoSelect({ confidence: 95, matchType: 'exact' })).toBe(true);
+        expect(shouldAutoSelect({ confidence: 45, matchType: 'fuzzy' })).toBe(false);   // below bar
+        expect(shouldAutoSelect({ confidence: 60, matchType: 'partial' })).toBe(false); // category guess
+        expect(shouldAutoSelect({ confidence: 100, matchType: 'manual', isPassthrough: true })).toBe(false);
+        expect(shouldAutoSelect(undefined)).toBe(false);
     });
 });
