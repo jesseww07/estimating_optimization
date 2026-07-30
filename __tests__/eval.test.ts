@@ -273,3 +273,29 @@ describe('accuracy eval — frozen dataset vs committed baseline', () => {
         expect(true).toBe(true);
     });
 });
+
+describe('eval harness — as-spec case classification', () => {
+    const premierX = premierItem({ id: 'recPXAAAAAAAAAAA', itemId: 'ABC-123-XYZ' });
+    const premierY = premierItem({ id: 'recPYAAAAAAAAAAA', itemId: 'GC-SWAP-1' });
+
+    it('a case whose only labels are the spec itself is asSpec and leaves the headline', () => {
+        const ctx = ctxWith([
+            historyRow({ id: 'r1', project: 'Alpha', originalSpec: 'ABC-123-XYZ', bidItem: 'ABC-123-XYZ', premierLinkIds: ['recPXAAAAAAAAAAA'] }),
+        ], [premierX]);
+        const built = buildEvalCases(ctx);
+        expect(built.cases[0]!.asSpec).toBe(true);
+        const report = runEval(ctx, built);
+        expect(report.headline.cases).toBe(0);
+        expect(report.asSpec.cases).toBe(1);
+    });
+
+    it('a real swap alongside an as-spec row keeps the case in the headline', () => {
+        const ctx = ctxWith([
+            historyRow({ id: 'r1', project: 'Alpha', originalSpec: 'ABC-123-XYZ', bidItem: 'ABC-123-XYZ', premierLinkIds: ['recPXAAAAAAAAAAA'] }),
+            historyRow({ id: 'r2', project: 'Alpha', originalSpec: 'ABC-123-XYZ', bidItem: 'GC-SWAP-1', premierLinkIds: ['recPYAAAAAAAAAAA'] }),
+        ], [premierX, premierY]);
+        const built = buildEvalCases(ctx);
+        expect(built.cases[0]!.asSpec).toBe(false);
+        expect(runEval(ctx, built).headline.cases).toBe(1);
+    });
+});

@@ -88,11 +88,15 @@ substitutions and are set aside; against the label:
   click away is annoying; junk pre-checked is self-reinforcing.
 
 `top3 + junk + silent = 100%`. **Headline** covers pipeline classes where a
-recommendation is expected (`standard` + `bulb`); `tape` and `rfi` lines are
+substitution is expected (`standard` + `bulb`); `tape` and `rfi` lines are
 engine-intended suppressions and are reported separately so working guards
-aren't scored as failures. Slices: pipeline class, prose-vs-catalog spec
-style (backlog items 3/9 territory), label source (premier / third-party),
-and per-project.
+aren't scored as failures. **As-spec cases** — where every labeled outcome IS
+the input spec (the line was bid as itself; Premier resells/carries it) — are
+also excluded from the headline and reported as their own slice: the engine
+deliberately never recommends the input back, so the correct outcome there is
+a passthrough card or silence, which substitution metrics cannot credit.
+Slices: pipeline class, prose-vs-catalog spec style (backlog items 3/9
+territory), label source (premier / third-party), and per-project.
 
 ## The ratchet
 
@@ -134,6 +138,20 @@ alone — backlog #2/#8), and the silent bucket is full of family-level
 substitutions the detector misses (e.g. Lithonia `CLXL…` strips → Premier
 `EFS-001` builds; backlog #3/#4). Every backlog change should move a specific
 cell of this table.
+
+## First measured change (2026-07-30, 3rd & Flower review)
+
+The identification fixes driven by the 3rd & Flower bid sheet + IS schedule
+(parser URL/short-header bugs, detector additions, short-mark and single-token
+junk gates, the 3rd-party direct tier, accessory/fan-span gates on history,
+as-spec handling) moved the headline to **top1 9.01% / top3 11.28% / junk
+45.55% / silent 43.17% / autoWrong 6.94%** on 966 cases. Two caveats for
+honest comparison against the initial table above: (1) the headline
+*definition* changed — 104 as-spec cases left the denominator (see above), and
+(2) much of the junk drop converted to silence by design (a wrong card removed
+is a quieter line, not a hit). Like-for-like on the original definition, top1
+went 5.79% → 8.79% and junk 64.21% → 47.57% with zero previously-hit cases
+lost (verified per-case via the baseline flip diff).
 
 ## Data notes
 

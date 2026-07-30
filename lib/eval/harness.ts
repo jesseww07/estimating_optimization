@@ -101,6 +101,14 @@ export interface EvalCase {
     labelSource: LabelSource;
     pipelineClass: PipelineClass;
     specStyle: SpecStyle;
+    /**
+     * True when EVERY labeled outcome is the spec itself — the line was bid
+     * as-spec (resold/carried item). Substitution metrics cannot credit these
+     * (the engine rightly never recommends the input back); the correct answer
+     * is a passthrough/leave-as-spec, so they are reported as their own slice
+     * and excluded from the headline.
+     */
+    asSpec: boolean;
     /** How many History rows collapsed into this case (same project + spec). */
     rowCount: number;
     /** Record id of the first History row backing this case (for tracing). */
@@ -148,8 +156,14 @@ export interface SkippedRows {
 }
 
 export interface EvalReport {
-    /** Headline metrics: pipeline classes where a recommendation is expected (standard + bulb). */
+    /**
+     * Headline metrics: pipeline classes where a substitution is expected
+     * (standard + bulb), excluding as-spec cases (label ≡ input — the correct
+     * answer is leave-as-spec, which substitution metrics cannot credit).
+     */
     headline: MetricBlock;
+    /** As-spec cases (label ≡ input): passthrough/silent is the desired outcome here. */
+    asSpec: MetricBlock;
     /** Every case regardless of class. */
     all: MetricBlock;
     byClass: Record<PipelineClass, MetricBlock>;
@@ -232,6 +246,7 @@ export function buildEvalCases(ctx: EngineContext): BuiltCases {
             }
             if (bidAlias && !existing.aliases.includes(bidAlias)) existing.aliases.push(bidAlias);
             if (labelSource === 'premier') existing.labelSource = 'premier';
+            if (normLabel !== normSpec) existing.asSpec = false;
             continue;
         }
 
@@ -258,6 +273,7 @@ export function buildEvalCases(ctx: EngineContext): BuiltCases {
             labelSource,
             pipelineClass,
             specStyle: looksLikeProse(spec) ? 'prose' : 'catalog',
+            asSpec: normLabel === normSpec,
             rowCount: 1,
             historyRecordId: row.id,
         });
@@ -414,7 +430,9 @@ function buildReport(results: CaseResult[], skipped: SkippedRows): EvalReport {
         byProjectResults.set(r.evalCase.project, list);
     }
 
-    const headlineResults = [...byClassResults.standard, ...byClassResults.bulb];
+    const headlineResults = [...byClassResults.standard, ...byClassResults.bulb]
+        .filter(r => !r.evalCase.asSpec);
+    const asSpecResults = results.filter(r => r.evalCase.asSpec);
 
     const caseOutcomes: Record<string, Outcome> = {};
     for (const r of [...results].sort((a, b) => (a.evalCase.id < b.evalCase.id ? -1 : 1))) {
@@ -423,6 +441,7 @@ function buildReport(results: CaseResult[], skipped: SkippedRows): EvalReport {
 
     return {
         headline: metricsFor(headlineResults),
+        asSpec: metricsFor(asSpecResults),
         all: metricsFor(results),
         byClass: {
             standard: metricsFor(byClassResults.standard),

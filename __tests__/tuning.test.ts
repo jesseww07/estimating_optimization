@@ -396,3 +396,215 @@ describe('Collective MedSpa: category + matching fixes', () => {
         expect(shouldAutoSelect(undefined)).toBe(false);
     });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3rd & Flower identification fixes (Jesse's ownership-meeting review,
+// 2026-07-30). Each case reproduces a real line from the test bid sheet /
+// IS schedule where the source item wasn't identified: near-misses that
+// should have been easy dunks, and junk born from 1-char marks and
+// single-token substring overlaps.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('3rd & Flower: category detection gaps', () => {
+    it('detects a ceiling fan described only by attributes (blades + light kit)', () => {
+        expect(detectFixtureCategory('UF', '50" (3) BLADES LIGHT KIT ENERGY STAR', '')).toBe('Ceiling Fan');
+    });
+
+    it('detects a fan named in the catalog text, not the mark', () => {
+        expect(detectFixtureCategory('LS4', 'FAN CABANA', '')).toBe('Ceiling Fan');
+    });
+
+    it('still routes exhaust fans nowhere, even from catalog text', () => {
+        expect(detectFixtureCategory('EF1', 'EXHAUST FAN 110CFM', '')).toBeNull();
+    });
+
+    it('classifies EXIT SINGLE / EXIT DOUBLE placeholder rows as Exit/Emergency', () => {
+        expect(detectFixtureCategory('EXIT SINGLE', 'EXIT SINGLE', '')).toBe('Exit/Emergency');
+        expect(detectFixtureCategory('EXIT DOUBLE', 'EXIT DOUBLE', '')).toBe('Exit/Emergency');
+    });
+
+    it('classifies Lithonia LXEM exit units and LNC wall packs', () => {
+        expect(detectFixtureCategory('C', 'LXEM4-40HL-RFA-EDU', '')).toBe('Exit/Emergency');
+        expect(detectFixtureCategory('S1', 'LNC-7LU-4K-3', '')).toBe('Outdoor');
+    });
+
+    it('EXIT placeholder rows surface in-category exit items with the RFI notice instead of silence', () => {
+        // Real rows: 100x "EXIT SINGLE" + 41x "EXIT DOUBLE" with no spec —
+        // mark === catalog makes them RFI placeholders; the category must
+        // still route them to the exit-sign family.
+        const r = analyzeLineItem(line('EXIT SINGLE', '', 'EXIT SINGLE'), CTX);
+        expect(r.infoMessage ?? '').toContain('RFI');
+        expect(r.recommendations.map(x => x.premierItem)).toContain('GCEXITEM-G2');
+        expect(shouldAutoSelect(r.recommendations[0])).toBe(false);
+    });
+});
+
+describe('3rd & Flower: short-mark and single-token junk gates', () => {
+    it('a 1-char mark cannot manufacture matches (exit spec got GC-BLChannel via mark "C")', () => {
+        const r = analyzeLineItem(line('C', '', 'LXEM4-40HL-RFA-EDU'), CTX);
+        // With LXEM now detected, the line lands in the exit family — and the
+        // old mark-substring junk (85% on the letter C) must be gone.
+        for (const rec of r.recommendations) {
+            expect(rec.matchReason).not.toContain('Mark match');
+            expect(rec.productCategory).toBe('Exit Sign');
+        }
+    });
+
+    it('a single significant token matching only as a substring scores zero', () => {
+        expect(calculateCatalogMatchScore('CS6964', 'GC-01-083123-1-2XE26-CS')).toBe(0);
+        expect(calculateCatalogMatchScore('3-515-25- HALO', 'GC-01-061118-2-12W-30K-AL')).toBe(0);
+    });
+
+    it('color/finish words are attributes, not identity', () => {
+        expect(calculateCatalogMatchScore('APLOMB GREY', 'HEIR CUSTOM-JAIMA 43 -GREY')).toBe(0);
+        expect(calculateCatalogMatchScore('DJEMBÉ GREY - RAL 7022', 'HEIR CUSTOM-JAIMA 43 -GREY')).toBe(0);
+    });
+
+    it('real shared tokens still match (family match survives the gates)', () => {
+        expect(calculateCatalogMatchScore('F896-65-CL', 'F896-65-WHF')).toBeGreaterThanOrEqual(70);
+    });
+});
+
+describe('3rd & Flower: 3rd-party direct matching tier', () => {
+    const FAN_CTX: EngineContext = {
+        history: [],
+        premierItems: [],
+        fans: [],
+        thirdPartyItems: [
+            {
+                id: 't-f896', itemId: 'F896-65-WHF', itemDescription: 'MINKA AIRE 65" XTREME H2O FLAT WHITE',
+                manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '',
+                productCategories: 'Ceiling Fans + Accessories',
+            },
+            {
+                id: 't-rod', itemId: 'DR524-CL', itemDescription: 'MOUNTING DOWNROD 24" FOR CEILING FAN',
+                manufacturer: 'MINKA AIRE', finish: '', colorTemp: '', maxWattage: '', lightOutput: '',
+                productCategories: 'Ceiling Fan Accessory',
+            },
+        ],
+    };
+
+    it('a resold 3rd-party family match surfaces directly (Minka F896-65-CL → F896-65-WHF)', () => {
+        const r = analyzeLineItem(line('D16', 'MINKA AIRE', 'F896-65-CL'), FAN_CTX);
+        const top = r.recommendations[0];
+        expect(top?.premierItem).toBe('F896-65-WHF');
+        expect(top?.source).toBe('3rd Party');
+        expect(top?.thirdPartyLinkId).toBe('t-f896');
+        expect(top?.confidence).toBeGreaterThanOrEqual(50);
+    });
+
+    it('accessories never ride the 3rd-party direct tier (downrod stays out)', () => {
+        const r = analyzeLineItem(line('D16', 'MINKA AIRE', 'F896-65-CL'), FAN_CTX);
+        expect(r.recommendations.map(x => x.premierItem)).not.toContain('DR524-CL');
+    });
+});
+
+describe('3rd & Flower: decorative brand passthrough additions', () => {
+    it('TOOY / FOSCARINI / CVL specs get the as-spec badge, not silence or junk', () => {
+        for (const [mfr, spec] of [['TOOY', '557.24 - LEGIER'], ['FOSCARINI', 'APLOMB GREY'], ['CVL', 'CERCLE & TRAIT XL SATIN COPPER']] as const) {
+            const r = analyzeLineItem(line('D1', mfr, spec), CTX);
+            expect(r.recommendations).toHaveLength(1);
+            expect(r.recommendations[0]?.isPassthrough).toBe(true);
+            expect(r.recommendations[0]?.matchReason).toContain('as-spec');
+        }
+    });
+});
+
+describe('3rd & Flower: fan-span and accessory-history gates', () => {
+    const FAN_CTX2: EngineContext = {
+        history: [
+            // One stale swap: fan spec → a DOWNROD (accessory). Must never
+            // surface for a fixture spec, and must not suppress direct matching.
+            {
+                id: 'h-rod', mark: 'D16', bidItem: 'DR524-CL', originalSpec: 'F896-65-CL',
+                project: 'Old Job', bidDate: '', specManufacturer: '', bidManufacturer: '',
+                specMfrBackup: 'MINKA AIRE', bidMfrBackup: 'MINKA AIRE', matchType: 'EXACT',
+                productCategory: '', specDescription: '', specVendor: '', specEnrichConfidence: '',
+                premierLinkIds: [], thirdPartyLinkIds: ['t-rod'],
+            },
+        ],
+        premierItems: [],
+        fans: [],
+        thirdPartyItems: [
+            {
+                id: 't-f896', itemId: 'F896-65-WHF', itemDescription: 'MINKA AIRE 65" XTREME H2O FLAT WHITE',
+                manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '',
+                productCategories: 'Ceiling Fans + Accessories',
+            },
+            {
+                id: 't-rod', itemId: 'DR524-CL', itemDescription: 'MOUNTING DOWNROD 24" FOR CEILING FAN',
+                manufacturer: 'MINKA AIRE', finish: '', colorTemp: '', maxWattage: '', lightOutput: '',
+                productCategories: 'Ceiling Fan Accessory',
+            },
+        ],
+    };
+
+    it('a stale accessory swap is gated out of history and stops blocking direct matches', () => {
+        const r = analyzeLineItem(line('D16', 'MINKA AIRE', 'F896-65-CL'), FAN_CTX2);
+        const ids = r.recommendations.map(x => x.premierItem ?? x.bidItem);
+        expect(ids).not.toContain('DR524-CL');
+        expect(ids).toContain('F896-65-WHF');
+    });
+
+    it('a wrong blade span never rides the 3rd-party direct tier (84" spec vs 65" catalog)', () => {
+        // Before the gate this line auto-selected the 65" sibling at fuzzy@67.
+        // The 65" fan may still appear as a category-level 'partial' fallback
+        // card (family pointer, one click away) — but never as a confident,
+        // auto-selectable direct match.
+        const r = analyzeLineItem(line('D15', 'MINKA AIRE', 'F896-84-WHF'), FAN_CTX2);
+        const wrongSpan = r.recommendations.filter(x => x.premierItem === 'F896-65-WHF');
+        for (const rec of wrongSpan) {
+            expect(rec.matchType).toBe('partial');
+            expect(shouldAutoSelect(rec)).toBe(false);
+        }
+    });
+});
+
+describe('3rd & Flower: resold-as-spec and as-spec history echoes', () => {
+    const RESOLD_CTX: EngineContext = {
+        history: [
+            // Real Flats at Ballpark rows: the spec was bid AS ITSELF (resold
+            // item) plus its downrod — neither is substitution evidence.
+            {
+                id: 'h-self', mark: 'LT-1', bidItem: 'F896-65-CL', originalSpec: 'F896-65-CL',
+                project: 'Old Job', bidDate: '', specManufacturer: '', bidManufacturer: '',
+                specMfrBackup: 'MINKA AIRE', bidMfrBackup: 'MINKA AIRE', matchType: 'EXACT',
+                productCategory: '', specDescription: '', specVendor: '', specEnrichConfidence: '',
+                premierLinkIds: [], thirdPartyLinkIds: ['t-cl'],
+            },
+        ],
+        premierItems: [],
+        fans: [],
+        thirdPartyItems: [
+            {
+                id: 't-cl', itemId: 'F896-65-CL', itemDescription: 'MINKA AIRE 65" XTREME H2O COAL',
+                manufacturer: 'MINKA AIRE', finish: 'COAL', colorTemp: '', maxWattage: '', lightOutput: '',
+                productCategories: 'Ceiling Fans + Accessories',
+            },
+            {
+                id: 't-whf', itemId: 'F896-65-WHF', itemDescription: 'MINKA AIRE 65" XTREME H2O FLAT WHITE',
+                manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '',
+                productCategories: 'Ceiling Fans + Accessories',
+            },
+        ],
+    };
+
+    it('a spec that IS a resold item gets the as-spec card, never an auto-checked sibling variant', () => {
+        const r = analyzeLineItem(line('D16', 'MINKA AIRE', 'F896-65-CL'), RESOLD_CTX);
+        const top = r.recommendations[0];
+        expect(top?.isPassthrough).toBe(true);
+        expect(top?.matchReason).toContain('resold');
+        expect(top?.thirdPartyLinkId).toBe('t-cl');
+        expect(shouldAutoSelect(top)).toBe(false);
+        // The finish sibling must not ride along as a confident direct match.
+        const sibling = r.recommendations.find(x => x.premierItem === 'F896-65-WHF');
+        expect(sibling?.matchType ?? 'partial').toBe('partial');
+    });
+
+    it('as-spec history rows (spec swapped to itself) are not substitution evidence', () => {
+        // With the echo skipped, history contributes nothing here and the
+        // pipeline reaches the resold-as-spec card instead of fallback junk.
+        const r = analyzeLineItem(line('LT-16', 'MINKA AIRE', 'BCI3541446 / F896-65-CL'), RESOLD_CTX);
+        expect(r.recommendations.some(x => x.source === 'History')).toBe(false);
+    });
+});

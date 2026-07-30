@@ -81,8 +81,12 @@ const fmt = (m: MetricBlock): string =>
 const pad = (n: number): string => `${n.toFixed(2)}%`.padStart(7);
 
 console.log(`\n═══ Accuracy eval — ${report.all.cases} cases in ${seconds}s ═══`);
-console.log(`\nHEADLINE (standard + bulb lines — a recommendation is expected):`);
+console.log(`\nHEADLINE (standard + bulb substitution lines; as-spec cases excluded):`);
 console.log(`  ${fmt(report.headline)}`);
+if (report.asSpec.cases > 0) {
+    console.log(`\nAs-spec cases (label ≡ input; passthrough/silent is correct here):`);
+    console.log(`  ${fmt(report.asSpec)}`);
+}
 
 console.log('\nBy pipeline class:');
 for (const [name, m] of Object.entries(report.byClass)) {

@@ -38,6 +38,7 @@ import {
     detectFixtureCategory,
     dimensionsCompatible,
     extractLampAttributes,
+    fanSpansCompatible,
     isAccessoryItem,
     isBulbLampLine,
     isLedTape,
@@ -97,6 +98,17 @@ const PASSTHROUGH_DECORATIVE_BRANDS = [
     'ETHNIKLIVING',
     'ETHINKLIVING',     // as typed on real bid sheets
     'LAS SOLAS',
+    // European/designer decorative brands from the 3rd & Flower IS schedule
+    // (2026-07-30) — same posture: quote as specified unless the estimator
+    // identifies a substitutable equivalent via the identify flow.
+    'TOOY',
+    'FOSCARINI',
+    'MARSET',
+    'CVL',              // CVL Luminaires
+    '&TRADITION',
+    'CORBETT',
+    'ALLIED MAKER',
+    'LODES',
 ];
 
 function isPassthroughDecorative(manufacturer: string, inferredCategory: string | null): boolean {
@@ -516,6 +528,10 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     }
     const bidItemMatchMap = new Map<string, BidItemMatchData>();
 
+    // History lookup key, hoisted: the NORMALIZED input catalog (whitespace/
+    // case/punctuation variance must not break matching).
+    const normalizedInputCatalog = normalizeSpecKey(catalogNumber);
+
     for (const row of ctx.history) {
         let score = 0;
         const reasons: string[] = [];
@@ -536,6 +552,14 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         // offered as swap recommendations.
         const isSatcoBulb = row.bidMfrBackup === 'SATCO' && /^S\d{4,5}$/.test(bidItemValue);
         if (isSatcoBulb) continue;
+
+        // A row that "swapped" the spec to ITSELF is an as-spec record, not
+        // substitution evidence. Dedupe would delete the resulting rec as an
+        // input-echo anyway — but by then it has already suppressed the
+        // direct-match tiers via hasHistoryMatches (3rd & Flower D16: the
+        // as-spec Minka fan rows starved the line down to fallback junk).
+        if (normalizedInputCatalog.length >= 6 &&
+            normalizeProductId(bidItemValue) === normalizedInputCatalog) continue;
 
         const specMfr = row.specManufacturer || row.specMfrBackup || '';
         const bidMfr = row.bidManufacturer || row.bidMfrBackup || '';
@@ -612,9 +636,6 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         }
     }
 
-    // History lookup key: the NORMALIZED input catalog — whitespace/case/punctuation
-    // variance must not break the match (normalized-history-match).
-    const normalizedInputCatalog = normalizeSpecKey(catalogNumber);
     let totalSpecAppearances = 0;
     for (const row of ctx.history) {
         if (row.matchType === 'NON-ITEM') continue;
@@ -728,6 +749,17 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             continue;
         }
 
+        // Accessory gate, same posture as the dimension gate: a single stale
+        // swap to a downrod/driver must not surface for a FIXTURE spec (3rd &
+        // Flower D16: fan spec F896-65-CL → DR524-CL downrod at confidence 10,
+        // which then suppressed direct matching entirely). Authoritative
+        // history — 3+ real decisions — still passes.
+        if (!isAuthoritative && resolvedItemText &&
+            !specWantsAccessory(mark, catalogNumber) &&
+            isAccessoryItem(resolvedItemId ?? bidItemValue, resolvedItemText)) {
+            continue;
+        }
+
         let adjustedConfidence = Math.min(100, confidenceScore + timesUsedBonus);
         let matchReason = `${matchingSwapCount} matching swap${matchingSwapCount > 1 ? 's' : ''} in history`;
         if (isAuthoritative) {
@@ -775,6 +807,10 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     if (!hasHistoryMatches) {
         const normalizedCatalog = normalizeProductId(catalogNumber);
         const allowAccessories = specWantsAccessory(mark, catalogNumber);
+        // Marks shorter than 3 normalized characters ("C", "W1") substring-hit
+        // most of the catalog (3rd & Flower: mark "C" scored 85% against
+        // GC-BLChannel for an exit-sign spec) — they carry no identity.
+        const markUsable = normalizeProductId(mark).length >= 3;
 
         for (const item of ctx.premierItems) {
             let score = 0;
@@ -811,7 +847,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     }
                 }
 
-                if (score === 0 && mark) {
+                if (score === 0 && markUsable) {
                     const markScore = calculateMatchScore(mark, itemId);
                     if (markScore >= 70) {
                         score += markScore * 0.2;
@@ -821,8 +857,10 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             }
 
             if (category) {
+                // The reverse containment needs a real mark: category "Sconce"
+                // .includes("c") handed +10 to everything for 1-char marks.
                 if (mark.toLowerCase().includes(category.toLowerCase()) ||
-                    category.toLowerCase().includes(mark.toLowerCase())) {
+                    (markUsable && category.toLowerCase().includes(mark.toLowerCase()))) {
                     score += 10;
                     reasons.push('Category match');
                     matchDetails.push(`Category: ${category}`);
@@ -858,6 +896,99 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     premierLinkId: item.id,
                 });
             }
+        }
+
+        // ── 3rd Party direct matching (3rd & Flower review, 2026-07-30) ──────
+        // Premier resells these items, but they previously had NO direct
+        // text-match tier — only history links and the token fallback (capped
+        // 60). A Minka fan spec F896-65-CL sat one finish code away from
+        // catalog item F896-65-WHF and scored 15 while a fan DOWNROD from
+        // history outranked it. Mirror the Premier block: catalog-number
+        // evidence only (no mark rescue — the weaker tier earns no leniency),
+        // same category/dimension/accessory gates, no own-brand bonus.
+        //
+        // When the spec IS a resold item (exact normalized id match), the
+        // right card is "carry as spec", not a sibling variant: siblings of an
+        // item we already stock are noise, and a variant pre-checked at fuzzy
+        // confidence would write a phantom swap to History on export. Premier
+        // own-brand upsell is unaffected — the Premier block above already ran.
+        const resoldAsSpec = normalizedCatalog.length >= 6
+            ? ctx.thirdPartyItems.find(t => !isLampCatalogItem(t) && normalizeProductId(t.itemId) === normalizedCatalog)
+            : undefined;
+        if (resoldAsSpec) {
+            recommendations.push({
+                id: resoldAsSpec.id,
+                source: '3rd Party',
+                matchType: 'exact',
+                confidence: 99,
+                premierItem: catalogNumber,
+                recordId: resoldAsSpec.id,
+                matchReason: 'Already a resold 3rd-party item — no substitution needed',
+                itemAttributes: {
+                    category: resoldAsSpec.productCategories || undefined,
+                    finish: resoldAsSpec.finish || undefined,
+                    colorTemp: resoldAsSpec.colorTemp || undefined,
+                    wattage: resoldAsSpec.maxWattage || undefined,
+                    manufacturer: resoldAsSpec.manufacturer || undefined,
+                },
+                matchDetails: [
+                    'Catalog # is an exact match to a resold 3rd-party Item ID',
+                    'Premier already carries this product — quote as specified',
+                ],
+                productCategory: resoldAsSpec.productCategories || undefined,
+                thirdPartyLinkId: resoldAsSpec.id,
+                isPassthrough: true,
+            });
+        }
+        for (const item of resoldAsSpec ? [] : ctx.thirdPartyItems) {
+            const itemId = item.itemId;
+            if (!itemId) continue;
+            // Lamps are never fixture substitutions (SATCO rule).
+            if (isLampCatalogItem(item)) continue;
+            if (inferredCategory && item.productCategories &&
+                !thirdPartyCategoriesCompatible(inferredCategory, item.productCategories)) continue;
+            if (!dimensionsCompatible(specDimensionText, `${itemId} ${item.itemDescription}`)) continue;
+            // Fan SKUs carry their blade span as a bare 2-digit token the
+            // generic extractor can't see (F896-84 vs F896-65).
+            if (inferredCategory === 'Ceiling Fan' &&
+                !fanSpansCompatible(catalogNumber, itemId)) continue;
+            if (!allowAccessories && isAccessoryItem(itemId, item.itemDescription)) continue;
+
+            const normalizedItemId = normalizeProductId(itemId);
+            if (normalizedItemId === normalizedCatalog && normalizedCatalog.length >= 6) continue;
+
+            const idScore = calculateCatalogMatchScore(catalogNumber, itemId);
+            const score = idScore * 0.7;
+            // Floor at 50 (idScore ≈ 72): this tier exists for near-exact
+            // family matches only. Anything weaker both reads as junk AND —
+            // by existing at all — preempts the in-category most-used
+            // fallback, which the eval showed was often the better answer
+            // (ASCENT SMD6 cases lost their correct top-1 to 35-point cards).
+            if (score < 50) continue;
+
+            recommendations.push({
+                id: item.id,
+                source: '3rd Party',
+                matchType: score >= 70 ? 'exact' : 'fuzzy',
+                confidence: Math.min(100, Math.round(score)),
+                premierItem: itemId,
+                recordId: item.id,
+                matchReason: `Item ID match: ${idScore}% (3rd-party catalog)`,
+                itemAttributes: {
+                    category: item.productCategories || undefined,
+                    finish: item.finish || undefined,
+                    colorTemp: item.colorTemp || undefined,
+                    wattage: item.maxWattage || undefined,
+                    lightOutput: item.lightOutput || undefined,
+                    manufacturer: item.manufacturer || undefined,
+                },
+                matchDetails: [
+                    `Item ID "${itemId}" matches input`,
+                    ...(item.manufacturer ? [`3rd-party: ${item.manufacturer}`] : []),
+                ],
+                productCategory: item.productCategories || undefined,
+                thirdPartyLinkId: item.id,
+            });
         }
     }
 
@@ -896,7 +1027,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     }
                 }
 
-                if (score === 0 && mark) {
+                if (score === 0 && normalizeProductId(mark).length >= 3) {
                     const markScore = calculateMatchScore(mark, itemNumber);
                     if (markScore >= 70) {
                         score += markScore * 0.2;
