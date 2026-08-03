@@ -41,6 +41,7 @@ import {
     fanSpansCompatible,
     isAccessoryItem,
     isBulbLampLine,
+    isFamilySpecMatch,
     isLedTape,
     isRfiPlaceholder,
     isSatcoLampNumber,
@@ -74,6 +75,14 @@ export interface LineItemAnalysis {
 const AUTHORITATIVE_SWAP_COUNT = 3;
 /** Confidence floor for authoritative matches. */
 const AUTHORITATIVE_CONFIDENCE = 95;
+
+// Family-tier confidence shape (Phase 4, backlog #2): graduated, sub-authoritative.
+// base + 15 per recency-weighted family swap, capped at 75. One undated swap
+// (weight 0.5) lands at 48 — a visible suggestion below the 50 auto-select bar;
+// two undated swaps at 55 pre-check; three recent swaps saturate the cap.
+const FAMILY_CONFIDENCE_BASE = 40;
+const FAMILY_CONFIDENCE_PER_SWAP = 15;
+const FAMILY_CONFIDENCE_CAP = 75;
 
 // High-end decorative manufacturers that stay as-spec: surfaced with a passthrough
 // badge rather than dropped or given a bogus swap. Deliberately conservative — a
@@ -524,6 +533,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         historyMatches: HistoryMatch[];
         reasons: string[];
         hasCatalogMatch: boolean;
+        /** Any collected row matches the input at family level (isFamilySpecMatch). */
+        hasFamilyMatch: boolean;
         productCategory?: string;
     }
     const bidItemMatchMap = new Map<string, BidItemMatchData>();
@@ -566,6 +577,13 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
 
         const specScore = calculateCatalogMatchScore(catalogNumber, row.originalSpec);
 
+        // Family-level spec match (same series, different options) — collected
+        // even when the token score alone wouldn't qualify: PR #6's junk gates
+        // rightly zero accidental substring overlaps, so family evidence must
+        // ride its own purpose-built signal (Largo BA: S7R835K10AL scored 0
+        // against every S7R history row and 4+ prior decisions were invisible).
+        const familySpecMatch = isFamilySpecMatch(catalogNumber, row.originalSpec, specScore);
+
         // Boost score when NS has confirmed this spec's identity (HIGH = +10, MEDIUM = +5)
         const enrichBonus = row.specEnrichConfidence === 'HIGH' ? 10 : row.specEnrichConfidence === 'MEDIUM' ? 5 : 0;
         if (specScore >= 70) {
@@ -595,7 +613,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         }
 
         const minScoreThreshold = hasCatalogMatch ? 20 : 40;
-        if (score >= minScoreThreshold) {
+        if (score >= minScoreThreshold || familySpecMatch) {
             const historyMatch: HistoryMatch = {
                 project: row.project,
                 mark: historyMark,
@@ -617,6 +635,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 existing.rows.push(row);
                 existing.historyMatches.push(historyMatch);
                 existing.hasCatalogMatch = existing.hasCatalogMatch || hasCatalogMatch;
+                existing.hasFamilyMatch = existing.hasFamilyMatch || familySpecMatch;
                 if (reasons.length > existing.reasons.length) {
                     existing.reasons = reasons;
                 }
@@ -630,6 +649,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     historyMatches: [historyMatch],
                     reasons,
                     hasCatalogMatch,
+                    hasFamilyMatch: familySpecMatch,
                     productCategory: row.productCategory || undefined,
                 });
             }
@@ -648,7 +668,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     const thirdPartyById = new Map(ctx.thirdPartyItems.map(t => [t.id, t]));
 
     for (const [bidItemValue, data] of bidItemMatchMap.entries()) {
-        if (!data.hasCatalogMatch) continue;
+        if (!data.hasCatalogMatch && !data.hasFamilyMatch) continue;
 
         const trueMatchingSwaps = data.historyMatches.filter(h => {
             const normalizedSpec = normalizeSpecKey(h.originalSpec);
@@ -659,24 +679,40 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 normalizedInputCatalog.length >= 6;
         });
 
-        if (trueMatchingSwaps.length === 0) continue;
+        // ── Family tier (Phase 4, backlog #2) ────────────────────────────────
+        // No exact-spec precedent, but history rows whose ORIGINAL SPEC is the
+        // same product series (different options) agree on this bid item →
+        // a real sub-authoritative recommendation, not silence. Graduated
+        // confidence (capped below the authoritative floor), matchType 'fuzzy'
+        // so auto-select applies only when the evidence honestly clears 50.
+        const familySwaps = trueMatchingSwaps.length > 0 ? [] :
+            data.historyMatches.filter(h => isFamilySpecMatch(catalogNumber, h.originalSpec));
+        const isFamily = trueMatchingSwaps.length === 0 && familySwaps.length > 0;
 
+        if (trueMatchingSwaps.length === 0 && !isFamily) continue;
+
+        const evidenceSwaps = isFamily ? familySwaps : trueMatchingSwaps;
         const bidProductCategory = data.productCategory || '';
-        const uniqueProjects = [...new Set(trueMatchingSwaps.map(h => h.project).filter(Boolean))];
-        const matchingSwapCount = trueMatchingSwaps.length;
+        const uniqueProjects = [...new Set(evidenceSwaps.map(h => h.project).filter(Boolean))];
+        const matchingSwapCount = evidenceSwaps.length;
 
         // Recency-weighted swap mass: recent swaps carry full weight, stale ones decay.
-        const weightedSwaps = trueMatchingSwaps.reduce(
+        const weightedSwaps = evidenceSwaps.reduce(
             (sum, h) => sum + recencyWeight(h.bidDate, ctx.referenceDate), 0);
         const confidenceScore = Math.min(100, Math.round(weightedSwaps * 20));
 
         const matchDetails: string[] = [];
-        matchDetails.push(`${matchingSwapCount} matching swap${matchingSwapCount > 1 ? 's' : ''}: same spec → same bid item`);
+        if (isFamily) {
+            matchDetails.push(`${matchingSwapCount} family swap${matchingSwapCount > 1 ? 's' : ''}: same product series, different options → same bid item`);
+            matchDetails.push(`e.g. "${evidenceSwaps[0]?.originalSpec}" → ${bidItemValue}`);
+        } else {
+            matchDetails.push(`${matchingSwapCount} matching swap${matchingSwapCount > 1 ? 's' : ''}: same spec → same bid item`);
+        }
         if (uniqueProjects.length > 0) {
             matchDetails.push(`Projects: ${uniqueProjects.join(', ')}`);
         }
 
-        const firstMatch = trueMatchingSwaps[0];
+        const firstMatch = evidenceSwaps[0];
 
         // Resolve the linked catalog record from History. A History row links to
         // exactly one of {Premier, 3rd Party} or neither — mutually exclusive per
@@ -739,7 +775,9 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             };
         }
 
-        const isAuthoritative = matchingSwapCount >= AUTHORITATIVE_SWAP_COUNT;
+        // Family evidence is sub-authoritative BY DEFINITION: options differed,
+        // so however many family swaps agree, it never reaches the 95% floor.
+        const isAuthoritative = !isFamily && matchingSwapCount >= AUTHORITATIVE_SWAP_COUNT;
 
         // Dimension hard-gate for sub-authoritative history matches: block a linked
         // catalog item that is dimensionally incompatible with the spec. 3+ real
@@ -760,9 +798,28 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             continue;
         }
 
+        // Category gate for family matches only: family inference must stay
+        // inside the spec's category when both sides declare one. (Exact-spec
+        // history deliberately has no category gate — a real estimator decision
+        // on the same spec outranks the detector.)
+        if (isFamily && inferredCategory) {
+            if (resolvedPremier?.fixtureCategory &&
+                !categoriesCompatible(inferredCategory, resolvedPremier.fixtureCategory)) continue;
+            if (!resolvedPremier && resolvedThirdParty?.productCategories &&
+                !thirdPartyCategoriesCompatible(inferredCategory, resolvedThirdParty.productCategories)) continue;
+        }
+
         let adjustedConfidence = Math.min(100, confidenceScore + timesUsedBonus);
         let matchReason = `${matchingSwapCount} matching swap${matchingSwapCount > 1 ? 's' : ''} in history`;
-        if (isAuthoritative) {
+        if (isFamily) {
+            // Graduated family confidence: 40 base + 15 per recency-weighted
+            // swap, capped at 75 — well below the 95 authoritative floor. Two
+            // undated family swaps (weight 0.5 each) clear the 50 auto-select
+            // bar honestly; a single stale one stays a suggestion.
+            adjustedConfidence = Math.min(FAMILY_CONFIDENCE_CAP,
+                Math.round(FAMILY_CONFIDENCE_BASE + weightedSwaps * FAMILY_CONFIDENCE_PER_SWAP));
+            matchReason = `Family match: same product series bid ${matchingSwapCount} time${matchingSwapCount > 1 ? 's' : ''} → this item`;
+        } else if (isAuthoritative) {
             // Authoritative tier: the same spec→item swap made 3+ times is settled
             // precedent — floor at 95% and label it.
             adjustedConfidence = Math.max(AUTHORITATIVE_CONFIDENCE, adjustedConfidence);
@@ -778,9 +835,10 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             premierItem: resolvedItemId,
             recordId: data.rows[0]?.id,
             matchReason,
-            historyMatches: trueMatchingSwaps,
+            historyMatches: evidenceSwaps,
             swapCount: matchingSwapCount,
-            exactMatchCount: matchingSwapCount,
+            exactMatchCount: isFamily ? 0 : matchingSwapCount,
+            ...(isFamily ? { familyMatch: true } : {}),
             matchDetails,
             itemAttributes,
             specManufacturer: firstMatch?.specManufacturer,
@@ -801,8 +859,10 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // ── Premier Items direct matching ─────────────────────────────────────────
     // Only fall back to direct Premier SKU text-matching when History produced no
     // results and the catalog number already looks like a Premier item number
-    // (estimator re-uploaded a Premier bid).
-    const hasHistoryMatches = recommendations.some(r => r.source === 'History' && r.bidItem && r.bidItem.length > 3);
+    // (estimator re-uploaded a Premier bid). Family matches don't count: their
+    // evidence is weaker, so the direct tiers still run and compete on confidence.
+    const hasHistoryMatches = recommendations.some(r =>
+        r.source === 'History' && !r.familyMatch && r.bidItem && r.bidItem.length > 3);
 
     if (!hasHistoryMatches) {
         const normalizedCatalog = normalizeProductId(catalogNumber);
@@ -839,7 +899,14 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 }
 
                 const idScore = calculateCatalogMatchScore(catalogNumber, itemId);
-                if (idScore >= 40) {
+                // Null-category junk gate (Phase 4, backlog #5): with no
+                // category to gate on, a 40s-grade token overlap surfaces
+                // cross-category junk (Largo BH: "-100-" tokens offered pole
+                // heads for a vapor-tight at 43%). An unknown category demands
+                // stronger identity evidence; the identify flow absorbs the
+                // silence this trades junk for.
+                const idScoreFloor = inferredCategory ? 40 : 55;
+                if (idScore >= idScoreFloor) {
                     score += idScore * 0.7;
                     reasons.push(`Item ID match: ${idScore}%`);
                     if (idScore >= 50) {
@@ -998,7 +1065,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     const itemLooksLikeFan = inferredCategory === 'Ceiling Fan';
 
     // Skip fan searches entirely if we already have good history matches
-    const skipFanSearch = hasHistoryMatches && recommendations.filter(r => r.source === 'History').length >= 2;
+    const skipFanSearch = hasHistoryMatches &&
+        recommendations.filter(r => r.source === 'History' && !r.familyMatch).length >= 2;
 
     if (ctx.fans.length > 0 && itemLooksLikeFan && !skipFanSearch) {
         const normalizedCatalog = normalizeProductId(catalogNumber);
@@ -1131,10 +1199,13 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     }
 
     // Own-brand-first ranking: Premier's own brands get a confidence bonus so they
-    // rank above equivalent third-party alternatives.
+    // rank above equivalent third-party alternatives. Family matches stay capped:
+    // the bonus is a ranking preference, not extra evidence, and family evidence
+    // has a sub-authoritative ceiling by design.
     for (const rec of recommendations) {
         if (!rec.isPassthrough && isPremierOwnBrand(rec)) {
-            rec.confidence = Math.min(100, rec.confidence + OWN_BRAND_BONUS);
+            const cap = rec.familyMatch ? FAMILY_CONFIDENCE_CAP : 100;
+            rec.confidence = Math.min(cap, rec.confidence + OWN_BRAND_BONUS);
         }
     }
     recommendations.sort(compareRecommendations);

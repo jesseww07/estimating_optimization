@@ -16,6 +16,11 @@ import { isUrlLike, normalizeProductId } from './matcher';
 //   PL-series items  — PL followed by numbers or hyphens
 //   CUSTGC           — custom Global Concepts variants
 //   MIR / GCL / MDL / PKL / FRIS / HW — additional Premier private-label series
+//   R- / REC- / COM- / TJ — Premier recessed & disk-light systems (R-SLIM-DISK,
+//                           REC-TJ, TJRECFRAME; per the Phase 3 primer's catalog
+//                           domain facts — previously missing here, which let a
+//                           GC disk light outrank the R-SLIM family Largo
+//                           actually bid for the S7R spec)
 //
 // None of these are third-party alternatives. SATCO, Westgate, and similar are
 // the actual third-party alternatives that do NOT receive this bonus.
@@ -41,7 +46,14 @@ export function isPremierOwnBrand(rec: Pick<Recommendation, 'premierItem' | 'bid
         /^MDL[-_\d]/.test(id) ||
         /^PKL[-_\d]/.test(id) ||
         /^FRIS[-_\d]?/.test(id) ||
-        /^HW[-_\d]/.test(id)
+        /^HW[-_\d]/.test(id) ||
+        // Premier recessed / disk-light systems (R-SLIM-DISK, REC-TJ, COM-,
+        // TJRECFRAME). Dash-anchored so RAB-style third-party ids (R4…, RD6…)
+        // never collect the bonus.
+        /^R-/.test(id) ||
+        /^REC-/.test(id) ||
+        /^COM-/.test(id) ||
+        /^TJ[A-Z\d-]/.test(id)
     );
 }
 
@@ -63,21 +75,34 @@ export const MIN_AUTOSELECT_CONFIDENCE = 50;
  * True when a recommendation is strong enough to be the default selection:
  * confident AND better-than-'partial' evidence (category fallbacks are
  * hard-coded 'partial' — never a default, whatever their score).
+ *
+ * FAMILY history matches never auto-select (Phase 4): they identify the right
+ * product FAMILY reliably, but pick the exact VARIANT at only ~36% precision
+ * (measured 2026-08-03 across the eval corpus — single-project family evidence
+ * lands at 17%, cross-project at 68%). A default selection writes History on
+ * export, so a family card stays one click away until attribute agreement
+ * (Phase 4 backlog #3) can disambiguate variants and earn the pre-check.
  */
-export function shouldAutoSelect(rec: { confidence: number; matchType: string; isPassthrough?: boolean } | undefined | null): boolean {
+export function shouldAutoSelect(rec: { confidence: number; matchType: string; isPassthrough?: boolean; familyMatch?: boolean } | undefined | null): boolean {
     if (!rec || rec.isPassthrough) return false;
     if (rec.matchType === 'partial') return false;
+    if (rec.familyMatch) return false;
     return rec.confidence >= MIN_AUTOSELECT_CONFIDENCE;
 }
 
 /**
- * Ranking comparator: History always beats Premier Items / Fans; within the same
- * source tier, higher confidence first (own-brand bonus already baked in), with
- * the most recent matching swap date breaking History ties (recency weighting).
+ * Ranking comparator: exact-spec History always beats Premier Items / Fans;
+ * within the same tier, higher confidence first (own-brand bonus already baked
+ * in), with the most recent matching swap date breaking History ties (recency
+ * weighting). FAMILY history matches (same series, different options — Phase 4)
+ * deliberately do NOT take the History trump: their evidence is sub-
+ * authoritative, so they compete with the direct tiers on confidence alone.
  */
 export function compareRecommendations(a: Recommendation, b: Recommendation): number {
-    if (a.source === 'History' && b.source !== 'History') return -1;
-    if (a.source !== 'History' && b.source === 'History') return 1;
+    const aExactHistory = a.source === 'History' && !a.familyMatch;
+    const bExactHistory = b.source === 'History' && !b.familyMatch;
+    if (aExactHistory && !bExactHistory) return -1;
+    if (!aExactHistory && bExactHistory) return 1;
     if (b.confidence !== a.confidence) return b.confidence - a.confidence;
     return mostRecentSwapTime(b) - mostRecentSwapTime(a);
 }

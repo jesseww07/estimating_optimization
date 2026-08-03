@@ -12,10 +12,18 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { EngineContext, ParsedLineItem, PremierItemRow } from '@/lib/types';
+import type { EngineContext, HistoryRow, ParsedLineItem, PremierItemRow } from '@/lib/types';
 import { analyzeLineItem } from '@/lib/engine/recommend';
-import { calculateCatalogMatchScore, detectFixtureCategory, isAccessoryItem, isLedTape, isRfiPlaceholder } from '@/lib/engine/matcher';
-import { shouldAutoSelect } from '@/lib/engine/ranking';
+import {
+    calculateCatalogMatchScore,
+    detectFixtureCategory,
+    isAccessoryItem,
+    isFamilySpecMatch,
+    isLedTape,
+    isRfiPlaceholder,
+    seriesCategory,
+} from '@/lib/engine/matcher';
+import { compareRecommendations, shouldAutoSelect } from '@/lib/engine/ranking';
 
 const premier = (o: Partial<PremierItemRow> & Pick<PremierItemRow, 'id' | 'itemId' | 'fixtureCategory'>): PremierItemRow => ({
     itemDescription: '',
@@ -606,5 +614,229 @@ describe('3rd & Flower: resold-as-spec and as-spec history echoes', () => {
         // pipeline reaches the resold-as-spec card instead of fallback junk.
         const r = analyzeLineItem(line('LT-16', 'MINKA AIRE', 'BCI3541446 / F896-65-CL'), RESOLD_CTX);
         expect(r.recommendations.some(x => x.source === 'History')).toBe(false);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Largo Station exemplars (Phase 4 freeze, test of 2026-07-30). Ground truth:
+// what Premier's estimators ACTUALLY bid for each spec (the "07-31-26 AP"
+// sheet), with the synthetic history mirroring the real snapshot rows that
+// already held the answers. These are the acceptance tests for the Phase 4
+// identification work: family/series history matching, learned series →
+// category knowledge, and the null-category junk gate.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Largo Station: learned series → category (backlog #4)', () => {
+    it('categorizes S7R (Philips SlimSurface) as Recessed from History knowledge', () => {
+        // detectFixtureCategory returned null for this spec on the live test —
+        // the S7R series was learned from 4 linked Diamond View/COTTONWOOD rows.
+        expect(seriesCategory('S7R835K10AL')).toBe('Recessed');
+        expect(detectFixtureCategory('BA', 'S7R835K10AL', 'PHILIPS')).toBe('Recessed');
+    });
+
+    it('categorizes BS100LED (Beghelli vapor-tight) as Linear from History knowledge', () => {
+        expect(seriesCategory('BS100LED-4-HT-VLO-WT35-120-277')).toBe('Linear');
+        expect(detectFixtureCategory('BH', 'BS100LED-4-HT-VLO-WT35-120-277', 'BEGHELLI')).toBe('Linear');
+    });
+
+    it('resolves separator-free option grammar to the learned series (S7R835… → s7r)', () => {
+        // The Largo bid sheet ran the options together; the learned rows carry
+        // dashes. Both forms must resolve to the same series.
+        expect(seriesCategory('S7R-8-35K-10-Z10U')).toBe(seriesCategory('S7R835K10AL'));
+    });
+});
+
+describe('Largo Station: family/series history matching (backlog #2)', () => {
+    it('spec pairs from the live test read as family', () => {
+        // BA: 9-char shared prefix with Cupertino's row.
+        expect(isFamilySpecMatch('S7R835K10AL', 'S7R-8-35K-10-Z10U')).toBe(true);
+        // BA: only 4 shared chars with Diamond View's row — the learned S7R
+        // series key carries it.
+        expect(isFamilySpecMatch('S7R835K10AL', 'S7R-8-27K-10-ZI0U')).toBe(true);
+        // BH: same Beghelli series, different options.
+        expect(isFamilySpecMatch('BS100LED-4-HT-VLO-WT35-120-277', 'BS100LED-4-SA-HO-WT40-120-277-SM-EMG')).toBe(true);
+        // BF: dashed vs run-together Philips wrap — series-token kinship + score.
+        expect(isFamilySpecMatch('FSW-4-30L-835-UNV-DIM', 'FSW440L840-UNV-SDIM-LSXR10')).toBe(true);
+    });
+
+    it('family matching is series-aware, never substring-accidental', () => {
+        // Different FC Lighting wall products: no family claim.
+        expect(isFamilySpecMatch('FCW3052', 'FCW1084')).toBe(false);
+        // Near-universal OPTION tokens (UNV/DIM/30K) must not manufacture kinship:
+        // a Beta downlight scored 65 against a Philips wrap on UNV+DIM alone.
+        expect(isFamilySpecMatch('FSW-4-30L-835-UNV-DIM', 'BETA-3R-SW-15LM-40K-90-40HET-BK-BK-P-UNV-DIM10')).toBe(false);
+        // Prose describes, it doesn't identify.
+        expect(isFamilySpecMatch('LED STRIP LIGHTING', 'LED STRIP LIGHT; HANDRAILS PER LC204')).toBe(false);
+        // Exact same spec is the authoritative tier's business, not family's.
+        expect(isFamilySpecMatch('S7R835K10AL', 's7r 835 K10 AL')).toBe(false);
+    });
+
+    it('a dimension conflict vetoes family, whatever the shared prefix', () => {
+        expect(isFamilySpecMatch(
+            'EFS-001-LED40-PATU-MV-WH-O-DIM-4FT',
+            'EFS-001-LED40-PATU-MV-WH-O-DIM-8FT',
+        )).toBe(false);
+        expect(isFamilySpecMatch('RECESSED DOWNLIGHT 6 INCH', 'RECESSED DOWNLIGHT 4 INCH')).toBe(false);
+    });
+});
+
+describe('Largo Station: end-to-end exemplars', () => {
+    const largoHist = (
+        id: string, project: string, originalSpec: string, bidItem: string,
+        premierLinkIds: string[] = [], bidDate = '',
+    ): HistoryRow => ({
+        id, mark: 'X', bidItem, originalSpec, project, bidDate,
+        specManufacturer: '', bidManufacturer: '', specMfrBackup: '', bidMfrBackup: '',
+        matchType: 'EXACT', productCategory: '', specDescription: '', specVendor: '',
+        specEnrichConfidence: '', premierLinkIds, thirdPartyLinkIds: [],
+    });
+
+    // Mirrors the real snapshot rows (verified 2026-08-03) + the pole-head
+    // items that surfaced as junk for BH on the live test.
+    const LARGO_CTX: EngineContext = {
+        fans: [],
+        thirdPartyItems: [],
+        premierItems: [
+            premier({ id: 'disk12', itemId: 'R-SLIM-DISK-12W-5CCT-WH', fixtureCategory: 'Disk Light', itemDescription: '12W SLIM DISK 5CCT WHITE', timesUsed: 35 }),
+            premier({ id: 'efv40', itemId: 'EFV-002-LED40-PATU-MV-WH-O-DIM-4FT', fixtureCategory: 'Surface Mount', itemDescription: 'LED VAPOR TIGHT 40W 4FT', timesUsed: 58 }),
+            premier({ id: 'efv75', itemId: 'EFV-002-LED75-PATU-MV-WH-O-DIM-4FT', fixtureCategory: 'Surface Mount', itemDescription: 'LED VAPOR TIGHT 75W 4FT', timesUsed: 12 }),
+            premier({ id: 'efs40', itemId: 'EFS-001-LED40-PATU-MV-WH-O-DIM-4FT', fixtureCategory: 'Surface Mount', itemDescription: 'LED WRAP 40W 4FT', timesUsed: 44 }),
+            premier({ id: 'sat100', itemId: 'GC-SAT-LED-100W-30k-T3-MV-BZ', fixtureCategory: 'Post/Pier Head', itemDescription: 'LED AREA LIGHT 100W TYPE 3', timesUsed: 20 }),
+            premier({ id: 'cont100', itemId: 'CONT-S-100-30K-MV-SM-T3-D-BZ', fixtureCategory: 'Post/Pier Head', itemDescription: 'LED POLE HEAD 100W', timesUsed: 15 }),
+        ],
+        history: [
+            // BH's answer, thrown away by the engine @ PR #6: Flourney bid the
+            // same Beghelli series (different options) to EFV-002-LED40 3×.
+            largoHist('h-fl1', 'Flourney Research Park', 'BS100LED-4-SA-HO-WT40-120-277-SM-EMG', 'EFV-002-LED40-PATU-MV-WH-O-DIM-4FT', ['efv40']),
+            largoHist('h-fl2', 'Flourney Research Park', 'BS100LED-4-SA-HO-WT40-120-277-SM-EMG', 'EFV-002-LED40-PATU-MV-WH-O-DIM-4FT', ['efv40']),
+            largoHist('h-fl3', 'Flourney Research Park', 'BS100LED-4-SA-HO-WT40-120-277-SM-EMG', 'EFV-002-LED40-PATU-MV-WH-O-DIM-4FT', ['efv40']),
+            largoHist('h-sat', 'Saturday', 'BS100LED-PG-4HT-HO-WT30-120-227V-SM-IOS', 'EFV-002-LED75-PATU-MV-WH-O-DIM-4FT-STEPSENS', ['efv75']),
+            // BA's answer: S7R SlimSurface swaps across four projects.
+            largoHist('h-dv1', 'Diamond View', 'S7R-8-27K-10-ZI0U', 'R-SLIM-DISK-12W-5CCT-WH', ['disk12']),
+            largoHist('h-dv2', 'Diamond View', 'S7R-8-27K-10-ZI0U', 'R-SLIM-DISK-12W-5CCT-WH', ['disk12']),
+            largoHist('h-ywca', 'YWCA', 'S7R-8-30K-10', 'R-SLIM-DISK-12W-5CCT-MULTIDIM-WH'),
+            largoHist('h-cup', 'Cupertino Senior Living', 'S7R-8-35K-10-Z10U', 'R-SLIM-DISK-12W-5CCT-MULTIDIM-WH'),
+            // BF's answer: Aquino bid the Philips FSW wrap family to EFS-001.
+            largoHist('h-aq1', 'Aquino', 'FSW440L840-UNV-SDIM-LSXR10', 'EFS-001-LED40-PATU-MV-WH-O-DIM-4FT-STEPDIMSENS', ['efs40']),
+            largoHist('h-aq2', 'Aquino', 'FSW440L840-UNV-SDIM-LSXR10-EMLED', 'EFS-001-LED40-PATU-MV-WH-O-DIM-4FT-STEPDIMSENS', ['efs40']),
+        ],
+    };
+
+    it('BA: the R-SLIM disk family surfaces on top with real confidence (was: silence/45-cap)', () => {
+        const r = analyzeLineItem(line('BA', 'PHILIPS', 'S7R835K10AL'), LARGO_CTX);
+        const top = r.recommendations[0]!;
+        expect(top.premierItem ?? top.bidItem).toContain('R-SLIM-DISK');
+        expect(top.source).toBe('History');
+        expect(top.familyMatch).toBe(true);
+        expect(top.confidence).toBeGreaterThanOrEqual(45);
+        expect(top.confidence).toBeLessThan(95);                  // never authoritative
+        // Actually bid: R-SLIM-DISK-12W-5CCT-WH — it must be among the cards.
+        expect(r.recommendations.map(x => x.premierItem ?? x.bidItem)).toContain('R-SLIM-DISK-12W-5CCT-WH');
+    });
+
+    it('BH: the EFV vapor-tight family surfaces — never pole/pier heads (was: 3 pole heads @ 30-45%)', () => {
+        const r = analyzeLineItem(line('BH', 'BEGHELLI', 'BS100LED-4-HT-VLO-WT35-120-277'), LARGO_CTX);
+        expect(r.recommendations.length).toBeGreaterThan(0);
+        const top = r.recommendations[0]!;
+        // Actually bid: EFV-002-LED40… — the 3× Flourney family evidence.
+        expect(top.premierItem).toBe('EFV-002-LED40-PATU-MV-WH-O-DIM-4FT');
+        expect(top.familyMatch).toBe(true);
+        expect(top.matchType).toBe('fuzzy');
+        expect(top.confidence).toBeLessThanOrEqual(75);           // family cap
+        for (const rec of r.recommendations) {
+            expect(rec.productCategory).not.toBe('Post/Pier Head');
+            expect(rec.premierItem ?? '').not.toMatch(/GC-SAT|CONT-S/);
+        }
+    });
+
+    it('BF: the EFS wrap family surfaces from Aquino family evidence (was: EFS-003 2FT junk @ 31%)', () => {
+        const r = analyzeLineItem(line('BF', 'PHILIPS', 'FSW-4-30L-835-UNV-DIM'), LARGO_CTX);
+        const top = r.recommendations[0]!;
+        expect(top.premierItem).toBe('EFS-001-LED40-PATU-MV-WH-O-DIM-4FT');
+        expect(top.familyMatch).toBe(true);
+    });
+
+    it('family suggestions never pre-check (variant precision is unearned until attribute agreement)', () => {
+        // Family evidence names the right FAMILY, but the exact variant (LED40
+        // vs LED75, 8W vs 12W) measured ~36% precision across the eval corpus.
+        // A wrong default writes History on export — so family cards stay one
+        // click away. Backlog #3 (attributes) is what earns the pre-check.
+        for (const [mark, mfr, cat] of [
+            ['BA', 'PHILIPS', 'S7R835K10AL'],
+            ['BH', 'BEGHELLI', 'BS100LED-4-HT-VLO-WT35-120-277'],
+            ['BF', 'PHILIPS', 'FSW-4-30L-835-UNV-DIM'],
+        ] as const) {
+            const r = analyzeLineItem(line(mark, mfr, cat), LARGO_CTX);
+            for (const rec of r.recommendations.filter(x => x.familyMatch)) {
+                expect(shouldAutoSelect(rec), `${mark} family card must not pre-check`).toBe(false);
+            }
+        }
+        expect(shouldAutoSelect({ confidence: 75, matchType: 'fuzzy', familyMatch: true })).toBe(false);
+        expect(shouldAutoSelect({ confidence: 75, matchType: 'fuzzy' })).toBe(true);
+    });
+
+    it('family matches do not take the History ranking trump — they compete on confidence', () => {
+        const familyRec = { source: 'History', familyMatch: true, confidence: 48 } as Parameters<typeof compareRecommendations>[0];
+        const directRec = { source: 'Premier Items', confidence: 60 } as Parameters<typeof compareRecommendations>[0];
+        const exactRec = { source: 'History', confidence: 40 } as Parameters<typeof compareRecommendations>[0];
+        expect(compareRecommendations(directRec, familyRec)).toBeLessThan(0);   // direct@60 above family@48
+        expect(compareRecommendations(exactRec, familyRec)).toBeLessThan(0);    // exact history still trumps
+        expect(compareRecommendations(exactRec, directRec)).toBeLessThan(0);
+    });
+
+    it('BD: off-catalog spec with a schedule type hint gets the wrap/strip family, no junk', () => {
+        // The item actually bid (LIN-UD-2INCH-4FT-…) is NOT in the catalog —
+        // no engine change can surface it (Airtable hygiene, backlog #6). The
+        // honest in-catalog answer is the EFS/EFV Surface Mount family.
+        const bd: ParsedLineItem = {
+            rowIndex: 1, section: 'Test', mark: 'BD', quantity: '14',
+            manufacturer: 'HE WILLIAMS', catalogNumber: '75L-4-L50/835-AF12125-EM/10WLP-DIM-UNV',
+            rawRow: { TYPE: 'STRIP' },
+        };
+        const r = analyzeLineItem(bd, LARGO_CTX);
+        expect(r.recommendations.length).toBeGreaterThan(0);
+        for (const rec of r.recommendations) {
+            expect(rec.productCategory).toBe('Surface Mount');
+            expect(shouldAutoSelect(rec)).toBe(false);            // category guess stays a guess
+        }
+        expect(r.recommendations.map(x => x.premierItem ?? '').join(' ')).toMatch(/EFS|EFV/);
+    });
+
+    it('BD without any type hint: silence over cross-category junk', () => {
+        const r = analyzeLineItem(line('BD', 'HE WILLIAMS', '75L-4-L50/835-AF12125-EM/10WLP-DIM-UNV'), LARGO_CTX);
+        for (const rec of r.recommendations) {
+            expect(rec.productCategory).not.toBe('Post/Pier Head');
+        }
+    });
+
+    it('BS: unknown FC Lighting spec stays silent (its bid item is off-catalog too)', () => {
+        const r = analyzeLineItem(line('BS', 'FC LIGHTING', 'FCW3052'), LARGO_CTX);
+        expect(r.recommendations).toHaveLength(0);
+    });
+});
+
+describe('null-category junk gate (backlog #5)', () => {
+    const POLE_CTX: EngineContext = {
+        history: [], thirdPartyItems: [], fans: [],
+        premierItems: [
+            premier({ id: 'cont100', itemId: 'CONT-S-100-30K-MV-SM-T3-D-BZ', fixtureCategory: 'Post/Pier Head', itemDescription: 'LED POLE HEAD 100W', timesUsed: 15 }),
+        ],
+    };
+
+    it('an unknown-category spec cannot surface cross-category cards on a weak token overlap', () => {
+        // idScore ≈ 43 (one exact token of three) — under a null category that
+        // used to become a 30-45% card (Largo BH: pole heads for a vapor-tight).
+        expect(calculateCatalogMatchScore('XQZ-30K-ABC9', 'CONT-S-100-30K-MV-SM-T3-D-BZ')).toBeGreaterThanOrEqual(40);
+        expect(calculateCatalogMatchScore('XQZ-30K-ABC9', 'CONT-S-100-30K-MV-SM-T3-D-BZ')).toBeLessThan(55);
+        const r = analyzeLineItem(line('BX', '', 'XQZ-30K-ABC9'), POLE_CTX);
+        expect(r.recommendations).toHaveLength(0);
+    });
+
+    it('the same weak overlap is still allowed INSIDE a detected category', () => {
+        // Mark OP1 → Outdoor Pole: an in-category 43%-grade match is a
+        // legitimate low-confidence candidate, not cross-category junk.
+        const r = analyzeLineItem(line('OP1 - POLE', '', 'XQZ-30K-ABC9'), POLE_CTX);
+        expect(r.recommendations.map(x => x.premierItem)).toContain('CONT-S-100-30K-MV-SM-T3-D-BZ');
+        expect(shouldAutoSelect(r.recommendations[0])).toBe(false);
     });
 });

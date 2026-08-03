@@ -89,6 +89,14 @@ export interface Recommendation {
     thirdPartyLinkId?: string;
     /** True when this is a "leave as spec" passthrough card, not a substitution. */
     isPassthrough?: boolean;
+    /**
+     * True when this History recommendation rides FAMILY evidence (same product
+     * series, different options) rather than exact-spec swaps. Family matches
+     * are sub-authoritative: they never take the History-first ranking trump,
+     * never reach the 95% authoritative floor, and don't suppress the direct
+     * matching tiers.
+     */
+    familyMatch?: boolean;
 }
 
 export interface LineItemWithRecommendations {
