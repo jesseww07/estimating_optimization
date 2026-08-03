@@ -1,0 +1,13 @@
+# Paths OpenWiki must never read, scan, or reproduce in the wiki
+# (gitignore syntax — see https://github.com/langchain-ai/openwiki)
+
+# Dependencies & build output
+node_modules/
+.next/
+coverage/
+
+# Lockfile is noise for documentation purposes
+package-lock.json
+
+# Local env files (never commit these anyway, but belt-and-suspenders)
+.env*
