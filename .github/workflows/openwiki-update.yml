@@ -10,7 +10,7 @@
 # generates the full wiki from scratch — trigger it manually from the
 # Actions tab via "Run workflow".
 #
-# Required repository secret: ANTHROPIC_API_KEY
+# Required repository secret: ANTHROPIC_OPENWIKI
 # (Settings → Secrets and variables → Actions → New repository secret)
 
 name: OpenWiki Update
@@ -49,7 +49,7 @@ jobs:
         run: openwiki code --update --print
         env:
           OPENWIKI_PROVIDER: anthropic
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_OPENWIKI }}
           OPENWIKI_MODEL_ID: claude-sonnet-5
 
       # Wiki changes arrive as a reviewable PR (branch openwiki/update)
