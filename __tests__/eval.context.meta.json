@@ -1,0 +1,16 @@
+{
+  "fetchedAt": "2026-07-29T19:49:10.000Z",
+  "source": "airtable-mcp",
+  "baseId": "appWj912AEOvtxqJF",
+  "counts": {
+    "history": 9479,
+    "premierItems": 2402,
+    "thirdPartyItems": 1115,
+    "fans": 113
+  },
+  "notes": [
+    "Initial eval dataset, pulled via the Airtable MCP connector (per-project History slices, verified against per-slice totalRecordCount).",
+    "thirdPartyItems.productCategories carries linked category NAMES per the ThirdPartyItemRow contract; the production REST adapter is suspected to emit record ids here instead (flagged in docs/EVAL-HARNESS.md).",
+    "Rows sorted by record id for deterministic assembly; specManufacturer/bidManufacturer are empty exactly like the production adapter output."
+  ]
+}

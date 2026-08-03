@@ -106,6 +106,31 @@ describe('Collective MedSpa bid sheet regression', () => {
     });
 });
 
+describe('3rd & Flower parser regressions (2026-07-30)', () => {
+    it('the short-catalog rescue never replaces a real catalog number with a pasted URL', () => {
+        // Real UA line: CATALOG # held "8113" (4 chars → rescue fires) and a
+        // stray column carried the Amazon spec link. The rescue must skip the
+        // URL; the link still lands in specUrls for the identify flow.
+        const rows = [
+            ['MARK', 'Location', 'QTY', 'MAN', 'CATALOG #', 'NOTES', ''],
+            ['UA', 'Unit', '4022', 'HOME SELECTIONS INTERNATIONAL', '8113', '', 'https://us.amazon.com/HomeSelects-8113-Surface/dp/B01DEB8E2M'],
+        ];
+        const items = parseUploadedFileFromRows(rows);
+        expect(items).toHaveLength(1);
+        expect(items[0]!.catalogNumber).toBe('8113');
+        expect(items[0]!.specUrls).toEqual(['https://us.amazon.com/HomeSelects-8113-Surface/dp/B01DEB8E2M']);
+    });
+
+    it('a 1-2 character data cell never becomes a catalog-column candidate', () => {
+        // Mark cell "C" is a substring of the alias "catalog #" — without the
+        // length guard it ranked 0 and could hijack the mapping during the
+        // header scan.
+        expect(findCatalogCandidates(['C', 'Bldg', '34', 'LXEM4-40HL-RFA-EDU'])).toHaveLength(0);
+        // Real headers still match, including short-but-exact aliases.
+        expect(chooseCatalogColumn(findCatalogCandidates(['MARK', 'CATALOG #']))).toBe(1);
+    });
+});
+
 describe('multi-sheet workbooks', () => {
     it('picks the bid sheet over a cover sheet and a degenerate Airtable-import tab', () => {
         // Import staging tabs parse into MORE rows than the bid sheet, but the

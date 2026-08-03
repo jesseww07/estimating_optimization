@@ -50,7 +50,14 @@ export function normalizeSpecKey(spec: string): string {
 // LIGHT" must not reach 43% against "MOUNTING CLIPS FOR TAPE LIGHT" because
 // both contain "LIGHT" (Collective MedSpa L7). Category/attribute matching owns
 // these words; the token matcher only gets distinctive ones.
-const GENERIC_MATCH_TOKENS = new Set(['LIGHT', 'LED', 'FIXTURE', 'MOUNT', 'KIT', 'WITH', 'THE', 'FOR', 'AND']);
+// Color/finish words joined the list after the 3rd & Flower review (2026-07-30):
+// "APLOMB GREY" must not reach 65% against "HEIR CUSTOM-JAIMA 43 -GREY" on the
+// strength of GREY alone — finishes are attributes, not identity.
+const GENERIC_MATCH_TOKENS = new Set([
+    'LIGHT', 'LED', 'FIXTURE', 'MOUNT', 'KIT', 'WITH', 'THE', 'FOR', 'AND',
+    'BLACK', 'WHITE', 'GREY', 'GRAY', 'BRONZE', 'COPPER', 'NICKEL', 'BRASS',
+    'CHROME', 'GOLD', 'SATIN', 'MATTE', 'GLOSSY', 'BRUSHED', 'FINISH',
+]);
 
 export function calculateCatalogMatchScore(catalogNumber: string, originalSpec: string): number {
     if (!catalogNumber || !originalSpec) return 0;
@@ -91,7 +98,13 @@ export function calculateCatalogMatchScore(catalogNumber: string, originalSpec: 
 
     if (matchRatio >= 0.8 && exactMatches >= 2) return Math.round(75 + matchRatio * 20);
     if (matchRatio >= 0.5 && exactMatches >= 1) return Math.round(50 + matchRatio * 30);
-    if (matchRatio >= 0.3) return Math.round(30 + matchRatio * 40);
+    // The lowest tier needs real evidence too: a single significant token whose
+    // only hit is a partial substring ("CS6964" ⊃ "CS", "HALO" ⊃ "AL") scored
+    // 50 on the 3rd & Flower sheet and surfaced pure junk. One exact token, or
+    // corroboration across two significant tokens, is the floor.
+    if (matchRatio >= 0.3 && (exactMatches >= 1 || significantParts.length >= 2)) {
+        return Math.round(30 + matchRatio * 40);
+    }
 
     return 0;
 }
@@ -131,7 +144,7 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
     // Mark fields often contain natural-language descriptions, e.g.:
     //   "D (bedroom ceiling fan)", "B (sgl vanity)", "CABINET LED - 3'0""
     // Handle non-catalog items first so they aren't misrouted.
-    if (/EXHAUST\s*FAN/i.test(mark)) return null;              // exhaust fans not in catalog
+    if (/EXHAUST\s*FAN/i.test(mark) || /EXHAUST\s*FAN/.test(c)) return null; // exhaust fans not in catalog
     if (/SMOKE|CARBON\s*MONO/i.test(mark) && !/LIGHT|FIXTURE/.test(m)) return null; // smoke/CO detectors
     if (/CEILING\s*FAN|BEDROOM.*FAN/i.test(mark)) return 'Ceiling Fan';
     if (/\b(SGL|DBL|DOUBLE|SINGLE|DUAL)\s*VANITY/i.test(mark)) return 'Vanity';
@@ -166,6 +179,11 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
         /\bCLF\b/.test(m) ||                     // U2-CLF-1, U1-CLF-1
         /\bCF\b/.test(m) ||                      // CF-1, CF-2
         /\bFAN\b/.test(m) ||
+        /\bFAN\b/.test(c) ||                     // "FAN CABANA" (3rd & Flower LS4)
+        // Fan described by attributes, never by the word: '50" (3) BLADES
+        // LIGHT KIT ENERGY STAR' (3rd & Flower UF). Blade count + light kit /
+        // a 2-digit-inch span is unambiguous fan vocabulary.
+        (/\bBLADES?\b/.test(c) && (/LIGHT\s*KIT/.test(c) || /\b\d{2}\s*(?:"|”)/.test(c))) ||
         /^CF[-_\d]/.test(c) ||                   // CF-006-52-SN..., CF020...
         /CEILING.?FAN/.test(c) ||
         mfr.includes('MINKA') || mfr.includes('MONTE CARLO') ||
@@ -189,6 +207,7 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
         /^ECF/.test(c) ||                          // Signify EcoForm area/street
         /^DSXB|^DSX/.test(c) ||                   // Lithonia shoebox
         /^ALED/.test(c) ||                         // RAB area LED
+        /^LNC[-\d]/.test(c) ||                    // Lithonia LNC wall pack (3rd & Flower S1/W1)
         /^SW\d/.test(c) ||                        // SW3-, SW4- (area lights)
         /SHOEBOX|COBRA|COBRAHEAD|AREA.?LIGHT|STREET.?LIGHT|PARKING/.test(c) ||
         /WALL.?PACK|FLOOD.?LIGHT/.test(c) ||
@@ -200,8 +219,10 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
     // ── Exit / Emergency ───────────────────────────────────────────────────────
     const isExitEmerg =
         /\bEX\d?\b|\bEM\d?\b|\bEMW\b/.test(m) ||
-        /^LQM|^ELM|^AF0|^WL4/.test(c) ||
-        /EXIT.?SIGN|EMERGENCY|EGRESS/.test(c);
+        /^LQM|^ELM|^AF0|^WL4|^LXEM/.test(c) ||   // LXEM = Lithonia LED exit (3rd & Flower mark C)
+        // Bare EXIT wording covers "EXIT SINGLE" / "EXIT DOUBLE" placeholder
+        // rows — 141 units on 3rd & Flower fell to null and total silence.
+        /EXIT.?SIGN|EMERGENCY|EGRESS|\bEXIT\b/.test(c);
     if (isExitEmerg) return 'Exit/Emergency';
 
     // ── Vanity / Bath Bar ──────────────────────────────────────────────────────
@@ -416,7 +437,7 @@ export function thirdPartyCategoriesCompatible(inferredLabel: string, productCat
 // fixture variants, and GC-REC-*-EMGDRIVER emergency drivers) — "POWER FOR"
 // descriptions and EMGDRIVER ids are accessories. -TUNABLE/-EM stay matchable:
 // those are fixtures.
-const ACCESSORY_TEXT_RE = /\bMOUNTING\s+(CLIP|PLATE|BRACKET|KIT)|(^|\s)CLIPS?\b|\bBRACKET\b|\bCANOPY\s+KIT\b|\bDRIVER\b|EMG\s*DRIVER|\bXMFR\b|\bTRANSFORMER\b|\bPOWER\s+(SUPPLY|FOR)\b|\bCONNECTOR\b|\bSPLICE\b|\bEND\s+CAP\b|\bTRIM\s+RING\b|\bREMOTE\s+CONTROL\b|\bACCESSOR/i;
+const ACCESSORY_TEXT_RE = /\bMOUNTING\s+(CLIP|PLATE|BRACKET|KIT)|(^|\s)CLIPS?\b|\bBRACKET\b|\bCANOPY\s+KIT\b|\bDRIVER\b|EMG\s*DRIVER|\bXMFR\b|\bTRANSFORMER\b|\bPOWER\s+(SUPPLY|FOR)\b|\bCONNECTOR\b|\bSPLICE\b|\bEND\s+CAP\b|\bTRIM\s+RING\b|\bREMOTE\s+CONTROL\b|\bDOWN\s*RODS?\b|\bACCESSOR/i;
 
 /** True when a catalog item reads as an accessory rather than a fixture. */
 export function isAccessoryItem(itemId: string, description: string): boolean {
@@ -549,6 +570,25 @@ export function extractDimensions(text: string): DimensionSignature {
     }
 
     return sig;
+}
+
+/**
+ * Fan-span gate: ceiling-fan SKUs embed the blade span as a bare 2-digit token
+ * ("F896-84-WHF" = 84", "CF-006-52-SN" = 52") that the quote/FT-based
+ * dimension extractor cannot see — on 3rd & Flower an 84" fan spec
+ * auto-selected the 65" sibling. Only meaningful between two ceiling-fan
+ * strings (elsewhere bare 2-digit tokens mean kelvin/wattage shorthand), so
+ * callers must scope it to Ceiling Fan matching.
+ */
+export function fanSpansCompatible(specText: string, candidateText: string): boolean {
+    const spans = (t: string) => t.toUpperCase().split(/[^A-Z0-9]+/)
+        .filter(tok => /^\d{2}$/.test(tok))
+        .map(Number)
+        .filter(n => n >= 24 && n <= 96);
+    const a = spans(specText);
+    const b = spans(candidateText);
+    if (a.length === 0 || b.length === 0) return true; // no signal — don't gate
+    return a.some(x => b.includes(x));
 }
 
 /**

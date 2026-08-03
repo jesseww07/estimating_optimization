@@ -145,6 +145,11 @@ suggestions when a category is detectable) → 3. **LED tape** suppression → 4
 - **Write-back env**: `HISTORY_WRITEBACK` (live default on `VERCEL_ENV=production`,
   dry_run elsewhere; explicit env var always wins — it's the kill switch).
 - **Tests**: `npx vitest run` (fast); `npx tsc --noEmit`; `npx next build` before
-  shipping. Test files: parse / tuning / parity / writeback / identify / export.
+  shipping. Test files: parse / tuning / parity / writeback / identify / export /
+  eval. Since 2026-07-29 CI enforces the first three of those locally-run checks
+  automatically (`.github/workflows/ci.yml`: typecheck + lint + vitest on every
+  PR and push to `main`; Vercel still owns the build check) — so an accuracy
+  regression caught by the eval ratchet now turns the PR red. See
+  `docs/EVAL-HARNESS.md` for the accuracy eval harness and its baseline workflow.
 - The git proxy in remote sessions cannot delete remote branches (403) — GitHub's
   auto-delete-on-merge handles cleanup now.

@@ -61,7 +61,11 @@ export function findCatalogCandidates(row: string[]): CatalogCandidate[] {
         if (!normalized) continue;
         for (let a = 0; a < aliases.length; a++) {
             const alias = aliases[a];
-            if (normalized === alias || normalized.includes(alias) || alias.includes(normalized)) {
+            // The reverse containment needs ≥3 chars: a lone "C" data cell is
+            // inside "catalog #" and made that column a rank-0 catalog
+            // candidate (3rd & Flower header scan).
+            if (normalized === alias || normalized.includes(alias) ||
+                (normalized.length >= 3 && alias.includes(normalized))) {
                 candidates.push({ colIdx, aliasRank: a });
                 break;
             }
@@ -298,7 +302,8 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
 
             const markAliases = COLUMN_ALIASES.mark ?? [];
             for (const alias of markAliases) {
-                if (normalizedCell === alias || normalizedCell.includes(alias) || alias.includes(normalizedCell)) {
+                if (normalizedCell === alias || normalizedCell.includes(alias) ||
+                    (normalizedCell.length >= 3 && alias.includes(normalizedCell))) {
                     if (currentIndices.mark === undefined) {
                         currentIndices.mark = colIdx;
                         currentScore += 10;
@@ -550,7 +555,14 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
                         colIdx === columnIndices.catalogNumber) continue;
 
                     const cellValue = row[colIdx];
-                    if (cellValue && typeof cellValue === 'string' && looksLikeCatalogNumber(cellValue)) {
+                    if (!cellValue || typeof cellValue !== 'string') continue;
+                    // A pasted spec-sheet link is never a catalog number — it is
+                    // collected into specUrls below. Without this guard the
+                    // rescue REPLACED a real short catalog ("8113", 3rd &
+                    // Flower UA) with the row's Amazon URL, which the engine
+                    // then rightfully blanked: real signal destroyed.
+                    if (/^(https?:\/\/|www\.)/i.test(cellValue.trim())) continue;
+                    if (looksLikeCatalogNumber(cellValue)) {
                         finalCatalog = cellValue.trim();
                         break;
                     }
