@@ -3,6 +3,8 @@
  * Ported from harvest/index.tsx (~788–1085). No React, no Airtable, no Next.
  */
 
+import { SERIES_CATEGORY_MAP } from './series-categories';
+
 // ── Text similarity (harvest ~788) ───────────────────────────────────────────
 
 export function calculateMatchScore(searchTerm: string, target: string): number {
@@ -59,6 +61,16 @@ const GENERIC_MATCH_TOKENS = new Set([
     'CHROME', 'GOLD', 'SATIN', 'MATTE', 'GLOSSY', 'BRUSHED', 'FINISH',
 ]);
 
+/**
+ * The tokens of a spec that carry identity: ≥3 chars, not pure digits, not
+ * generic vocabulary. Shared by the token scorer and the family-match rule.
+ */
+export function significantSpecTokens(spec: string): string[] {
+    return spec.toUpperCase().split(/[-_\/\s]+/).filter(
+        p => p.length >= 3 && !/^\d+$/.test(p) && !GENERIC_MATCH_TOKENS.has(p),
+    );
+}
+
 export function calculateCatalogMatchScore(catalogNumber: string, originalSpec: string): number {
     if (!catalogNumber || !originalSpec) return 0;
 
@@ -76,9 +88,7 @@ export function calculateCatalogMatchScore(catalogNumber: string, originalSpec: 
 
     let exactMatches = 0;
     let partialMatches = 0;
-    const significantParts = catalogParts.filter(
-        p => p.length >= 3 && !/^\d+$/.test(p) && !GENERIC_MATCH_TOKENS.has(p),
-    );
+    const significantParts = significantSpecTokens(catalogNumber);
 
     for (const catalogPart of significantParts) {
         for (const specPart of specParts) {
@@ -107,6 +117,121 @@ export function calculateCatalogMatchScore(catalogNumber: string, originalSpec: 
     }
 
     return 0;
+}
+
+// ── Learned series knowledge (Phase 4, backlog #4) ───────────────────────────
+// SERIES_CATEGORY_MAP (generated from History by scripts/build-series-map.ts)
+// holds series prefixes whose linked bid items agree on a category: real
+// estimator decisions, not keyword guesses. Two consumers: category detection
+// (a mapped series categorizes specs the regex chains can't) and family
+// matching (two specs on the same learned series are family).
+
+/**
+ * The learned series key a spec belongs to, or null. Resolves the first token
+ * exactly, then — for separator-free forms like `S7R835K10AL` — the longest
+ * learned key that prefixes the token at an option boundary (next char is a
+ * digit: series identity ends where the option grammar begins).
+ */
+export function seriesCategoryKey(spec: string): string | null {
+    const firstToken = (spec || '').trim().split(/[\s\-_/,;:()]+/)[0] ?? '';
+    const norm = normalizeProductId(firstToken);
+    if (norm.length < 3 || !/[a-z]/.test(norm)) return null;
+    if (SERIES_CATEGORY_MAP[norm]) return norm;
+    for (let len = Math.min(norm.length - 1, 12); len >= 3; len--) {
+        const key = norm.slice(0, len);
+        if (SERIES_CATEGORY_MAP[key] && /\d/.test(norm[len]!)) return key;
+    }
+    return null;
+}
+
+/** History-learned category label for a spec's series, or null when unlearned. */
+export function seriesCategory(spec: string): string | null {
+    const key = seriesCategoryKey(spec);
+    return key ? SERIES_CATEGORY_MAP[key] ?? null : null;
+}
+
+// ── Family/series spec matching (Phase 4, backlog #2) ────────────────────────
+// The history tier's authoritative path requires exact normalized-key equality;
+// family matching is the purpose-built sub-authoritative complement: same
+// product series, different options (Largo BA: `S7R835K10AL` vs Cupertino's
+// `S7R-8-35K-10-Z10U`; BH: `BS100LED-4-HT-…` vs Flourney's `BS100LED-4-SA-…`).
+// Deliberately series/prefix-aware rather than substring-accidental — the
+// single-token junk gates must stay intact.
+
+/** Minimum shared normalized prefix for two catalog-style specs to read as one series. */
+export const FAMILY_PREFIX_MIN = 9;
+/** Token-level score at/above this (anchored by series-token kinship) reads as family. */
+export const FAMILY_SCORE_MIN = 60;
+
+function sharedPrefixLength(a: string, b: string): number {
+    const n = Math.min(a.length, b.length);
+    let i = 0;
+    while (i < n && a[i] === b[i]) i++;
+    return i;
+}
+
+/** The leading series token of a catalog-style spec (normalized), or null. */
+function seriesTokenOf(spec: string): string | null {
+    const firstToken = (spec || '').trim().split(/[\s\-_/,;:()]+/)[0] ?? '';
+    const norm = normalizeProductId(firstToken);
+    if (norm.length < 3 || !/[a-z]/.test(norm)) return null;
+    // Vocabulary is not identity: "LED STRIP LIGHTING" and "LED TAPE ..." must
+    // not read as the same series because both lead with LED.
+    if (GENERIC_MATCH_TOKENS.has(firstToken.toUpperCase())) return null;
+    return norm;
+}
+
+/**
+ * Series-token kinship: the leading tokens identify the same series, either
+ * exactly or by prefix (dashed `FSW-4-…` vs run-together `FSW440L840…`).
+ * This anchors the token-score family rule: without it, near-universal OPTION
+ * tokens (`UNV`, `DIM`, `30K`…) manufacture "family" out of unrelated products
+ * — a Beta pendant scored 65 against a Philips wrap on UNV+DIM alone.
+ */
+function seriesTokensMatch(specA: string, specB: string): boolean {
+    const a = seriesTokenOf(specA);
+    const b = seriesTokenOf(specB);
+    if (!a || !b) return false;
+    return a === b || a.startsWith(b) || b.startsWith(a);
+}
+
+/**
+ * True when a history row's ORIGINAL SPEC matches the input at family level:
+ * same product series, options may differ. Three signals, any of which
+ * qualifies — all subject to the spec-vs-spec dimension gate (a 4FT spec is
+ * never family evidence for an 8FT run, whatever the shared prefix):
+ *
+ *  1. long shared normalized prefix (catalog-style specs only — prose reads as
+ *     sentences, not part numbers);
+ *  2. both specs resolve to the same LEARNED series key (catches option-grammar
+ *     variance a raw prefix can't: `S7R835K10AL` vs `S7R-8-27K-10-ZI0U` share
+ *     only 4 normalized chars but the same learned S7R series);
+ *  3. series-token kinship corroborated by a high token-level catalog match
+ *     (`FSW-4-30L-835-UNV-DIM` vs Aquino's `FSW440L840-UNV-SDIM-LSXR10`).
+ */
+export function isFamilySpecMatch(inputSpec: string, historySpec: string, precomputedScore?: number): boolean {
+    const a = normalizeSpecKey(inputSpec);
+    const b = normalizeSpecKey(historySpec);
+    if (a.length < 6 || b.length < 6 || a === b) return false;
+
+    // Prose describes, it doesn't identify: "STRING LIGHT" vs "STRING LIGHTS…"
+    // is a vocabulary echo, not a product series. Prose lines belong to the
+    // category/attribute paths.
+    if (looksLikeProse(inputSpec) || looksLikeProse(historySpec)) return false;
+
+    // Identity signals first (cheap), dimension veto last (regex-heavy — this
+    // function runs against every history row).
+    const sameFamily =
+        sharedPrefixLength(a, b) >= FAMILY_PREFIX_MIN ||
+        (() => {
+            const inputSeries = seriesCategoryKey(inputSpec);
+            return !!inputSeries && inputSeries === seriesCategoryKey(historySpec);
+        })() ||
+        (seriesTokensMatch(inputSpec, historySpec) &&
+            (precomputedScore ?? calculateCatalogMatchScore(inputSpec, historySpec)) >= FAMILY_SCORE_MIN);
+    if (!sameFamily) return false;
+
+    return dimensionsCompatible(inputSpec, historySpec);
 }
 
 // ── Fixture category detection (harvest ~944) ────────────────────────────────
@@ -146,6 +271,15 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
     // Handle non-catalog items first so they aren't misrouted.
     if (/EXHAUST\s*FAN/i.test(mark) || /EXHAUST\s*FAN/.test(c)) return null; // exhaust fans not in catalog
     if (/SMOKE|CARBON\s*MONO/i.test(mark) && !/LIGHT|FIXTURE/.test(m)) return null; // smoke/CO detectors
+
+    // ── Learned series → category (Phase 4, backlog #4) ──────────────────────
+    // History-derived series knowledge outranks every keyword heuristic below:
+    // when 3+ linked estimator decisions agree on what a series is, that beats
+    // a regex guess (Largo: S7R and BS100LED returned null here and the whole
+    // pipeline downstream ran blind — junk pole heads for a vapor-tight).
+    const learnedCategory = seriesCategory(catalogNumber);
+    if (learnedCategory) return learnedCategory;
+
     if (/CEILING\s*FAN|BEDROOM.*FAN/i.test(mark)) return 'Ceiling Fan';
     if (/\b(SGL|DBL|DOUBLE|SINGLE|DUAL)\s*VANITY/i.test(mark)) return 'Vanity';
     if (/CABINET\s*LED|UNDER\s*CAB/i.test(mark)) return 'Undercabinet';

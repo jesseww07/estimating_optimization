@@ -70,6 +70,8 @@ interface Recommendation {
     bidManufacturer?: string;
     projectsUsed?: string[];
     isPassthrough?: boolean;
+    /** Family-evidence History match (Phase 4) — never pre-checked by shouldAutoSelect. */
+    familyMatch?: boolean;
     premierLinkId?: string;
     thirdPartyLinkId?: string;
     productCategory?: string;

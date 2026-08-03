@@ -10,7 +10,8 @@
     "test": "vitest run",
     "eval": "tsx scripts/eval/run.ts",
     "eval:update": "tsx scripts/eval/run.ts --update-baseline",
-    "eval:fetch": "tsx scripts/eval/fetch-context.ts"
+    "eval:fetch": "tsx scripts/eval/fetch-context.ts",
+    "build:series-map": "tsx scripts/build-series-map.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.3",
