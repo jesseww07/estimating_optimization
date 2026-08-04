@@ -7,6 +7,7 @@ tags: [eval, accuracy, ci, regression-testing, history]
 
 # Accuracy Eval Harness
 
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 The [recommendation engine](/openwiki/engine/recommendation-engine.md) is
 complex enough that a change can quietly regress accuracy for whole classes
 of specs. This harness makes that measurable instead of anecdotal: it treats
@@ -38,6 +39,7 @@ Each case runs against an `EngineContext` whose History **excludes every row
 from the case's own project** — otherwise the History tier would trivially
 return the label from its own row, testing a lookup instead of a prediction.
 Cross-project evidence stays available, which is exactly what the
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md#history-matching-tiers] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 [History matching tiers](/openwiki/engine/recommendation-engine.md#history-matching-tiers)
 are meant to exploit. `referenceDate` is pinned to the snapshot's fetch time
 so recency weighting is reproducible.
@@ -53,6 +55,7 @@ against the label:
 - **junk** — recommendations were shown, none is the label.
 - **silent** — no substantive recommendation at all.
 - **autoWrong** — the top card clears `shouldAutoSelect`
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md#ranking-dedupe-and-the-auto-select-gate] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
   (see [ranking gate](/openwiki/engine/recommendation-engine.md#ranking-dedupe-and-the-auto-select-gate))
   **and** is not the label — the learning-loop-pollution quadrant, since an
   auto-selected wrong answer is exactly what a careless export would write
@@ -80,6 +83,7 @@ run against the committed `__tests__/eval.baseline.json`:
 This ratchet is what makes `.github/workflows/ci.yml`'s `vitest run` step an
 **enforcing** accuracy gate, not an advisory one — no Airtable credentials
 are required in CI because the dataset is the committed, frozen snapshot.
+<!-- openwiki: broken internal link [/openwiki/operations/testing-and-ci.md] file "/openwiki/operations/testing-and-ci.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 See [Testing & CI](/openwiki/operations/testing-and-ci.md) for the full CI
 workflow.
 
@@ -94,6 +98,7 @@ workflow.
 | `__tests__/eval.context.json.gz` + `__tests__/eval.context.meta.json` | The frozen `EngineContext` (full History + all three catalogs) and its plain-JSON provenance mirror (fetch date, row counts, notes). |
 | `__tests__/eval.baseline.json` | Committed metrics plus one line per case outcome, so a PR that flips cases shows exactly which ones in its diff. |
 | `scripts/build-series-map.ts` | Reads this same snapshot to (re)generate the
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md#learned-series-categories] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 [learned series-category map](/openwiki/engine/recommendation-engine.md#learned-series-categories) consumed by the engine. |
 
 Commands (`package.json`):
@@ -108,9 +113,13 @@ Commands (`package.json`):
 
 ## Current baseline snapshot
 
-As of the state documented in `docs/PHASE4-PRIMER.md` (966 headline cases,
-after PR #6's identification fixes): top1 9.01%, top3 11.28%, junk 45.55%,
-silent 43.17%, autoWrong 6.94%. Treat these as a point-in-time reference, not
-a live number — read `__tests__/eval.baseline.json` and rerun `npm run eval`
-for the current figures; the committed baseline is the source of truth, not
-this page.
+The committed `__tests__/eval.baseline.json` (966 headline cases) currently
+reports: top1 14.39%, top3 18.12%, junk 40.06%, silent 41.82%, autoWrong
+6.11%. This already supersedes the figures `docs/PHASE4-PRIMER.md` recorded
+at its Phase 4 kickoff (top1 9.01%, top3 11.28%, junk 45.55%, silent 43.17%,
+autoWrong 6.94%) — the gap reflects the family/series-matching tier, learned
+series-category map, and null-category junk gate documented above, all of
+which had shipped by the time this baseline was generated. Treat both sets of
+numbers as point-in-time reference, not a live number — read
+`__tests__/eval.baseline.json` and rerun `npm run eval` for the current
+figures; the committed baseline is the source of truth, not this page.

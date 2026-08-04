@@ -31,6 +31,7 @@ draft with Premier catalog substitutions already suggested.
    loop that makes future analyses better.
 
 This flow, its API surface, and its Next.js structure are documented in
+<!-- openwiki: broken internal link [/openwiki/architecture/overview.md] file "/openwiki/architecture/overview.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 [Architecture Overview](/openwiki/architecture/overview.md).
 
 ## Where the "smarts" live
@@ -38,12 +39,14 @@ This flow, its API surface, and its Next.js structure are documented in
 The substitution logic — scoring, category detection, the History learning
 tiers, ranking, and the auto-select gate — is the most complex and most
 frequently-changed part of the codebase. It is documented in
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 [Recommendation Engine](/openwiki/engine/recommendation-engine.md).
 
 Because engine changes are risky to get wrong silently, every change is
 expected to be measured against a frozen, labeled dataset before it ships.
 That measurement discipline — the accuracy eval harness, its metrics, and the
 CI ratchet that enforces it — is documented in
+<!-- openwiki: broken internal link [/openwiki/engine/eval-harness.md] file "/openwiki/engine/eval-harness.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 [Accuracy Eval Harness](/openwiki/engine/eval-harness.md).
 
 ## Where the data comes from
@@ -51,11 +54,13 @@ CI ratchet that enforces it — is documented in
 All catalog and history data is Airtable-backed (base `appWj912AEOvtxqJF`).
 Field IDs, the read/cache path, and the create-only History write-back that
 implements the learning loop are documented in
+<!-- openwiki: broken internal link [/openwiki/data/airtable-integration.md] file "/openwiki/data/airtable-integration.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 [Airtable Integration](/openwiki/data/airtable-integration.md).
 
 ## How changes are verified
 
 Test suites, the CI workflow, and local dev/check commands are documented in
+<!-- openwiki: broken internal link [/openwiki/operations/testing-and-ci.md] file "/openwiki/operations/testing-and-ci.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 [Testing & CI](/openwiki/operations/testing-and-ci.md).
 
 ## Existing hand-written docs (primary sources, not duplicated here)
@@ -82,10 +87,12 @@ linked above.
   single Airtable base. This is an internal tool, not a multi-tenant product.
 - The exported workbook is a **takeoff draft, not a quote** — pricing columns
   are intentionally left blank; see
+<!-- openwiki: broken internal link [/openwiki/architecture/overview.md#export] file "/openwiki/architecture/overview.md" does not exist. Fix the href or restore the target, then delete this comment. -->
   [Architecture Overview](/openwiki/architecture/overview.md#export).
 - The engine is deliberately conservative about auto-selecting recommendations
   because an accepted default gets written back to History and can pollute
   future scoring — see the auto-select gate in
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
   [Recommendation Engine](/openwiki/engine/recommendation-engine.md).
 
 ## Repo layout at a glance
@@ -116,5 +123,6 @@ linked above.
 - **`scripts/build-series-map.ts` internals beyond its documented thresholds**
   (`MIN_SUPPORT = 3`, `MIN_AGREEMENT = 0.8`) — the full token-matching/labeling
   logic is summarized in
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md#learned-series-categories] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
   [Recommendation Engine](/openwiki/engine/recommendation-engine.md#learned-series-categories)
   but not walked line by line; read the script directly for edge cases.
