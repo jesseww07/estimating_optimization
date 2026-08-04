@@ -4,6 +4,30 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+# Project rules — VE Estimator (Premier Lighting)
+
+This is Premier Lighting's internal estimating substitution finder. Start with
+`README.md`; deep context lives in `openwiki/quickstart.md` and `docs/*.md`.
+
+- **This repo is PUBLIC.** Never commit customer bid workbooks, pricing data,
+  or raw Airtable exports. Test fixtures use the already-committed frozen
+  snapshots or synthetic data only.
+- **Engine changes must pass the eval ratchet.** Anything under `lib/engine/`
+  is measured: run `npm run eval` and review the per-case flip diff before
+  pushing. Never run `npm run eval:update` to make a regression pass — the
+  baseline only moves when a change is a deliberate, reviewed trade-off.
+- **`lib/**` stays framework-free.** No React, Next.js, or Airtable SDK
+  imports in `lib/` — the engine must run identically in API routes, unit
+  tests, and the eval harness.
+- **History write-back is create-only** and gated by `HISTORY_WRITEBACK`
+  (unset = `live` in production, `dry_run` everywhere else). Never make
+  non-production code paths write to the live History table.
+- **Data lives in one Airtable base** (`appWj912AEOvtxqJF`): Premier Items,
+  3rd Party Domestic Items, Fans, and History. Field IDs are pinned in
+  `lib/airtable/` — don't guess field names.
+- Pushes to `openwiki/update` deliberately skip Vercel deployments
+  (`vercel.json` → `git.deploymentEnabled`); don't "fix" that.
+
 <!-- OPENWIKI:START -->
 
 ## OpenWiki

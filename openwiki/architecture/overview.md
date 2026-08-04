@@ -82,8 +82,7 @@ downstream route/engine function operates on.
 via `getEngineContext()` (`lib/airtable/cached.ts`), and calls
 `analyzeLineItems` (`lib/engine/recommend.ts`). All scoring/matching logic
 lives in the engine — see
-<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-[Recommendation Engine](/openwiki/engine/recommendation-engine.md). `GET` on
+[Recommendation Engine](../engine/recommendation-engine.md). `GET` on
 the same route is a data-path healthcheck returning row counts only (no
 record data), used to confirm `AIRTABLE_PAT` and the four tables are reachable.
 `maxDuration = 60` because a cold-start context fetch pages through the whole
@@ -131,8 +130,7 @@ If the request sets `recordToHistory: true` and the write-back mode is not
 `off`, export also writes the selected substitutions back to Airtable
 **History** (filtering out RFI/tape lines and passthrough-only rows) via
 `writeSelectionsToHistory` — the step that closes the learning loop described
-<!-- openwiki: broken internal link [/openwiki/data/airtable-integration.md] file "/openwiki/data/airtable-integration.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-in [Airtable Integration](/openwiki/data/airtable-integration.md). A
+in [Airtable Integration](../data/airtable-integration.md). A
 successful live write invalidates the in-memory engine-context cache so the
 next analysis sees the new row immediately. Write-back failure never fails
 the export response; the workbook is still returned, with
