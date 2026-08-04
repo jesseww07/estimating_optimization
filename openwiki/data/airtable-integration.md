@@ -49,7 +49,9 @@ erDiagram
 
 - **History** (`tblHhTXJDNyyZLdvZ`) — past bid line items: what an estimator
   actually did with a spec. This is the labeled data the
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md#history-matching-tiers] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
   [History matching tiers](/openwiki/engine/recommendation-engine.md#history-matching-tiers)
+<!-- openwiki: broken internal link [/openwiki/engine/eval-harness.md] file "/openwiki/engine/eval-harness.md" does not exist. Fix the href or restore the target, then delete this comment. -->
   and the [eval harness](/openwiki/engine/eval-harness.md) both depend on.
 - **Premier Items** (`tblXfEOWWjDkpt5tw`) — Premier's own private-label
   catalog, including `Times Used` (feeds the fallback tier's usage bonus).
@@ -97,6 +99,7 @@ analysis sees the new rows immediately rather than waiting out the TTL.
 
 `lib/airtable/writeback.ts` implements the step that makes exported decisions
 feed back into future recommendations, triggered from
+<!-- openwiki: broken internal link [/openwiki/architecture/overview.md#export] file "/openwiki/architecture/overview.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 `/api/export` (see [Architecture Overview](/openwiki/architecture/overview.md#export))
 when the request sets `recordToHistory: true`.
 
@@ -114,6 +117,7 @@ Safety contract:
   passthrough-only rows are filtered out before write-back, so guesses that
   were never real decisions can't enter History.
 - `Bid Date` is set to the export date, which is exactly what activates
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md#history-matching-tiers] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
   [recency weighting](/openwiki/engine/recommendation-engine.md#history-matching-tiers)
   for that row in future analyses.
 - The engine's `matchConfidence` at export time is recorded to History's
@@ -123,6 +127,7 @@ Safety contract:
   open backlog item in `docs/PHASE3-PRIMER.md`).
 
 This is the mechanism the
+<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md#ranking-dedupe-and-the-auto-select-gate] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 [auto-select gate](/openwiki/engine/recommendation-engine.md#ranking-dedupe-and-the-auto-select-gate)
 is designed to protect: a pre-checked low-confidence guess that gets
 exported would otherwise write itself into History and could eventually
