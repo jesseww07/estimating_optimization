@@ -2,8 +2,8 @@
 
 Premier Lighting's internal **value-engineering (VE) substitution finder** for
 estimating. An estimator uploads a bid sheet or fixture schedule; the app
-suggests Premier catalog substitutions for each line, learns from every
-accepted swap, and exports a corporate-template takeoff draft.
+suggests Premier catalog substitutions for each line, learns from accepted
+swaps recorded at export, and produces a corporate-template takeoff draft.
 
 **Live app:** deployed on Vercel from `main`. The exported workbook is a
 takeoff draft, not a quote; pricing columns are intentionally blank.
@@ -21,8 +21,10 @@ takeoff draft, not a quote; pricing columns are intentionally blank.
    identification**: Claude reads a pasted spec URL, searches the web, or
    reads an uploaded cut-sheet PDF, then the engine re-runs.
 5. The estimator reviews/overrides selections and **exports** the workbook.
-6. Export **writes accepted substitutions back to History** — the learning
-   loop that makes the next bid's suggestions better.
+6. When the export opts into recording (`recordToHistory`) and
+   `HISTORY_WRITEBACK` allows it, accepted substitutions are **written back
+   to History** — the learning loop that makes the next bid's suggestions
+   better.
 
 ## Getting started
 

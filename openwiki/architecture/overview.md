@@ -115,7 +115,7 @@ so the UI gets a fresh recommendation set for that one line.
 engine's `CATEGORY_GROUPS` (`lib/engine/matcher.ts`) so an identified line
 plugs straight into the existing category gates.
 
-## Export {#export}
+## Export
 
 `app/api/export/route.ts`. Body is job header fields (job name/location/
 customer/sales rep/estimator/bid date) plus `rows: { lineItem, substitution |

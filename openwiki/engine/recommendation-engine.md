@@ -156,7 +156,7 @@ accessory SKU (driver/downrod/clip) offered for a fixture spec, is blocked
 outright rather than merely demoted. Authoritative history (3+ real estimator
 decisions) is trusted enough to override both heuristics.
 
-## Learned series categories {#learned-series-categories}
+## Learned series categories
 
 `lib/engine/series-categories.ts` is a **generated file** — do not hand-edit
 it; regenerate with `npx tsx scripts/build-series-map.ts`. It exports
@@ -177,7 +177,7 @@ no keyword branch would catch it. Regenerate the map after every
 code change — the [eval ratchet](eval-harness.md) is the
 review mechanism for whether it helped or hurt.
 
-## Ranking, dedupe, and the auto-select gate {#ranking-dedupe-and-the-auto-select-gate}
+## Ranking, dedupe, and the auto-select gate
 
 `lib/engine/ranking.ts`:
 

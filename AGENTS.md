@@ -16,9 +16,10 @@ This is Premier Lighting's internal estimating substitution finder. Start with
   is measured: run `npm run eval` and review the per-case flip diff before
   pushing. Never run `npm run eval:update` to make a regression pass — the
   baseline only moves when a change is a deliberate, reviewed trade-off.
-- **`lib/**` stays framework-free.** No React, Next.js, or Airtable SDK
-  imports in `lib/` — the engine must run identically in API routes, unit
-  tests, and the eval harness.
+- **`lib/**` stays Next/React-free**, and `lib/engine/**` is additionally
+  Airtable-SDK-free (pure TypeScript) — the engine must run identically in
+  API routes, unit tests, and the eval harness. The Airtable SDK is used
+  only by the adapters in `lib/airtable/`.
 - **History write-back is create-only** and gated by `HISTORY_WRITEBACK`
   (unset = `live` in production, `dry_run` everywhere else). Never make
   non-production code paths write to the live History table.
