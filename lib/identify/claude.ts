@@ -219,10 +219,19 @@ export async function identifyFromPdf(pdfBase64: string, line: ParsedLineItem): 
  * with the server-side web_search tool (whose results carry citations), then
  * the shared structured-output extraction over the findings — structured
  * output and search citations cannot share one response.
+ *
+ * blockedUrl: a spec link the estimator pasted that could not be fetched
+ * directly (bot-blocked / 403 / timeout). It still identifies the product
+ * better than anything else on the line, so it is handed to the research turn
+ * as the primary lead.
  */
-export async function identifyFromWeb(line: ParsedLineItem): Promise<IdentifiedSpec> {
+export async function identifyFromWeb(line: ParsedLineItem, blockedUrl?: string): Promise<IdentifiedSpec> {
     const client = getClient();
     const model = getModel();
+    const urlLead = blockedUrl
+        ? `\n\nThe estimator pasted this spec link, but the page refused a direct fetch: ${blockedUrl}\n` +
+        'Treat it as the primary lead — search for the product that URL points to (its path segments usually name the product/SKU).'
+        : '';
     const research = await client.messages.create({
         model,
         max_tokens: 8192,
@@ -230,7 +239,7 @@ export async function identifyFromWeb(line: ParsedLineItem): Promise<IdentifiedS
         tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
         messages: [{
             role: 'user',
-            content: `${lineContext(line)}\n\nIdentify this product. Search for the manufacturer + catalog number; prefer the manufacturer's own site or distributor spec pages.`,
+            content: `${lineContext(line)}${urlLead}\n\nIdentify this product. Search for the manufacturer + catalog number; prefer the manufacturer's own site or distributor spec pages.`,
         }],
     });
     logUsage('research', 'web', model, research.usage);

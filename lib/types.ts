@@ -97,6 +97,15 @@ export interface Recommendation {
      * matching tiers.
      */
     familyMatch?: boolean;
+    /**
+     * Explicit auto-select eligibility, set by tiers whose DISPLAYED confidence
+     * is calibrated to real-world precision rather than to the pre-check bar.
+     * `false` blocks the UI pre-check regardless of confidence (the card stays
+     * one click away); undefined defers to the confidence/matchType gate.
+     * Exact-history recs set this from raw evidence mass so that honest
+     * confidence display (60–90%) doesn't silently widen auto-select.
+     */
+    autoSelectSafe?: boolean;
 }
 
 export interface LineItemWithRecommendations {

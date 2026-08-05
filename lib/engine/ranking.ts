@@ -83,10 +83,14 @@ export const MIN_AUTOSELECT_CONFIDENCE = 50;
  * export, so a family card stays one click away until attribute agreement
  * (Phase 4 backlog #3) can disambiguate variants and earn the pre-check.
  */
-export function shouldAutoSelect(rec: { confidence: number; matchType: string; isPassthrough?: boolean; familyMatch?: boolean } | undefined | null): boolean {
+export function shouldAutoSelect(rec: { confidence: number; matchType: string; isPassthrough?: boolean; familyMatch?: boolean; autoSelectSafe?: boolean } | undefined | null): boolean {
     if (!rec || rec.isPassthrough) return false;
     if (rec.matchType === 'partial') return false;
     if (rec.familyMatch) return false;
+    // A tier can veto the pre-check outright (autoSelectSafe: false) when its
+    // displayed confidence is calibrated to precision, not to this bar —
+    // raising a card's honest percentage must never widen auto-select.
+    if (rec.autoSelectSafe === false) return false;
     return rec.confidence >= MIN_AUTOSELECT_CONFIDENCE;
 }
 

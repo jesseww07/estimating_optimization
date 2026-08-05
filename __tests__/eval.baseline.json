@@ -1,13 +1,13 @@
 {
  "datasetFingerprint": "7ad6d0054a7f40e16680eea42a092d7087cf72413199f02d0ffbb34bf509ff1c",
- "generatedAt": "2026-08-03T13:32:12.469Z",
+ "generatedAt": "2026-08-05T16:51:59.816Z",
  "headline": {
   "cases": 966,
   "top1Rate": 14.39,
   "top3Rate": 18.12,
   "junkRate": 40.06,
   "silentRate": 41.82,
-  "autoWrongRate": 6.11
+  "autoWrongRate": 5.8
  },
  "caseOutcomes": {
   "1868 Ogden::ale2497315": "silent",

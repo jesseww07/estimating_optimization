@@ -840,3 +840,106 @@ describe('null-category junk gate (backlog #5)', () => {
         expect(shouldAutoSelect(r.recommendations[0])).toBe(false);
     });
 });
+
+// ── Exact-history confidence rework (Excel-listing review, 2026-08-05) ────────
+// Jesse's Diamond View re-run: a 2-swap exact precedent displayed 35% while the
+// family card next to it showed 48%. Confidence now rides agreement × recency
+// (+ catalog-usage prior); pre-check eligibility stays pinned to raw evidence
+// mass so the honest display never widens auto-select.
+describe('exact-history confidence rework', () => {
+    const REF = '2026-08-01T00:00:00.000Z';
+    const xhist = (id: string, project: string, originalSpec: string, bidItem: string, o: Partial<HistoryRow> = {}): HistoryRow => ({
+        id, mark: 'SC', bidItem, originalSpec, project,
+        bidDate: '2026-03-01', specManufacturer: '', bidManufacturer: '',
+        specMfrBackup: 'LITHONIA', bidMfrBackup: '', matchType: 'EXACT',
+        productCategory: '', specDescription: '', specVendor: '', specEnrichConfidence: '',
+        premierLinkIds: [], thirdPartyLinkIds: [],
+        ...o,
+    });
+    const WDGE = 'WDGE2-LED-P3-30K-80CRI-T4M-MVOLT-SRM';
+    const XCTX: EngineContext = {
+        referenceDate: REF,
+        fans: [], thirdPartyItems: [],
+        premierItems: [
+            premier({ id: 'wp', itemId: 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM', fixtureCategory: 'Wall Mount', itemDescription: 'LED WALL PACK 3CCT BRONZE', timesUsed: 10 }),
+            premier({ id: 'disk', itemId: 'R-SLIM-DISK-12W-5CCT-WH', fixtureCategory: 'Disk Light', itemDescription: '12W SLIM DISK 5CCT WHITE', timesUsed: 91 }),
+        ],
+        // Two Diamond View rows, same spec → same item, UNLINKED (as in the live base).
+        history: [
+            xhist('h1', 'Diamond View', WDGE, 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM'),
+            xhist('h2', 'Diamond View', WDGE, 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM'),
+        ],
+    };
+
+    it('a 2-swap full-agreement recent precedent scores high and pre-checks (was 35%, unchecked)', () => {
+        const r = analyzeLineItem(line('SC', 'LITHONIA', WDGE), XCTX);
+        const top = r.recommendations[0]!;
+        expect(top.source).toBe('History');
+        expect(top.bidItem).toBe('GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM');
+        expect(top.confidence).toBeGreaterThanOrEqual(75);
+        expect(top.confidence).toBeLessThan(95);                  // sub-authoritative: 2 swaps, not 3
+        expect(shouldAutoSelect(top)).toBe(true);
+        const details = (top.matchDetails ?? []).join(' | ');
+        expect(details).toContain('100% agreement');
+        expect(details).toContain('Confidence');
+    });
+
+    it('unlinked history rows resolve category + attributes from the catalog by item #', () => {
+        const r = analyzeLineItem(line('SC', 'LITHONIA', WDGE), XCTX);
+        const top = r.recommendations[0]!;
+        expect(top.productCategory).toBe('Wall Mount');
+        expect(top.premierLinkId).toBe('wp');
+        expect((top.matchDetails ?? []).join(' ')).toContain("aren't linked in Airtable");
+    });
+
+    it('generic spec words never become confident or authoritative exact matches', () => {
+        // Three rows agreeing that "DOWNLIGHT" → this disk used to mint an
+        // authoritative 95-100% card. "DOWNLIGHT" matching "DOWNLIGHT" is
+        // vocabulary, not a product identity (measured 29% precision).
+        const ctx: EngineContext = {
+            ...XCTX,
+            history: [
+                xhist('g1', 'Job A', 'DOWNLIGHT', 'R-SLIM-DISK-12W-5CCT-WH', { premierLinkIds: ['disk'] }),
+                xhist('g2', 'Job B', 'DOWNLIGHT', 'R-SLIM-DISK-12W-5CCT-WH', { premierLinkIds: ['disk'] }),
+                xhist('g3', 'Job C', 'DOWNLIGHT', 'R-SLIM-DISK-12W-5CCT-WH', { premierLinkIds: ['disk'] }),
+            ],
+        };
+        const r = analyzeLineItem(line('R1', '', 'DOWNLIGHT'), ctx);
+        const rec = r.recommendations.find(x => (x.premierItem ?? x.bidItem) === 'R-SLIM-DISK-12W-5CCT-WH');
+        expect(rec).toBeDefined();
+        expect(rec!.matchType).toBe('fuzzy');                     // not authoritative 'exact'
+        expect(rec!.confidence).toBeLessThanOrEqual(60);          // capped 45 + own-brand 15
+        expect(shouldAutoSelect(rec)).toBe(false);
+        expect((rec!.matchDetails ?? []).join(' ')).toContain('generic');
+    });
+
+    it('a minority pick (1 of 3 appearances) stays below the pre-check bar whatever it displays', () => {
+        const ctx: EngineContext = {
+            ...XCTX,
+            history: [
+                xhist('m1', 'Job A', WDGE, 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM'),
+                xhist('m2', 'Job B', WDGE, 'GC-WPX-OTHER-ITEM-40W-30K'),
+                xhist('m3', 'Job C', WDGE, 'GC-WPX-OTHER-ITEM-40W-30K'),
+            ],
+        };
+        const r = analyzeLineItem(line('SC', 'LITHONIA', WDGE), ctx);
+        const minority = r.recommendations.find(x => x.bidItem === 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM');
+        expect(minority).toBeDefined();
+        expect(minority!.autoSelectSafe).toBe(false);             // 1 recent swap: evidence mass 20+15 < 50
+        expect(shouldAutoSelect(minority)).toBe(false);
+        expect((minority!.matchDetails ?? []).join(' ')).toContain('3 times; 1 chose this item');
+    });
+
+    it('shouldAutoSelect honors the autoSelectSafe veto regardless of confidence', () => {
+        expect(shouldAutoSelect({ confidence: 88, matchType: 'fuzzy', autoSelectSafe: false })).toBe(false);
+        expect(shouldAutoSelect({ confidence: 88, matchType: 'fuzzy', autoSelectSafe: true })).toBe(true);
+        expect(shouldAutoSelect({ confidence: 88, matchType: 'fuzzy' })).toBe(true);
+    });
+
+    it('the spec category rides the analysis for the UI header', () => {
+        const r = analyzeLineItem(line('SC', 'LITHONIA', WDGE), XCTX);
+        expect(r.specCategory).toBe('Sconce');
+        const unknown = analyzeLineItem(line('ZZ', 'ACME', 'TOTALLY-UNKNOWN-99Q'), XCTX);
+        expect(unknown.specCategory).toBeNull();
+    });
+});
