@@ -13,8 +13,7 @@ confidence, and whether the UI should pre-check one by default. It lives
 entirely in `lib/engine/` (`matcher.ts`, `ranking.ts`, `recommend.ts`, and the
 generated `series-categories.ts`) and is pure TypeScript — no React, no
 Next.js, no Airtable SDK — so it can run identically inside API routes, unit
-<!-- openwiki: broken internal link [/openwiki/engine/eval-harness.md] file "/openwiki/engine/eval-harness.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-tests, and the [accuracy eval harness](/openwiki/engine/eval-harness.md).
+tests, and the [accuracy eval harness](eval-harness.md).
 
 Entry points (`lib/engine/recommend.ts`):
 - `analyzeLineItem(lineItem, ctx)` — the full pipeline for one line, returning
@@ -27,8 +26,7 @@ Entry points (`lib/engine/recommend.ts`):
 
 `ctx` is an `EngineContext` (`lib/types.ts`): History rows plus the Premier
 Items, 3rd Party Domestic Items, and Fans catalogs — see
-<!-- openwiki: broken internal link [/openwiki/data/airtable-integration.md] file "/openwiki/data/airtable-integration.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-[Airtable Integration](/openwiki/data/airtable-integration.md) for where this
+[Airtable Integration](../data/airtable-integration.md) for where this
 comes from and how it is kept current.
 
 ## The `analyzeLineItem` pipeline
@@ -110,7 +108,6 @@ flowchart TD
     with no match are surfaced "↻ Left as-spec" rather than dropped or given
     a bogus swap.
 13. **Own-brand bonus, sort, dedupe, retry, slice** — see
-<!-- openwiki: broken internal link [#ranking-dedupe-and-the-auto-select-gate] heading anchor "ranking-dedupe-and-the-auto-select-gate" does not exist in /openwiki/engine/recommendation-engine.md. Fix the href or restore the target, then delete this comment. -->
     [Ranking, dedupe, and the auto-select gate](#ranking-dedupe-and-the-auto-select-gate).
 
 ## History matching tiers
@@ -159,7 +156,7 @@ accessory SKU (driver/downrod/clip) offered for a fixture spec, is blocked
 outright rather than merely demoted. Authoritative history (3+ real estimator
 decisions) is trusted enough to override both heuristics.
 
-## Learned series categories {#learned-series-categories}
+## Learned series categories
 
 `lib/engine/series-categories.ts` is a **generated file** — do not hand-edit
 it; regenerate with `npx tsx scripts/build-series-map.ts`. It exports
@@ -177,11 +174,10 @@ signal both consult this map ahead of the regex-heuristic chains, so a spec
 whose series is already well-attested in History gets categorized even when
 no keyword branch would catch it. Regenerate the map after every
 `npm run eval:fetch` snapshot refresh, and review the diff like any other
-<!-- openwiki: broken internal link [/openwiki/engine/eval-harness.md] file "/openwiki/engine/eval-harness.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-code change — the [eval ratchet](/openwiki/engine/eval-harness.md) is the
+code change — the [eval ratchet](eval-harness.md) is the
 review mechanism for whether it helped or hurt.
 
-## Ranking, dedupe, and the auto-select gate {#ranking-dedupe-and-the-auto-select-gate}
+## Ranking, dedupe, and the auto-select gate
 
 `lib/engine/ranking.ts`:
 
@@ -198,8 +194,7 @@ review mechanism for whether it helped or hurt.
   would risk writing a wrong-but-plausible selection back to History. This
   gate exists because pre-checking a low-confidence guess makes it
   exportable — and export can write to History (see
-<!-- openwiki: broken internal link [/openwiki/data/airtable-integration.md] file "/openwiki/data/airtable-integration.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-  [Airtable Integration](/openwiki/data/airtable-integration.md)) — which
+  [Airtable Integration](../data/airtable-integration.md)) — which
   would otherwise create a self-reinforcing loop for a suggestion nobody
   actually endorsed.
 - **`compareRecommendations`** (`ranking.ts:101`) — non-family exact History
@@ -221,5 +216,4 @@ exact ≥70 / fuzzy ≥40, bulbs use exact ≥70 / fuzzy ≥45, category fallbac
 always `'partial'`. `docs/PHASE3-PRIMER.md`'s accuracy backlog (items 6-9) and
 `docs/PHASE4-PRIMER.md`'s backlog (items 3, 6, 7) track further planned work
 here — read those primers before changing scoring thresholds, and always run
-<!-- openwiki: broken internal link [/openwiki/engine/eval-harness.md] file "/openwiki/engine/eval-harness.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-the [eval harness](/openwiki/engine/eval-harness.md) before and after.
+the [eval harness](eval-harness.md) before and after.

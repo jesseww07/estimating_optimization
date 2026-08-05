@@ -20,7 +20,9 @@ on:
   workflow_dispatch:
   schedule:
     # GitHub schedules use UTC; 08:00 UTC is midnight PST.
-    - cron: "0 8 * * *"
+    # Weekly (Monday) — the repo changes a few times a week, so daily runs
+    # were mostly no-ops and each real run is a PR to review.
+    - cron: "0 8 * * 1"
 
 permissions:
   contents: write

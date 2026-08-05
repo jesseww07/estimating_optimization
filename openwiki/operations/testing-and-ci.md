@@ -18,8 +18,7 @@ tags: [testing, ci, vitest, github-actions]
 | `parse.test.ts` | `lib/parse/workbook.ts` — CSV/XLSX column detection, healthiest-sheet selection; mirrors a real MedSpa workbook regression. |
 | `tuning.test.ts` | Engine scoring/gating behavior across many hand-picked scenarios — the largest suite; this is where category detection, dimension gates, and confidence-tier changes get exercised. |
 | `parity.test.ts` + `parity.fixtures.ts` + `parity.context.json` | Frozen, hand-picked "must never regress" cases against `recommendForLineItem`/`analyzeLineItem`, run against a fixed context snapshot (frozen 2026-07-19) so parity stays stable as the live Airtable base moves. `parity.findings.json` records reviewed exceptions. |
-<!-- openwiki: broken internal link [/openwiki/engine/eval-harness.md] file "/openwiki/engine/eval-harness.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-| `eval.test.ts` | Unit tests for the [eval harness](/openwiki/engine/eval-harness.md) plus the **accuracy regression guard** — replays `__tests__/eval.context.json.gz` and fails if headline metrics regress against `__tests__/eval.baseline.json`. Skips with a notice if the snapshot file is missing. |
+| `eval.test.ts` | Unit tests for the [eval harness](../engine/eval-harness.md) plus the **accuracy regression guard** — replays `__tests__/eval.context.json.gz` and fails if headline metrics regress against `__tests__/eval.baseline.json`. Skips with a notice if the snapshot file is missing. |
 | `identify.test.ts` | `lib/identify/*` — spec identification merging, URL fetch safety (`isFetchableSpecUrl`), schedule row mapping. |
 | `export.test.ts` | `lib/export/corporate.ts` — corporate workbook layout/column contract. |
 | `writeback.test.ts` | `lib/airtable/writeback.ts` — pure safety logic only (dedupe key, write-back eligibility, mode default); no live Airtable calls. |
@@ -44,8 +43,7 @@ branch — a newer push supersedes an in-flight run):
 `next build` is deliberately **not** repeated here — Vercel's own integration
 already builds and reports a check on every PR, so this workflow only adds
 what Vercel doesn't cover. This makes the
-<!-- openwiki: broken internal link [/openwiki/engine/eval-harness.md#the-ratchet] file "/openwiki/engine/eval-harness.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-[accuracy eval ratchet](/openwiki/engine/eval-harness.md#the-ratchet) an
+[accuracy eval ratchet](../engine/eval-harness.md#the-ratchet) an
 *enforcing* gate rather than an advisory one: an accuracy regression turns
 the PR red instead of merging quietly behind a green Vercel deploy check.
 
@@ -63,8 +61,7 @@ Any change to `lib/engine/**` (or to `SERIES_CATEGORY_MAP` via
 
 Auto-select conservatism is a standing rule, not just a code comment: never
 widen `shouldAutoSelect`
-<!-- openwiki: broken internal link [/openwiki/engine/recommendation-engine.md#ranking-dedupe-and-the-auto-select-gate] file "/openwiki/engine/recommendation-engine.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-(see [the ranking gate](/openwiki/engine/recommendation-engine.md#ranking-dedupe-and-the-auto-select-gate))
+(see [the ranking gate](../engine/recommendation-engine.md#ranking-dedupe-and-the-auto-select-gate))
 just to move a metric — confidence should be earned through evidence (family
 history, attribute agreement), not threshold inflation.
 
