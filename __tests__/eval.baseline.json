@@ -1,13 +1,13 @@
 {
  "datasetFingerprint": "7ad6d0054a7f40e16680eea42a092d7087cf72413199f02d0ffbb34bf509ff1c",
- "generatedAt": "2026-08-05T16:51:59.816Z",
+ "generatedAt": "2026-08-05T17:13:18.557Z",
  "headline": {
   "cases": 966,
-  "top1Rate": 14.39,
+  "top1Rate": 14.6,
   "top3Rate": 18.12,
   "junkRate": 40.06,
   "silentRate": 41.82,
-  "autoWrongRate": 5.8
+  "autoWrongRate": 5.69
  },
  "caseOutcomes": {
   "1868 Ogden::ale2497315": "silent",
@@ -606,7 +606,7 @@
   "Joyfield Flats Lakeside::leddljbxadj412w3wd5cctwhr": "top1",
   "Joyfield Flats Lakeside::ledeuc11i6w5cctwh": "top1",
   "Joyfield Flats Lakeside::ledsqm2430w5cctwh": "top1",
-  "Joyfield Flats Lakeside::ledwrpfr4ft32w35kbms": "top3",
+  "Joyfield Flats Lakeside::ledwrpfr4ft32w35kbms": "top1",
   "Joyfield Flats Lakeside::recessedpuck": "top1",
   "Joyfield Flats Lakeside::sledskr715w30kwt": "top1",
   "Joyfield Flats Lakeside::ts38ftsmblwledm10w5cct30dblk": "junk",
@@ -693,7 +693,7 @@
   "Lompa::corridordownlights": "top3",
   "Lompa::csvtl48alo3mvoltsww380cri": "top1",
   "Lompa::exitsign": "top3",
-  "Lompa::festoonlights": "top3",
+  "Lompa::festoonlights": "top1",
   "Lompa::jsf13in": "junk",
   "Lompa::p1001fbled": "silent",
   "Lompa::wallmountedoutdoorcoachlantern": "junk",

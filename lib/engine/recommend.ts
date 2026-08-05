@@ -205,6 +205,30 @@ function bidDateLabel(bidDate: string | undefined): string | null {
     return new Date(t).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
+/**
+ * Own-brand-first ranking, one implementation for every path that ranks
+ * (main pipeline, RFI branch, post-dedupe retry): Premier's own brands get a
+ * confidence bonus so they rank above equivalent third-party alternatives —
+ * disclosed on the card whenever it changes the number. The bonus is a ranking
+ * preference, not extra evidence, so evidence-calibrated ceilings hold: the
+ * generic-spec cap (rec.confidenceCap), the family cap, and the
+ * sub-authoritative exact-history cap.
+ */
+function applyOwnBrandPreference(recommendations: Recommendation[]): void {
+    for (const rec of recommendations) {
+        if (rec.isPassthrough || !isPremierOwnBrand(rec)) continue;
+        const cap = rec.confidenceCap ?? (
+            rec.familyMatch ? FAMILY_CONFIDENCE_CAP
+                : rec.source === 'History' && rec.matchType !== 'exact' ? EXACT_CONFIDENCE_CAP
+                    : 100);
+        const bumped = Math.min(cap, rec.confidence + OWN_BRAND_BONUS);
+        if (bumped !== rec.confidence) {
+            rec.confidence = bumped;
+            rec.matchDetails = [...(rec.matchDetails ?? []), `Premier own-brand: +${OWN_BRAND_BONUS} ranking preference included`];
+        }
+    }
+}
+
 // ── Bulb / lamp lines (Candlewood tuning, 2026-07-28) ────────────────────────
 // Hospitality bids pair every fixture with a companion bulb line. A bulb line
 // gets lamps, never fixtures: candidates come from the 3rd-party Light Bulb
@@ -552,11 +576,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         const rfiRecs = rfiCategory
             ? categoryFallbackRecommendations(lineItem, ctx, rfiCategory, `${mark} ${catalogNumber}`, catalogNumber)
             : [];
-        for (const rec of rfiRecs) {
-            if (!rec.isPassthrough && isPremierOwnBrand(rec)) {
-                rec.confidence = Math.min(100, rec.confidence + OWN_BRAND_BONUS);
-            }
-        }
+        applyOwnBrandPreference(rfiRecs);
         rfiRecs.sort(compareRecommendations);
         return {
             lineItem,
@@ -905,13 +925,14 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
 
         // Family evidence is sub-authoritative BY DEFINITION: options differed,
         // so however many family swaps agree, it never reaches the 95% floor.
-        // The authoritative tier also demands a real product identity and
-        // majority agreement: three "NO SPEC" rows agreeing is vocabulary, not
+        // The authoritative tier also demands a real product identity and a
+        // STRICT majority: three "NO SPEC" rows agreeing is vocabulary, not
         // precedent (both generic authoritative cards in the eval corpus were
-        // wrong at 100% displayed confidence), and 3 swaps out of 8 appearances
-        // is a minority report however you count it.
+        // wrong at 100% displayed confidence), 3 swaps out of 8 appearances is
+        // a minority report, and a 3-vs-3 split must not mint two competing
+        // "settled precedents" with recency arbitrarily picking the pre-check.
         const isAuthoritative = !isFamily && matchingSwapCount >= AUTHORITATIVE_SWAP_COUNT &&
-            identifiableSpec && agreementShare >= 0.5;
+            identifiableSpec && agreementShare > 0.5;
 
         // Dimension hard-gate for sub-authoritative history matches: block a linked
         // catalog item that is dimensionally incompatible with the spec. 3+ real
@@ -953,6 +974,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             EXACT_CONFIDENCE_BASE + EXACT_CONFIDENCE_SPAN * agreementShare * recencySaturation + timesUsedBonus);
         let matchReason = `Bid ${matchingSwapCount} of ${specAppearances} time${specAppearances === 1 ? '' : 's'} — same spec → this item`;
         let autoSelectSafe: boolean | undefined;
+        let confidenceCap: number | undefined;
 
         if (isFamily) {
             // Graduated family confidence: 40 base + 15 per recency-weighted
@@ -970,6 +992,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 // as a pointer but never let it look or act confident.
                 adjustedConfidence = Math.min(adjustedConfidence, GENERIC_SPEC_CONFIDENCE_CAP);
                 autoSelectSafe = false;
+                confidenceCap = GENERIC_SPEC_CONFIDENCE_CAP;   // ranking bonuses must not undo the cap
                 matchDetails.push(`"${catalogNumber.trim()}" is a generic description, not a unique catalog # — confidence capped, never pre-checked`);
             } else if (isAuthoritative) {
                 // Authoritative tier: the same spec→item swap made 3+ times is settled
@@ -991,7 +1014,9 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 const recencyDesc = weightedSwaps >= matchingSwapCount * 0.85 ? 'recent'
                     : weightedSwaps >= matchingSwapCount * 0.45 ? 'aging' : 'stale';
                 const agreementDesc = agreementShare >= 0.999 ? 'full agreement'
-                    : agreementShare >= 0.5 ? 'majority pick' : `minority pick (${matchingSwapCount} of ${specAppearances})`;
+                    : agreementShare > 0.5 ? 'majority pick'
+                        : agreementShare >= 0.5 ? `even split (${matchingSwapCount} of ${specAppearances})`
+                            : `minority pick (${matchingSwapCount} of ${specAppearances})`;
                 matchDetails.push(`Confidence ${Math.round(adjustedConfidence)}%: ${agreementDesc}, ${recencyDesc} swap${matchingSwapCount === 1 ? '' : 's'}${timesUsedBonus > 0 ? ` (+${timesUsedBonus} usage prior)` : ''}`);
                 if (resolvedPremier && resolvedPremier.timesUsed > 0) {
                     matchDetails.push(`Catalog item bid ${resolvedPremier.timesUsed} time${resolvedPremier.timesUsed === 1 ? '' : 's'} across all projects`);
@@ -1032,6 +1057,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             exactMatchCount: isFamily ? 0 : matchingSwapCount,
             ...(isFamily ? { familyMatch: true } : {}),
             ...(autoSelectSafe !== undefined ? { autoSelectSafe } : {}),
+            ...(confidenceCap !== undefined ? { confidenceCap } : {}),
             matchDetails,
             itemAttributes,
             specManufacturer: firstMatch?.specManufacturer,
@@ -1281,6 +1307,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             let score = 0;
             const reasons: string[] = [];
             const matchDetails: string[] = [];
+            const scoreParts: string[] = [];
 
             const itemNumber = fan.itemNumber;
 
@@ -1297,6 +1324,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     score += itemScore * 0.8;
                     reasons.push(`Item number match: ${itemScore}%`);
                     matchDetails.push(...describeIdMatch(catalogNumber, itemNumber));
+                    scoreParts.push(`item-# similarity ${itemScore}% → ${Math.round(itemScore * 0.8)} pts`);
                 }
 
                 if (score === 0 && normalizeProductId(mark).length >= 3) {
@@ -1304,11 +1332,13 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     if (markScore >= 70) {
                         score += markScore * 0.2;
                         reasons.push(`Mark match: ${markScore}%`);
+                        scoreParts.push(`mark similarity ${markScore}% → ${Math.round(markScore * 0.2)} pts`);
                     }
                 }
             }
 
             if (score >= 35) {
+                matchDetails.push(`Score ${Math.round(score)}: ${scoreParts.join(' + ')}`);
                 const itemAttributes: ItemAttributes = {
                     category: fan.fanSize ? `${fan.fanSize} Fan` : 'Ceiling Fan',
                     productCategory: 'Ceiling Fan',
@@ -1402,23 +1432,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         });
     }
 
-    // Own-brand-first ranking: Premier's own brands get a confidence bonus so they
-    // rank above equivalent third-party alternatives. Family matches stay capped:
-    // the bonus is a ranking preference, not extra evidence, and family evidence
-    // has a sub-authoritative ceiling by design — as does sub-authoritative exact
-    // history (the bonus must not push an honest 84% into looking authoritative).
-    for (const rec of recommendations) {
-        if (!rec.isPassthrough && isPremierOwnBrand(rec)) {
-            const cap = rec.familyMatch ? FAMILY_CONFIDENCE_CAP
-                : rec.source === 'History' && rec.matchType !== 'exact' ? EXACT_CONFIDENCE_CAP
-                    : 100;
-            const bumped = Math.min(cap, rec.confidence + OWN_BRAND_BONUS);
-            if (bumped !== rec.confidence) {
-                rec.confidence = bumped;
-                rec.matchDetails = [...(rec.matchDetails ?? []), `Premier own-brand: +${OWN_BRAND_BONUS} ranking preference included`];
-            }
-        }
-    }
+    applyOwnBrandPreference(recommendations);
     recommendations.sort(compareRecommendations);
 
     let dedupedRecommendations = deduplicateRecommendations(recommendations, catalogNumber);
@@ -1430,11 +1444,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // with the in-category fallback so a known category never ends empty.
     if (dedupedRecommendations.length === 0 && recommendations.length > 0 && inferredCategory) {
         const retry = categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber);
-        for (const rec of retry) {
-            if (!rec.isPassthrough && isPremierOwnBrand(rec)) {
-                rec.confidence = Math.min(100, rec.confidence + OWN_BRAND_BONUS);
-            }
-        }
+        applyOwnBrandPreference(retry);
         retry.sort(compareRecommendations);
         dedupedRecommendations = deduplicateRecommendations(retry, catalogNumber);
     }

@@ -84,7 +84,15 @@ export function significantSpecTokens(spec: string): string[] {
  */
 export function isIdentifiableSpecKey(spec: string): boolean {
     const norm = normalizeProductId(spec);
-    return norm.length >= 6 && /\d/.test(norm) && !looksLikeProse(spec);
+    if (norm.length < 6 || !/\d/.test(norm)) return false;
+    if (!looksLikeProse(spec)) return true;
+    // Space-separated part numbers ("DSXB LED P1 40K") trip the prose check on
+    // vocabulary like LED, but option-grammar tokens — letter+digit mixes such
+    // as P1, 40K, T4M — are part-number DNA that descriptive prose doesn't
+    // have. Two or more rescue the string as catalog-style.
+    const mixedTokens = spec.toUpperCase().split(/[-_/\s]+/)
+        .filter(t => /^[A-Z0-9.]+$/.test(t) && /[A-Z]/.test(t) && /\d/.test(t));
+    return mixedTokens.length >= 2;
 }
 
 /**

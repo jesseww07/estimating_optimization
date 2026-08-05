@@ -24,7 +24,7 @@ import { isLiveDataAvailable } from '@/lib/airtable/fetch';
 import { analyzeLineItem } from '@/lib/engine/recommend';
 import { applyIdentifiedSpec } from '@/lib/identify/apply';
 import { identifyFromPdf, identifyFromText, identifyFromWeb, isIdentifyAvailable } from '@/lib/identify/claude';
-import { fetchSpecUrl } from '@/lib/identify/fetchUrl';
+import { fetchSpecUrl, isFetchableSpecUrl } from '@/lib/identify/fetchUrl';
 import { coerceLineItem, str } from '@/lib/parse/coerce';
 import type { IdentifiedSpec } from '@/lib/identify/types';
 import type { ParsedLineItem } from '@/lib/types';
@@ -108,6 +108,11 @@ export async function POST(request: Request): Promise<NextResponse> {
         if (mode === 'url') {
             const url = str(o.url).trim();
             if (!url) return err(400, 'mode "url" requires a url field.');
+            // Validate BEFORE fetching so the SSRF/junk guard stays a hard 400 —
+            // the web fallback below is reserved for real pages that refuse us.
+            if (!isFetchableSpecUrl(url)) {
+                return err(400, 'URL must be a public http(s) address.');
+            }
             let fetched: Awaited<ReturnType<typeof fetchSpecUrl>>;
             try {
                 fetched = await fetchSpecUrl(url);

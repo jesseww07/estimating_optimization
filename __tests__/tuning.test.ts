@@ -908,9 +908,46 @@ describe('exact-history confidence rework', () => {
         const rec = r.recommendations.find(x => (x.premierItem ?? x.bidItem) === 'R-SLIM-DISK-12W-5CCT-WH');
         expect(rec).toBeDefined();
         expect(rec!.matchType).toBe('fuzzy');                     // not authoritative 'exact'
-        expect(rec!.confidence).toBeLessThanOrEqual(60);          // capped 45 + own-brand 15
+        expect(rec!.confidence).toBeLessThanOrEqual(45);          // cap holds through the own-brand bonus
         expect(shouldAutoSelect(rec)).toBe(false);
         expect((rec!.matchDetails ?? []).join(' ')).toContain('generic');
+    });
+
+    it('a 3-vs-3 split never mints two authoritative precedents', () => {
+        const ctx: EngineContext = {
+            ...XCTX,
+            history: [
+                xhist('s1', 'Job A', WDGE, 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM'),
+                xhist('s2', 'Job B', WDGE, 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM'),
+                xhist('s3', 'Job C', WDGE, 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM'),
+                xhist('s4', 'Job D', WDGE, 'GC-WPX-OTHER-ITEM-40W-30K'),
+                xhist('s5', 'Job E', WDGE, 'GC-WPX-OTHER-ITEM-40W-30K'),
+                xhist('s6', 'Job F', WDGE, 'GC-WPX-OTHER-ITEM-40W-30K'),
+            ],
+        };
+        const r = analyzeLineItem(line('SC', 'LITHONIA', WDGE), ctx);
+        for (const rec of r.recommendations.filter(x => x.source === 'History')) {
+            expect(rec.matchType, `${rec.bidItem} must stay sub-authoritative on an even split`).toBe('fuzzy');
+            expect(rec.confidence).toBeLessThan(95);
+        }
+    });
+
+    it('space-separated part numbers still count as identifiable spec keys', () => {
+        // "DSXB LED P1 40K" reads as prose to looksLikeProse (LED + spaces),
+        // but its option-grammar tokens (P1, 40K) are part-number DNA — three
+        // agreeing swaps on it deserve the authoritative tier.
+        const ctx: EngineContext = {
+            ...XCTX,
+            history: [
+                xhist('d1', 'Job A', 'DSXB LED P1 40K', 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM'),
+                xhist('d2', 'Job B', 'DSXB LED P1 40K', 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM'),
+                xhist('d3', 'Job C', 'DSXB LED P1 40K', 'GC-WP-R8-40/30/20/15W-3CCT-BZ-STEPDIM'),
+            ],
+        };
+        const r = analyzeLineItem(line('SL', 'LITHONIA', 'DSXB LED P1 40K'), ctx);
+        const top = r.recommendations[0]!;
+        expect(top.matchType).toBe('exact');
+        expect(top.confidence).toBeGreaterThanOrEqual(95);
     });
 
     it('a minority pick (1 of 3 appearances) stays below the pre-check bar whatever it displays', () => {

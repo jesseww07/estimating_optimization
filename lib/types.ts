@@ -106,6 +106,11 @@ export interface Recommendation {
      * confidence display (60–90%) doesn't silently widen auto-select.
      */
     autoSelectSafe?: boolean;
+    /**
+     * Hard ceiling the confidence must never exceed, ranking bonuses included
+     * (e.g. the generic-spec 45% cap). Undefined = the tier's default ceiling.
+     */
+    confidenceCap?: number;
 }
 
 export interface LineItemWithRecommendations {
