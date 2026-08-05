@@ -41,7 +41,9 @@ import {
     fanSpansCompatible,
     isAccessoryItem,
     isBulbLampLine,
+    explainCatalogMatchScore,
     isFamilySpecMatch,
+    isIdentifiableSpecKey,
     isLedTape,
     isRfiPlaceholder,
     isSatcoLampNumber,
@@ -53,6 +55,7 @@ import {
     thirdPartyCategoriesCompatible,
 } from './matcher';
 import {
+    MIN_AUTOSELECT_CONFIDENCE,
     OWN_BRAND_BONUS,
     compareRecommendations,
     deduplicateRecommendations,
@@ -69,12 +72,45 @@ export interface LineItemAnalysis {
      * category carries the notice plus category-level suggestions.
      */
     infoMessage?: string;
+    /**
+     * The fixture category the engine inferred for the SPEC line itself
+     * (identify-flow category, learned series, or the text detector) — shown in
+     * the UI header so the estimator can see what the engine thinks the item IS
+     * and judge recommendations against it. null = category unknown.
+     */
+    specCategory?: string | null;
 }
 
 /** Number of true matching swaps at which a history match becomes authoritative. */
 const AUTHORITATIVE_SWAP_COUNT = 3;
 /** Confidence floor for authoritative matches. */
 const AUTHORITATIVE_CONFIDENCE = 95;
+
+// Exact-history confidence shape (2026-08-05 rework, from Jesse's Excel-listing
+// review: a 2-swap exact precedent displayed 35% while a family card next to it
+// showed 48% — the old weightedSwaps*20 curve punished exactly the evidence the
+// system exists to learn from). Confidence now rides two honest factors:
+//
+//   agreement — of all history rows carrying this exact spec, what share chose
+//               THIS item? (2 of 2 → 100%; 1 of 3 → competition/as-spec rows
+//               pull it down)
+//   recency   — weighted swap mass, saturating: w/(w+0.6), so one recent swap
+//               ≈ 0.63, two ≈ 0.77, three ≈ 0.83
+//
+//   confidence = 45 + 50 × agreement × recency-saturation + usage prior
+//                (min(20, timesUsed/2) of the linked catalog item), capped at 92
+//
+// Calibration (eval corpus under LOPO, 2026-08-05): exact-history top cards on
+// identifiable specs are right 74% overall, 81% at full agreement — so 60–85%
+// displayed is honest, 20–40% was not. Auto-select does NOT follow the display
+// upward: autoSelectSafe mirrors the old evidence-mass bar (see below), so the
+// pre-check set only narrows.
+const EXACT_CONFIDENCE_BASE = 45;
+const EXACT_CONFIDENCE_SPAN = 50;
+const EXACT_RECENCY_SATURATION = 0.6;
+const EXACT_CONFIDENCE_CAP = 92;
+/** Confidence ceiling for exact-tier matches whose spec key is generic (not a real product identity). */
+const GENERIC_SPEC_CONFIDENCE_CAP = 45;
 
 // Family-tier confidence shape (Phase 4, backlog #2): graduated, sub-authoritative.
 // base + 15 per recency-weighted family swap, capped at 75. One undated swap
@@ -132,6 +168,67 @@ function isPassthroughDecorative(manufacturer: string, inferredCategory: string 
 const CODE_FRAGMENT_RE = /function|return|const|let|var|=>|===|\?\s*:/i;
 const CODE_PREFIX_RE = /^if\s+(it|this|the)/i;
 
+/**
+ * Human-readable explanation of WHY an item-ID text match scored, for the
+ * match-details panel. "Item ID X matches input" told the estimator nothing;
+ * this names the shared and missing spec tokens so a weak overlap is visibly
+ * weak ("shares only 30K, MV") and a strong one visibly strong.
+ */
+function describeIdMatch(inputSpec: string, targetId: string): string[] {
+    const ex = explainCatalogMatchScore(inputSpec, targetId);
+    switch (ex.kind) {
+        case 'exact':
+            return ['Item ID is an exact match to the spec catalog #'];
+        case 'containment':
+            return ['Item ID and spec catalog # contain one another (same number, different formatting)'];
+        case 'tokens': {
+            const lines: string[] = [];
+            const shared = [...ex.matched, ...ex.partial.map(t => `~${t}`)];
+            if (shared.length > 0) {
+                lines.push(`Shares spec tokens: ${shared.join(', ')}${ex.partial.length > 0 ? ' (~ = partial)' : ''}`);
+            }
+            if (ex.unmatched.length > 0) {
+                lines.push(`Spec tokens NOT matched: ${ex.unmatched.join(', ')}`);
+            }
+            return lines;
+        }
+        default:
+            return [];
+    }
+}
+
+/** "Mar 2026" style label for a history bid date, or null. */
+function bidDateLabel(bidDate: string | undefined): string | null {
+    if (!bidDate) return null;
+    const t = Date.parse(bidDate);
+    if (Number.isNaN(t)) return null;
+    return new Date(t).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
+/**
+ * Own-brand-first ranking, one implementation for every path that ranks
+ * (main pipeline, RFI branch, post-dedupe retry): Premier's own brands get a
+ * confidence bonus so they rank above equivalent third-party alternatives —
+ * disclosed on the card whenever it changes the number. The bonus is a ranking
+ * preference, not extra evidence, so evidence-calibrated ceilings hold: the
+ * generic-spec cap (rec.confidenceCap), the family cap, and the
+ * sub-authoritative exact-history cap.
+ */
+function applyOwnBrandPreference(recommendations: Recommendation[]): void {
+    for (const rec of recommendations) {
+        if (rec.isPassthrough || !isPremierOwnBrand(rec)) continue;
+        const cap = rec.confidenceCap ?? (
+            rec.familyMatch ? FAMILY_CONFIDENCE_CAP
+                : rec.source === 'History' && rec.matchType !== 'exact' ? EXACT_CONFIDENCE_CAP
+                    : 100);
+        const bumped = Math.min(cap, rec.confidence + OWN_BRAND_BONUS);
+        if (bumped !== rec.confidence) {
+            rec.confidence = bumped;
+            rec.matchDetails = [...(rec.matchDetails ?? []), `Premier own-brand: +${OWN_BRAND_BONUS} ranking preference included`];
+        }
+    }
+}
+
 // ── Bulb / lamp lines (Candlewood tuning, 2026-07-28) ────────────────────────
 // Hospitality bids pair every fixture with a companion bulb line. A bulb line
 // gets lamps, never fixtures: candidates come from the 3rd-party Light Bulb
@@ -187,6 +284,7 @@ function analyzeBulbLine(lineItem: ParsedLineItem, ctx: EngineContext, catalogNu
                 ...(exact ? { thirdPartyLinkId: exact.id } : {}),
                 isPassthrough: true,
             }],
+            specCategory: 'Light Bulb',
         };
     }
 
@@ -291,6 +389,7 @@ function analyzeBulbLine(lineItem: ParsedLineItem, ctx: EngineContext, catalogNu
         ...(recommendations.length === 0
             ? { infoMessage: 'Bulb/lamp line — no matching lamp found in the catalog; bid as specified.' }
             : {}),
+        specCategory: 'Light Bulb',
     };
 }
 
@@ -334,6 +433,7 @@ function categoryFallbackRecommendations(
 
     interface FallbackCandidate {
         tokenScore: number;
+        matchedTokens: string[];
         usageBonus: number;
         score: number;
         tier: 'premier' | 'third_party';   // own-brand catalog first, 3rd-party budget tier second
@@ -345,13 +445,9 @@ function categoryFallbackRecommendations(
     }
     const candidates: FallbackCandidate[] = [];
 
-    const tokenScoreFor = (itemId: string, description: string): number => {
+    const tokensMatching = (itemId: string, description: string): string[] => {
         const searchTarget = (itemId + ' ' + description).toUpperCase();
-        let tokenScore = 0;
-        for (const token of proseTokens) {
-            if (searchTarget.includes(token)) tokenScore++;
-        }
-        return tokenScore;
+        return proseTokens.filter(token => searchTarget.includes(token));
     };
 
     for (const item of ctx.premierItems) {
@@ -366,11 +462,13 @@ function categoryFallbackRecommendations(
         if (!allowAccessories && isAccessoryItem(item.itemId, item.itemDescription)) continue;
 
         // Score by token overlap with item ID + description, then usage.
-        const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
+        const matchedTokens = tokensMatching(item.itemId, item.itemDescription);
+        const tokenScore = matchedTokens.length;
         const usageBonus = Math.min(10, Math.floor(item.timesUsed / 2));
 
         candidates.push({
             tokenScore,
+            matchedTokens,
             usageBonus,
             score: tokenScore * 8 + usageBonus,
             tier: 'premier',
@@ -396,11 +494,12 @@ function categoryFallbackRecommendations(
         if (!dimensionsCompatible(specDimensionText, `${item.itemId} ${item.itemDescription}`)) continue;
         if (!allowAccessories && isAccessoryItem(item.itemId, item.itemDescription)) continue;
 
-        const tokenScore = tokenScoreFor(item.itemId, item.itemDescription);
+        const matchedTokens = tokensMatching(item.itemId, item.itemDescription);
         candidates.push({
-            tokenScore,
+            tokenScore: matchedTokens.length,
+            matchedTokens,
             usageBonus: 0,
-            score: tokenScore * 8,
+            score: matchedTokens.length * 8,
             tier: 'third_party',
             id: item.id,
             itemId: item.itemId,
@@ -443,9 +542,13 @@ function categoryFallbackRecommendations(
                 : `Category match: ${inferredCategory} — most-used catalog items (spec not identified at item level)`,
             itemAttributes: cand.itemAttributes,
             matchDetails: [
-                `Category: ${cand.category}`,
-                descriptionBased ? 'Matched from description tokens' : `Used ${cand.timesUsed} time${cand.timesUsed === 1 ? '' : 's'} before`,
+                `Category: ${cand.category} — matches the spec's (${inferredCategory})`,
+                descriptionBased
+                    ? `Spec words found in this item: ${cand.matchedTokens.join(', ')}`
+                    : `No text overlap with the spec — offered as an in-category most-used item`,
+                ...(cand.timesUsed > 0 ? [`Used ${cand.timesUsed} time${cand.timesUsed === 1 ? '' : 's'} before`] : []),
                 ...(isThirdParty ? ['3rd-party budget alternative'] : []),
+                'Exact item not identified from the spec — these are category-level suggestions, never pre-checked',
             ],
             productCategory: cand.category || undefined,
             ...(isThirdParty ? { thirdPartyLinkId: cand.id } : { premierLinkId: cand.id }),
@@ -473,16 +576,13 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         const rfiRecs = rfiCategory
             ? categoryFallbackRecommendations(lineItem, ctx, rfiCategory, `${mark} ${catalogNumber}`, catalogNumber)
             : [];
-        for (const rec of rfiRecs) {
-            if (!rec.isPassthrough && isPremierOwnBrand(rec)) {
-                rec.confidence = Math.min(100, rec.confidence + OWN_BRAND_BONUS);
-            }
-        }
+        applyOwnBrandPreference(rfiRecs);
         rfiRecs.sort(compareRecommendations);
         return {
             lineItem,
             recommendations: rfiRecs.slice(0, 3),
             infoMessage: 'RFI — spec not identified (TBD / missing spec). Request the specification; the engine never fabricates a match for an unidentified item.',
+            specCategory: rfiCategory,
         };
     }
 
@@ -492,6 +592,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             lineItem,
             recommendations: [],
             infoMessage: 'LED tape — bid as specified. Tape runs are project-specific (channel, driver, footage); no VE substitution is offered.',
+            specCategory: 'LED Tape',
         };
     }
 
@@ -699,17 +800,34 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         // Recency-weighted swap mass: recent swaps carry full weight, stale ones decay.
         const weightedSwaps = evidenceSwaps.reduce(
             (sum, h) => sum + recencyWeight(h.bidDate, ctx.referenceDate), 0);
-        const confidenceScore = Math.min(100, Math.round(weightedSwaps * 20));
+
+        // Agreement: of every history row carrying this exact spec, what share
+        // chose THIS item? Competing swaps to other items and as-spec rows both
+        // dilute it — 2 of 2 is settled precedent, 1 of 5 is a minority report.
+        const specAppearances = Math.max(totalSpecAppearances, matchingSwapCount);
+        const agreementShare = specAppearances > 0 ? matchingSwapCount / specAppearances : 1;
+        // Whether the spec text is a real product identity — generic keys
+        // ("DOWNLIGHT", "NO SPEC") equality-match on vocabulary, not identity.
+        const identifiableSpec = isIdentifiableSpecKey(catalogNumber);
 
         const matchDetails: string[] = [];
         if (isFamily) {
             matchDetails.push(`${matchingSwapCount} family swap${matchingSwapCount > 1 ? 's' : ''}: same product series, different options → same bid item`);
             matchDetails.push(`e.g. "${evidenceSwaps[0]?.originalSpec}" → ${bidItemValue}`);
         } else {
-            matchDetails.push(`${matchingSwapCount} matching swap${matchingSwapCount > 1 ? 's' : ''}: same spec → same bid item`);
+            const agreementPct = Math.round(agreementShare * 100);
+            matchDetails.push(
+                `Estimators bid this exact spec ${specAppearances} time${specAppearances === 1 ? '' : 's'}; ` +
+                `${matchingSwapCount} chose this item (${agreementPct}% agreement)`);
         }
         if (uniqueProjects.length > 0) {
-            matchDetails.push(`Projects: ${uniqueProjects.join(', ')}`);
+            // Name the projects WITH their swap dates — the estimator can judge
+            // staleness at a glance instead of trusting a bare percentage.
+            const dated = evidenceSwaps.slice(0, 3).map(h => {
+                const d = bidDateLabel(h.bidDate);
+                return h.project ? (d ? `${h.project} (${d})` : h.project) : null;
+            }).filter(Boolean);
+            matchDetails.push(`Projects: ${dated.length > 0 ? dated.join(', ') : uniqueProjects.join(', ')}${evidenceSwaps.length > 3 ? ` +${evidenceSwaps.length - 3} more` : ''}`);
         }
 
         const firstMatch = evidenceSwaps[0];
@@ -744,6 +862,31 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             }
         }
 
+        // Unlinked history rows (no Airtable link set) still name a bid item that
+        // usually IS a catalog item — resolve it by normalized Item ID so the card
+        // carries its category and attributes instead of a bare item number
+        // (Jesse's Excel-listing review: the GC-WP-R8 precedent rendered with no
+        // category badge and no attributes because its Diamond View rows were
+        // unlinked). Display/linking only: the auto-select mirror below ignores
+        // this resolution so unlinked evidence pre-checks no wider than before.
+        let resolvedByText = false;
+        if (!resolvedPremier && !resolvedThirdParty) {
+            const normBid = normalizeProductId(bidItemValue);
+            if (normBid.length >= 4) {
+                resolvedPremier = ctx.premierItems.find(p => normalizeProductId(p.itemId) === normBid);
+                if (resolvedPremier) {
+                    catalogSource = 'premier';
+                    resolvedByText = true;
+                } else {
+                    resolvedThirdParty = ctx.thirdPartyItems.find(t => normalizeProductId(t.itemId) === normBid);
+                    if (resolvedThirdParty) {
+                        catalogSource = 'third_party';
+                        resolvedByText = true;
+                    }
+                }
+            }
+        }
+
         let itemAttributes: ItemAttributes | undefined;
         let resolvedItemId: string | undefined;
         let resolvedItemText = '';
@@ -752,6 +895,11 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         if (resolvedPremier) {
             resolvedItemId = resolvedPremier.itemId || undefined;
             resolvedItemText = `${resolvedPremier.itemId} ${resolvedPremier.itemDescription}`;
+            // Catalog popularity is a real prior: an item Premier bids constantly
+            // is likelier to be the one estimators reach for again than a
+            // same-evidence sibling nobody uses (Joyfield: the linked 7" disk at
+            // 22 uses vs an unlinked variant string). Display-only — the
+            // auto-select mirror below deliberately excludes it.
             timesUsedBonus = Math.min(20, Math.floor(resolvedPremier.timesUsed / 2));
             itemAttributes = {
                 category: resolvedPremier.fixtureCategory || undefined,
@@ -777,7 +925,14 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
 
         // Family evidence is sub-authoritative BY DEFINITION: options differed,
         // so however many family swaps agree, it never reaches the 95% floor.
-        const isAuthoritative = !isFamily && matchingSwapCount >= AUTHORITATIVE_SWAP_COUNT;
+        // The authoritative tier also demands a real product identity and a
+        // STRICT majority: three "NO SPEC" rows agreeing is vocabulary, not
+        // precedent (both generic authoritative cards in the eval corpus were
+        // wrong at 100% displayed confidence), 3 swaps out of 8 appearances is
+        // a minority report, and a 3-vs-3 split must not mint two competing
+        // "settled precedents" with recency arbitrarily picking the pre-check.
+        const isAuthoritative = !isFamily && matchingSwapCount >= AUTHORITATIVE_SWAP_COUNT &&
+            identifiableSpec && agreementShare > 0.5;
 
         // Dimension hard-gate for sub-authoritative history matches: block a linked
         // catalog item that is dimensionally incompatible with the spec. 3+ real
@@ -809,8 +964,18 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 !thirdPartyCategoriesCompatible(inferredCategory, resolvedThirdParty.productCategories)) continue;
         }
 
-        let adjustedConfidence = Math.min(100, confidenceScore + timesUsedBonus);
-        let matchReason = `${matchingSwapCount} matching swap${matchingSwapCount > 1 ? 's' : ''} in history`;
+        // Exact-tier confidence: agreement × recency saturation + catalog-usage
+        // prior (see the constants block for the calibration numbers behind
+        // this shape). Deliberately NOT rounded here: near-ties between
+        // competing candidates must keep their real ordering — the UI rounds
+        // for display.
+        const recencySaturation = weightedSwaps / (weightedSwaps + EXACT_RECENCY_SATURATION);
+        let adjustedConfidence = Math.min(EXACT_CONFIDENCE_CAP,
+            EXACT_CONFIDENCE_BASE + EXACT_CONFIDENCE_SPAN * agreementShare * recencySaturation + timesUsedBonus);
+        let matchReason = `Bid ${matchingSwapCount} of ${specAppearances} time${specAppearances === 1 ? '' : 's'} — same spec → this item`;
+        let autoSelectSafe: boolean | undefined;
+        let confidenceCap: number | undefined;
+
         if (isFamily) {
             // Graduated family confidence: 40 base + 15 per recency-weighted
             // swap, capped at 75 — well below the 95 authoritative floor. Two
@@ -819,11 +984,63 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             adjustedConfidence = Math.min(FAMILY_CONFIDENCE_CAP,
                 Math.round(FAMILY_CONFIDENCE_BASE + weightedSwaps * FAMILY_CONFIDENCE_PER_SWAP));
             matchReason = `Family match: same product series bid ${matchingSwapCount} time${matchingSwapCount > 1 ? 's' : ''} → this item`;
-        } else if (isAuthoritative) {
-            // Authoritative tier: the same spec→item swap made 3+ times is settled
-            // precedent — floor at 95% and label it.
-            adjustedConfidence = Math.max(AUTHORITATIVE_CONFIDENCE, adjustedConfidence);
-            matchReason = `✓ Bid ${matchingSwapCount} times — same spec → same item`;
+            matchDetails.push(`Confidence ${Math.round(adjustedConfidence)}%: family evidence — right series, options differed, so the exact variant is unverified`);
+        } else {
+            if (!identifiableSpec) {
+                // Generic spec text ("DOWNLIGHT", "NO SPEC"): the "exact" key
+                // equality is vocabulary, not product identity. Keep the card
+                // as a pointer but never let it look or act confident.
+                adjustedConfidence = Math.min(adjustedConfidence, GENERIC_SPEC_CONFIDENCE_CAP);
+                autoSelectSafe = false;
+                confidenceCap = GENERIC_SPEC_CONFIDENCE_CAP;   // ranking bonuses must not undo the cap
+                matchDetails.push(`"${catalogNumber.trim()}" is a generic description, not a unique catalog # — confidence capped, never pre-checked`);
+            } else if (isAuthoritative) {
+                // Authoritative tier: the same spec→item swap made 3+ times is settled
+                // precedent — floor at 95% and label it.
+                adjustedConfidence = Math.max(AUTHORITATIVE_CONFIDENCE, adjustedConfidence);
+                matchReason = `✓ Bid ${matchingSwapCount} times — same spec → same item`;
+                autoSelectSafe = true;
+                matchDetails.push(`Confidence ${Math.round(adjustedConfidence)}%: settled precedent — ${matchingSwapCount} estimator decisions agree on this exact spec`);
+            } else {
+                // Sub-authoritative exact evidence. The DISPLAYED confidence is
+                // calibrated to measured precision (60–85 honest range), but the
+                // PRE-CHECK eligibility deliberately mirrors the old evidence-mass
+                // bar (recency-weighted swaps × 20, + own-brand preference ≥ 50)
+                // so honest display never widens auto-select — the eval ratchet's
+                // autoWrong quadrant is the learning loop's pollution guard.
+                const legacyMass = Math.min(100, Math.round(weightedSwaps * 20)) +
+                    (isPremierOwnBrand({ premierItem: resolvedItemId, bidItem: bidItemValue }) ? OWN_BRAND_BONUS : 0);
+                autoSelectSafe = legacyMass >= MIN_AUTOSELECT_CONFIDENCE;
+                const recencyDesc = weightedSwaps >= matchingSwapCount * 0.85 ? 'recent'
+                    : weightedSwaps >= matchingSwapCount * 0.45 ? 'aging' : 'stale';
+                const agreementDesc = agreementShare >= 0.999 ? 'full agreement'
+                    : agreementShare > 0.5 ? 'majority pick'
+                        : agreementShare >= 0.5 ? `even split (${matchingSwapCount} of ${specAppearances})`
+                            : `minority pick (${matchingSwapCount} of ${specAppearances})`;
+                matchDetails.push(`Confidence ${Math.round(adjustedConfidence)}%: ${agreementDesc}, ${recencyDesc} swap${matchingSwapCount === 1 ? '' : 's'}${timesUsedBonus > 0 ? ` (+${timesUsedBonus} usage prior)` : ''}`);
+                if (resolvedPremier && resolvedPremier.timesUsed > 0) {
+                    matchDetails.push(`Catalog item bid ${resolvedPremier.timesUsed} time${resolvedPremier.timesUsed === 1 ? '' : 's'} across all projects`);
+                }
+            }
+            // Category cross-check is transparency, not a gate: a real estimator
+            // decision on this exact spec outranks the category detector, but a
+            // mismatch is worth the estimator's glance.
+            const recCategoryLabel = resolvedPremier?.fixtureCategory || resolvedThirdParty?.productCategories || bidProductCategory;
+            if (inferredCategory && recCategoryLabel) {
+                const compatible = resolvedPremier
+                    ? categoriesCompatible(inferredCategory, resolvedPremier.fixtureCategory)
+                    : thirdPartyCategoriesCompatible(inferredCategory, recCategoryLabel);
+                if (!compatible) {
+                    matchDetails.push(`⚠ Category differs from the spec's (${recCategoryLabel} vs ${inferredCategory}) — kept because it's a past estimator decision`);
+                }
+            }
+        }
+        if (resolvedByText) {
+            // Airtable hygiene surfaced where it's felt: these History rows carry
+            // no catalog link, so the card was matched to the catalog by item #.
+            matchDetails.push('History rows for this swap aren\'t linked in Airtable — catalog record matched by item #');
+        } else if (!resolvedPremier && !resolvedThirdParty && !bidProductCategory) {
+            matchDetails.push('Bid item not found in the Premier / 3rd-party catalogs — no category or attributes available (Airtable link missing?)');
         }
 
         recommendations.push({
@@ -839,6 +1056,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             swapCount: matchingSwapCount,
             exactMatchCount: isFamily ? 0 : matchingSwapCount,
             ...(isFamily ? { familyMatch: true } : {}),
+            ...(autoSelectSafe !== undefined ? { autoSelectSafe } : {}),
+            ...(confidenceCap !== undefined ? { confidenceCap } : {}),
             matchDetails,
             itemAttributes,
             specManufacturer: firstMatch?.specManufacturer,
@@ -876,6 +1095,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             let score = 0;
             const reasons: string[] = [];
             const matchDetails: string[] = [];
+            const scoreParts: string[] = [];
 
             const itemId = item.itemId;
             const category = item.fixtureCategory;
@@ -909,9 +1129,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 if (idScore >= idScoreFloor) {
                     score += idScore * 0.7;
                     reasons.push(`Item ID match: ${idScore}%`);
-                    if (idScore >= 50) {
-                        matchDetails.push(`Item ID "${itemId}" matches input`);
-                    }
+                    matchDetails.push(...describeIdMatch(catalogNumber, itemId));
+                    scoreParts.push(`item-# similarity ${idScore}% → ${Math.round(idScore * 0.7)} pts`);
                 }
 
                 if (score === 0 && markUsable) {
@@ -919,6 +1138,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     if (markScore >= 70) {
                         score += markScore * 0.2;
                         reasons.push(`Mark match: ${markScore}%`);
+                        scoreParts.push(`mark similarity ${markScore}% → ${Math.round(markScore * 0.2)} pts`);
                     }
                 }
             }
@@ -930,16 +1150,24 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     (markUsable && category.toLowerCase().includes(mark.toLowerCase()))) {
                     score += 10;
                     reasons.push('Category match');
-                    matchDetails.push(`Category: ${category}`);
+                    scoreParts.push('category named in mark → 10 pts');
                 }
+                // Category is always stated on the card, with the spec-side
+                // verdict: candidates here have already passed the category
+                // gate whenever the spec's category is known.
+                matchDetails.push(inferredCategory
+                    ? `Category: ${category} — compatible with the spec's (${inferredCategory})`
+                    : `Category: ${category} (spec's category unknown — no category check possible)`);
             }
 
             if (item.timesUsed > 0) {
                 score += Math.min(10, item.timesUsed);
                 matchDetails.push(`Used ${item.timesUsed} time${item.timesUsed > 1 ? 's' : ''} before`);
+                scoreParts.push(`prior usage → ${Math.min(10, item.timesUsed)} pts`);
             }
 
             if (score >= 20) {
+                matchDetails.push(`Score ${Math.round(score)}: ${scoreParts.join(' + ')}`);
                 const itemAttributes: ItemAttributes = {
                     category: category || undefined,
                     productCategory: category || undefined,
@@ -1050,8 +1278,12 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     manufacturer: item.manufacturer || undefined,
                 },
                 matchDetails: [
-                    `Item ID "${itemId}" matches input`,
+                    ...describeIdMatch(catalogNumber, itemId),
+                    ...(item.productCategories ? [inferredCategory
+                        ? `Category: ${item.productCategories} — compatible with the spec's (${inferredCategory})`
+                        : `Category: ${item.productCategories} (spec's category unknown — no category check possible)`] : []),
                     ...(item.manufacturer ? [`3rd-party: ${item.manufacturer}`] : []),
+                    `Score ${Math.round(score)}: item-# similarity ${idScore}% → ${Math.round(idScore * 0.7)} pts`,
                 ],
                 productCategory: item.productCategories || undefined,
                 thirdPartyLinkId: item.id,
@@ -1075,6 +1307,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             let score = 0;
             const reasons: string[] = [];
             const matchDetails: string[] = [];
+            const scoreParts: string[] = [];
 
             const itemNumber = fan.itemNumber;
 
@@ -1090,9 +1323,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 if (itemScore >= 40) {
                     score += itemScore * 0.8;
                     reasons.push(`Item number match: ${itemScore}%`);
-                    if (itemScore >= 50) {
-                        matchDetails.push(`Item "${itemNumber}" matches input`);
-                    }
+                    matchDetails.push(...describeIdMatch(catalogNumber, itemNumber));
+                    scoreParts.push(`item-# similarity ${itemScore}% → ${Math.round(itemScore * 0.8)} pts`);
                 }
 
                 if (score === 0 && normalizeProductId(mark).length >= 3) {
@@ -1100,11 +1332,13 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     if (markScore >= 70) {
                         score += markScore * 0.2;
                         reasons.push(`Mark match: ${markScore}%`);
+                        scoreParts.push(`mark similarity ${markScore}% → ${Math.round(markScore * 0.2)} pts`);
                     }
                 }
             }
 
             if (score >= 35) {
+                matchDetails.push(`Score ${Math.round(score)}: ${scoreParts.join(' + ')}`);
                 const itemAttributes: ItemAttributes = {
                     category: fan.fanSize ? `${fan.fanSize} Fan` : 'Ceiling Fan',
                     productCategory: 'Ceiling Fan',
@@ -1198,16 +1432,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         });
     }
 
-    // Own-brand-first ranking: Premier's own brands get a confidence bonus so they
-    // rank above equivalent third-party alternatives. Family matches stay capped:
-    // the bonus is a ranking preference, not extra evidence, and family evidence
-    // has a sub-authoritative ceiling by design.
-    for (const rec of recommendations) {
-        if (!rec.isPassthrough && isPremierOwnBrand(rec)) {
-            const cap = rec.familyMatch ? FAMILY_CONFIDENCE_CAP : 100;
-            rec.confidence = Math.min(cap, rec.confidence + OWN_BRAND_BONUS);
-        }
-    }
+    applyOwnBrandPreference(recommendations);
     recommendations.sort(compareRecommendations);
 
     let dedupedRecommendations = deduplicateRecommendations(recommendations, catalogNumber);
@@ -1219,16 +1444,12 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // with the in-category fallback so a known category never ends empty.
     if (dedupedRecommendations.length === 0 && recommendations.length > 0 && inferredCategory) {
         const retry = categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber);
-        for (const rec of retry) {
-            if (!rec.isPassthrough && isPremierOwnBrand(rec)) {
-                rec.confidence = Math.min(100, rec.confidence + OWN_BRAND_BONUS);
-            }
-        }
+        applyOwnBrandPreference(retry);
         retry.sort(compareRecommendations);
         dedupedRecommendations = deduplicateRecommendations(retry, catalogNumber);
     }
 
-    return { lineItem, recommendations: dedupedRecommendations.slice(0, 3) };
+    return { lineItem, recommendations: dedupedRecommendations.slice(0, 3), specCategory: inferredCategory };
 }
 
 /** Batch orchestration for the /api/recommendations route. */

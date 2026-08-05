@@ -72,6 +72,8 @@ interface Recommendation {
     isPassthrough?: boolean;
     /** Family-evidence History match (Phase 4) — never pre-checked by shouldAutoSelect. */
     familyMatch?: boolean;
+    /** Explicit auto-select veto from evidence-calibrated tiers (see lib/engine/ranking). */
+    autoSelectSafe?: boolean;
     premierLinkId?: string;
     thirdPartyLinkId?: string;
     productCategory?: string;
@@ -85,6 +87,8 @@ interface LineItemAnalysis {
     lineItem: ParsedLineItem;
     recommendations: Recommendation[];
     infoMessage?: string;
+    /** The engine's inferred fixture category for the SPEC line (null/absent = unknown). */
+    specCategory?: string | null;
 }
 
 interface HealthCounts {
@@ -519,6 +523,15 @@ export default function Home() {
                                             <span>Qty {a.lineItem.quantity || '—'}</span>
                                             <span className="text-muted">{a.lineItem.manufacturer}</span>
                                             <span className="font-mono text-xs self-center">{a.lineItem.catalogNumber}</span>
+                                            {/* What the engine thinks the SPEC item IS — recommendations should match this category */}
+                                            <span
+                                                className={`text-[10px] uppercase tracking-wider px-2 py-0.5 self-center ${a.specCategory ? 'bg-steel text-white' : 'border border-line text-muted'}`}
+                                                title={a.specCategory
+                                                    ? 'Fixture category the engine identified for this spec line'
+                                                    : 'The engine could not categorize this spec — use Look up spec / Identify to sharpen matching'}
+                                            >
+                                                {a.specCategory ?? 'category unknown'}
+                                            </span>
                                         </div>
 
                                         {/* Identify strip (Phase 2): identification actions + provenance */}

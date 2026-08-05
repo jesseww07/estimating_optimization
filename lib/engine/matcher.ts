@@ -71,6 +71,71 @@ export function significantSpecTokens(spec: string): string[] {
     );
 }
 
+/**
+ * True when a spec string can serve as a PRODUCT IDENTITY for exact-history
+ * matching: long enough normalized, carries at least one digit (real catalog
+ * numbers essentially always do), and doesn't read as prose. Generic vocabulary
+ * ("DOWNLIGHT", "VANITY", "NO SPEC") normalizes to a stable key that will
+ * equality-match other rows carrying the same WORD — which is category-level
+ * evidence at best, not a spec→item precedent. Measured on the eval corpus
+ * (2026-08-05, LOPO): exact-history top cards on identifiable specs are right
+ * 74% of the time; on non-identifiable specs 29% — including two generic
+ * "authoritative" cards at 100% confidence that were both wrong.
+ */
+export function isIdentifiableSpecKey(spec: string): boolean {
+    const norm = normalizeProductId(spec);
+    if (norm.length < 6 || !/\d/.test(norm)) return false;
+    if (!looksLikeProse(spec)) return true;
+    // Space-separated part numbers ("DSXB LED P1 40K") trip the prose check on
+    // vocabulary like LED, but option-grammar tokens — letter+digit mixes such
+    // as P1, 40K, T4M — are part-number DNA that descriptive prose doesn't
+    // have. Two or more rescue the string as catalog-style.
+    const mixedTokens = spec.toUpperCase().split(/[-_/\s]+/)
+        .filter(t => /^[A-Z0-9.]+$/.test(t) && /[A-Z]/.test(t) && /\d/.test(t));
+    return mixedTokens.length >= 2;
+}
+
+/**
+ * Token-level explanation of calculateCatalogMatchScore for the match-details
+ * UI: WHICH of the input spec's significant tokens matched the target, and
+ * which didn't. Display-path only (a handful of calls per line) — the hot
+ * scoring loops keep calling calculateCatalogMatchScore, so keep the two in
+ * sync when the scoring rules change.
+ */
+export interface CatalogMatchExplanation {
+    kind: 'exact' | 'containment' | 'tokens' | 'none';
+    /** Input-spec significant tokens that matched a target token exactly. */
+    matched: string[];
+    /** Input-spec significant tokens that matched only as substrings. */
+    partial: string[];
+    /** Input-spec significant tokens with no hit in the target. */
+    unmatched: string[];
+}
+
+export function explainCatalogMatchScore(catalogNumber: string, target: string): CatalogMatchExplanation {
+    const none: CatalogMatchExplanation = { kind: 'none', matched: [], partial: [], unmatched: [] };
+    if (!catalogNumber || !target) return none;
+
+    const normCatalog = catalogNumber.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normTarget = target.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (normCatalog === normTarget) return { ...none, kind: 'exact' };
+    if ((normTarget.includes(normCatalog) && normCatalog.length >= 8) ||
+        (normCatalog.includes(normTarget) && normTarget.length >= 8)) {
+        return { ...none, kind: 'containment' };
+    }
+
+    const targetParts = target.toUpperCase().split(/[-_\/\s]+/).filter(p => p.length >= 2);
+    const matched: string[] = [];
+    const partial: string[] = [];
+    const unmatched: string[] = [];
+    for (const token of significantSpecTokens(catalogNumber)) {
+        if (targetParts.includes(token)) matched.push(token);
+        else if (targetParts.some(tp => tp.includes(token) || token.includes(tp))) partial.push(token);
+        else unmatched.push(token);
+    }
+    return { kind: 'tokens', matched, partial, unmatched };
+}
+
 export function calculateCatalogMatchScore(catalogNumber: string, originalSpec: string): number {
     if (!catalogNumber || !originalSpec) return 0;
 
