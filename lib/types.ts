@@ -77,6 +77,14 @@ export interface Recommendation {
     totalSpecAppearances?: number;
     projectsUsed?: string[];
     productCategory?: string;
+    /**
+     * The shared display GROUP the card's catalog category belongs to
+     * ("Outdoor" for a Wall Mount on an outdoor spec). The spec header and every
+     * card render this same vocabulary so a passing category gate reads as a
+     * match instead of a mismatch; productCategory keeps the specific catalog
+     * name for the detail line. null = outside the taxonomy.
+     */
+    categoryGroup?: string | null;
     specProductCategory?: string;
     specDescription?: string;      // enriched NS product description for the original spec
     specVendor?: string;           // enriched NS vendor for the original spec
@@ -106,6 +114,12 @@ export interface Recommendation {
      * confidence display (60–90%) doesn't silently widen auto-select.
      */
     autoSelectSafe?: boolean;
+    /**
+     * Plain-language reason this card was NOT pre-checked, shown in the UI when
+     * the top card sits unselected. "A 99% card left unchecked while a 71% one
+     * is selected" is only confusing while the rule is invisible.
+     */
+    autoSelectReason?: string;
     /**
      * Hard ceiling the confidence must never exceed, ranking bonuses included
      * (e.g. the generic-spec 45% cap). Undefined = the tier's default ceiling.

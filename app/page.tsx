@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { shouldAutoSelect } from '@/lib/engine/ranking';
+import { defaultSelection } from '@/lib/engine/ranking';
 
 interface IdentifiedSpec {
     manufacturer: string;
@@ -74,9 +74,12 @@ interface Recommendation {
     familyMatch?: boolean;
     /** Explicit auto-select veto from evidence-calibrated tiers (see lib/engine/ranking). */
     autoSelectSafe?: boolean;
+    autoSelectReason?: string;
     premierLinkId?: string;
     thirdPartyLinkId?: string;
     productCategory?: string;
+    /** Shared display group for productCategory — same vocabulary as specCategory. */
+    categoryGroup?: string | null;
     specDescription?: string;
     specVendor?: string;
     specEnrichConfidence?: string;
@@ -99,6 +102,14 @@ interface HealthCounts {
 }
 
 const AS_SPEC = 'AS_SPEC';
+
+/**
+ * Client-side ceiling on one identification. The server bounds each Claude call
+ * too; this is the backstop for anything between the browser and the route
+ * (gateway timeouts, dropped connections) so the identify strip can never sit
+ * on "Identifying…" forever.
+ */
+const IDENTIFY_TIMEOUT_MS = 180_000;
 
 const IDENTIFY_SOURCE_LABEL: Record<IdentifiedSpec['source'], string> = {
     url: 'spec link',
@@ -195,9 +206,9 @@ export default function Home() {
             for (const a of analyses) {
                 // Only pre-check strong evidence — low-confidence category
                 // guesses stay one click away instead of becoming the default
-                // (and thus a History row) by inertia.
-                const top = a.recommendations[0];
-                initial[a.lineItem.rowIndex] = shouldAutoSelect(top) ? top!.id : AS_SPEC;
+                // (and thus a History row) by inertia. Passthrough cards ARE the
+                // leave-as-specified answer, so they select themselves.
+                initial[a.lineItem.rowIndex] = defaultSelection(a.recommendations)?.id ?? AS_SPEC;
             }
             setSelections(initial);
         } catch (e) {
@@ -212,6 +223,12 @@ export default function Home() {
         const rowIndex = analysis.lineItem.rowIndex;
         setIdentifyBusy(s => ({ ...s, [rowIndex]: mode }));
         setIdentifyError(s => ({ ...s, [rowIndex]: null }));
+        // Web lookup does a search turn plus an extraction turn, and a hung one
+        // used to leave the button row reading "Identifying (web)…" indefinitely
+        // with nothing to click. Bound it here as well as server-side, so the
+        // strip always comes back — with a result or with a reason.
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), IDENTIFY_TIMEOUT_MS);
         try {
             let res: Response;
             if (mode === 'pdf') {
@@ -219,29 +236,45 @@ export default function Home() {
                 form.append('mode', 'pdf');
                 form.append('lineItem', JSON.stringify(analysis.lineItem));
                 if (payload?.file) form.append('file', payload.file);
-                res = await fetch('/api/identify', { method: 'POST', body: form });
+                res = await fetch('/api/identify', { method: 'POST', body: form, signal: controller.signal });
             } else {
                 res = await fetch('/api/identify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mode, lineItem: analysis.lineItem, url: payload?.url }),
+                    signal: controller.signal,
                 });
             }
-            const json = await res.json();
+            // A gateway timeout or proxy error answers with HTML, not JSON —
+            // parsing it blind turned a readable failure into "Unexpected token <".
+            const raw = await res.text();
+            let json: { error?: string; identified?: IdentifiedSpec; result?: LineItemAnalysis };
+            try {
+                json = JSON.parse(raw) as typeof json;
+            } catch {
+                throw new Error(res.ok
+                    ? 'Identification returned an unreadable response.'
+                    : `Identification failed (${res.status} ${res.statusText || 'error'}).`);
+            }
             if (!res.ok) throw new Error(json.error || `Identification failed (${res.status}).`);
+            if (!json.identified || !json.result) throw new Error('Identification returned no result.');
             const identified: IdentifiedSpec = json.identified;
             const result: LineItemAnalysis = json.result;
             setResults(rs => (rs ? rs.map(a => (a.lineItem.rowIndex === rowIndex ? result : a)) : rs));
             // Confidence gates: LOW identifications never auto-select, and the
             // recommendation itself must clear the auto-select bar too.
-            const top = result.recommendations[0];
-            setSelections(s => ({
-                ...s,
-                [rowIndex]: identified.confidence !== 'LOW' && shouldAutoSelect(top) ? top!.id : AS_SPEC,
-            }));
+            const pick = identified.confidence === 'LOW' ? null : defaultSelection(result.recommendations);
+            setSelections(s => ({ ...s, [rowIndex]: pick?.id ?? AS_SPEC }));
         } catch (e) {
-            setIdentifyError(s => ({ ...s, [rowIndex]: e instanceof Error ? e.message : 'Identification failed.' }));
+            const aborted = e instanceof DOMException && e.name === 'AbortError';
+            setIdentifyError(s => ({
+                ...s,
+                [rowIndex]: aborted
+                    ? `Identification timed out after ${Math.round(IDENTIFY_TIMEOUT_MS / 1000)}s — try again, or identify from the spec-sheet PDF.`
+                    : e instanceof Error ? e.message : 'Identification failed.',
+            }));
         } finally {
+            clearTimeout(timer);
             setIdentifyBusy(s => ({ ...s, [rowIndex]: null }));
         }
     }
@@ -267,7 +300,10 @@ export default function Home() {
                             thirdPartyLinkId: rec.thirdPartyLinkId,
                         }
                         : null,
-                    note: a.infoMessage ?? (rec?.isPassthrough ? 'Left as specified (high-end decorative)' : ''),
+                    // A passthrough's own reason is the accurate note — "high-end
+                    // decorative" was also being stamped on resold-item and
+                    // already-a-Premier-item cards, which it never described.
+                    note: a.infoMessage ?? (rec?.isPassthrough ? rec.matchReason : ''),
                 };
             });
             setWritebackNotice(null);
@@ -523,7 +559,9 @@ export default function Home() {
                                             <span>Qty {a.lineItem.quantity || '—'}</span>
                                             <span className="text-muted">{a.lineItem.manufacturer}</span>
                                             <span className="font-mono text-xs self-center">{a.lineItem.catalogNumber}</span>
-                                            {/* What the engine thinks the SPEC item IS — recommendations should match this category */}
+                                            {/* What the engine thinks the SPEC item IS. Every recommendation card
+                                                below renders its category in this same vocabulary, so a card that
+                                                passed the category gate reads as a match instead of a mismatch. */}
                                             <span
                                                 className={`text-[10px] uppercase tracking-wider px-2 py-0.5 self-center ${a.specCategory ? 'bg-steel text-white' : 'border border-line text-muted'}`}
                                                 title={a.specCategory
@@ -564,8 +602,17 @@ export default function Home() {
                                                         <span className="text-body">
                                                             {[ident.manufacturer, ident.catalogNumber].filter(Boolean).join(' ')}
                                                             {ident.productName ? ` — ${ident.productName}` : ''}
+                                                            {ident.category ? ` · ${ident.category}` : ''}
                                                         </span>
                                                     )}
+                                                    {ident && (() => {
+                                                        const attrs = Object.entries(ident.attributes)
+                                                            .filter(([, v]) => v)
+                                                            .map(([k, v]) => `${k}: ${v}`);
+                                                        return attrs.length > 0 ? (
+                                                            <span className="text-muted">{attrs.join(' · ')}</span>
+                                                        ) : null;
+                                                    })()}
                                                     {busy ? (
                                                         <span className="text-muted">Identifying ({busy})…</span>
                                                     ) : (
@@ -634,7 +681,15 @@ export default function Home() {
 
                                         <div className="px-4 py-3 space-y-2">
                                             {a.recommendations.map(rec => {
-                                                const category = rec.productCategory || rec.itemAttributes?.category;
+                                                const catalogCategory = rec.productCategory || rec.itemAttributes?.category || '';
+                                                // Group first: the spec header and this badge must speak one
+                                                // vocabulary, or a passing gate reads as a mismatch ("OUTDOOR"
+                                                // spec vs "WALL MOUNT" card). The specific catalog category
+                                                // stays visible as the sub-label.
+                                                const group = rec.categoryGroup || null;
+                                                const badge = group || catalogCategory;
+                                                const detail = catalogCategory && catalogCategory !== badge ? catalogCategory : '';
+                                                const offCategory = !!(a.specCategory && group && group !== a.specCategory);
                                                 const chips = attrChips(rec.itemAttributes);
                                                 return (
                                                     <label
@@ -666,9 +721,15 @@ export default function Home() {
                                                                 <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 border border-line text-muted">
                                                                     {rec.source}
                                                                 </span>
-                                                                {category && (
-                                                                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-steel text-white">
-                                                                        {category}
+                                                                {badge && (
+                                                                    <span
+                                                                        className={`text-[10px] uppercase tracking-wider px-2 py-0.5 ${offCategory ? 'border-2 border-warn text-warn' : 'bg-steel text-white'}`}
+                                                                        title={detail
+                                                                            ? `Catalog category: ${detail}${offCategory ? ` — differs from the spec's (${a.specCategory})` : ''}`
+                                                                            : offCategory ? `Differs from the spec's category (${a.specCategory})` : undefined}
+                                                                    >
+                                                                        {offCategory ? '≠ ' : ''}{badge}
+                                                                        {detail ? <span className="normal-case opacity-70"> · {detail}</span> : null}
                                                                     </span>
                                                                 )}
                                                                 <span className={`text-xs font-semibold ${rec.confidence >= 90 ? 'text-success' : rec.confidence >= 70 ? 'text-warn' : 'text-muted'}`}>
@@ -723,6 +784,11 @@ export default function Home() {
                                                 <span className="text-sm">
                                                     Leave as specified — {a.lineItem.manufacturer}{' '}
                                                     <span className="font-mono text-xs">{a.lineItem.catalogNumber}</span>
+                                                    {/* A strong-looking card sitting unchecked is only confusing while
+                                                        the rule is invisible — say why the engine didn't pre-pick it. */}
+                                                    {sel === AS_SPEC && top?.autoSelectReason && (
+                                                        <span className="block text-xs text-muted mt-0.5">{top.autoSelectReason}</span>
+                                                    )}
                                                 </span>
                                             </label>
                                         </div>

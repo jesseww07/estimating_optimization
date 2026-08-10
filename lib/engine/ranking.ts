@@ -95,6 +95,29 @@ export function shouldAutoSelect(rec: { confidence: number; matchType: string; i
 }
 
 /**
+ * The card the UI should have selected when results first render, or null for
+ * "Leave as specified".
+ *
+ * Distinct from shouldAutoSelect on purpose: a PASSTHROUGH card ("already a
+ * resold 3rd-party item", "high-end decorative — quote as specified") *is* the
+ * leave-as-specified answer, so selecting it changes nothing commercially — the
+ * export still records no substitution and History still gets no row. Leaving
+ * it unselected, however, put a 99% card next to an unchecked radio and a
+ * checked "Leave as specified" underneath, which read as the engine disagreeing
+ * with itself (Firecrest review, 2026-08-10). shouldAutoSelect keeps its
+ * narrower meaning — "pre-check this SUBSTITUTION" — because the eval's
+ * autoWrong quadrant is calibrated against it.
+ */
+export function defaultSelection<T extends { id: string; confidence: number; matchType: string; isPassthrough?: boolean; familyMatch?: boolean; autoSelectSafe?: boolean }>(
+    recommendations: T[] | undefined | null,
+): T | null {
+    const top = recommendations?.[0];
+    if (!top) return null;
+    if (top.isPassthrough) return top;
+    return shouldAutoSelect(top) ? top : null;
+}
+
+/**
  * Ranking comparator: exact-spec History always beats Premier Items / Fans;
  * within the same tier, higher confidence first (own-brand bonus already baked
  * in), with the most recent matching swap date breaking History ties (recency

@@ -30,6 +30,7 @@ import type {
     ParsedLineItem,
     Recommendation,
 } from '../types';
+import { groupOfCatalogCategory } from './categories';
 import {
     CATEGORY_GROUPS,
     calculateCatalogMatchScore,
@@ -111,6 +112,17 @@ const EXACT_RECENCY_SATURATION = 0.6;
 const EXACT_CONFIDENCE_CAP = 92;
 /** Confidence ceiling for exact-tier matches whose spec key is generic (not a real product identity). */
 const GENERIC_SPEC_CONFIDENCE_CAP = 45;
+
+// Pre-check discipline for the DIRECT catalog tiers (Premier Items, 3rd Party,
+// Fans). Those tiers score raw text similarity, so their percentage answers
+// "how alike are these two strings", not "how likely is this the right swap" —
+// a 71% there is weaker evidence than a 60% exact-history precedent, yet it was
+// the number that decided the pre-check (Firecrest W2E: a 71% item-# resemblance
+// arrived pre-selected while 92% and 99% cards sat unchecked). Only a near-exact
+// item # — an exact or containment match, which calculateCatalogMatchScore
+// scores 85+ — identifies a product well enough to default-select it; token
+// overlap stays one click away.
+const MIN_DIRECT_MATCH_AUTOSELECT = 85;
 
 // Family-tier confidence shape (Phase 4, backlog #2): graduated, sub-authoritative.
 // base + 15 per recency-weighted family swap, capped at 75. One undated swap
@@ -551,6 +563,8 @@ function categoryFallbackRecommendations(
                 'Exact item not identified from the spec — these are category-level suggestions, never pre-checked',
             ],
             productCategory: cand.category || undefined,
+            categoryGroup: groupOfCatalogCategory(cand.category, inferredCategory),
+            autoSelectReason: `Not pre-checked: the exact item wasn't identified from the spec — these are ${inferredCategory} category-level suggestions.`,
             ...(isThirdParty ? { thirdPartyLinkId: cand.id } : { premierLinkId: cand.id }),
         });
     }
@@ -627,6 +641,33 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // The dimension signature the spec exposes — candidates are gated against this.
     const specDimensionText = `${mark} ${catalogNumber}`;
 
+    // ── Spec keys: the typed catalog # AND the identified one ─────────────────
+    // The identify flow (URL / web / PDF) resolves the true orderable catalog #,
+    // which is usually the better key for CATALOG text matching but the worse
+    // one for HISTORY — History stores the spec exactly as the estimator typed
+    // it. Scoring against both and keeping the best means identifying a line can
+    // only add evidence, never trade one tier's matches for another's (Firecrest
+    // R13: identifying "LUMIERE 1003" as a Lanterra 1003 sign light must not
+    // discard the history rows filed under the typed spec).
+    const identifiedCatalog = (() => {
+        const v = (lineItem.identified?.catalogNumber ?? '').trim();
+        return v && !isUrlLike(v) ? v : '';
+    })();
+    const specTexts = [catalogNumber.trim(), identifiedCatalog]
+        .filter((s, i, arr) => s !== '' && arr.indexOf(s) === i);
+    /** Normalized history-lookup keys (both specs), long enough to be identities. */
+    const specKeys = new Set(specTexts.map(normalizeSpecKey).filter(k => k.length >= 6));
+
+    /** Best catalog-similarity score across the spec keys, and which one scored it. */
+    function bestCatalogMatch(target: string): { score: number; spec: string } {
+        let best = { score: 0, spec: specTexts[0] ?? catalogNumber };
+        for (const t of specTexts) {
+            const s = calculateCatalogMatchScore(t, target);
+            if (s > best.score) best = { score: s, spec: t };
+        }
+        return best;
+    }
+
     // ── History matching ──────────────────────────────────────────────────────
     interface BidItemMatchData {
         score: number;
@@ -639,10 +680,6 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         productCategory?: string;
     }
     const bidItemMatchMap = new Map<string, BidItemMatchData>();
-
-    // History lookup key, hoisted: the NORMALIZED input catalog (whitespace/
-    // case/punctuation variance must not break matching).
-    const normalizedInputCatalog = normalizeSpecKey(catalogNumber);
 
     for (const row of ctx.history) {
         let score = 0;
@@ -670,20 +707,19 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         // input-echo anyway — but by then it has already suppressed the
         // direct-match tiers via hasHistoryMatches (3rd & Flower D16: the
         // as-spec Minka fan rows starved the line down to fallback junk).
-        if (normalizedInputCatalog.length >= 6 &&
-            normalizeProductId(bidItemValue) === normalizedInputCatalog) continue;
+        if (specKeys.has(normalizeProductId(bidItemValue))) continue;
 
         const specMfr = row.specManufacturer || row.specMfrBackup || '';
         const bidMfr = row.bidManufacturer || row.bidMfrBackup || '';
 
-        const specScore = calculateCatalogMatchScore(catalogNumber, row.originalSpec);
+        const specScore = bestCatalogMatch(row.originalSpec).score;
 
         // Family-level spec match (same series, different options) — collected
         // even when the token score alone wouldn't qualify: PR #6's junk gates
         // rightly zero accidental substring overlaps, so family evidence must
         // ride its own purpose-built signal (Largo BA: S7R835K10AL scored 0
         // against every S7R history row and 4+ prior decisions were invisible).
-        const familySpecMatch = isFamilySpecMatch(catalogNumber, row.originalSpec, specScore);
+        const familySpecMatch = specTexts.some(t => isFamilySpecMatch(t, row.originalSpec, specScore));
 
         // Boost score when NS has confirmed this spec's identity (HIGH = +10, MEDIUM = +5)
         const enrichBonus = row.specEnrichConfidence === 'HIGH' ? 10 : row.specEnrichConfidence === 'MEDIUM' ? 5 : 0;
@@ -760,7 +796,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     let totalSpecAppearances = 0;
     for (const row of ctx.history) {
         if (row.matchType === 'NON-ITEM') continue;
-        if (normalizeSpecKey(row.originalSpec) === normalizedInputCatalog && normalizedInputCatalog.length >= 6) {
+        if (specKeys.has(normalizeSpecKey(row.originalSpec))) {
             totalSpecAppearances++;
         }
     }
@@ -772,12 +808,9 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         if (!data.hasCatalogMatch && !data.hasFamilyMatch) continue;
 
         const trueMatchingSwaps = data.historyMatches.filter(h => {
-            const normalizedSpec = normalizeSpecKey(h.originalSpec);
             const normalizedBid = normalizeProductId(h.bidItem);
             const recommendedBid = normalizeProductId(bidItemValue);
-            return normalizedSpec === normalizedInputCatalog &&
-                normalizedBid === recommendedBid &&
-                normalizedInputCatalog.length >= 6;
+            return specKeys.has(normalizeSpecKey(h.originalSpec)) && normalizedBid === recommendedBid;
         });
 
         // ── Family tier (Phase 4, backlog #2) ────────────────────────────────
@@ -787,7 +820,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         // confidence (capped below the authoritative floor), matchType 'fuzzy'
         // so auto-select applies only when the evidence honestly clears 50.
         const familySwaps = trueMatchingSwaps.length > 0 ? [] :
-            data.historyMatches.filter(h => isFamilySpecMatch(catalogNumber, h.originalSpec));
+            data.historyMatches.filter(h => specTexts.some(t => isFamilySpecMatch(t, h.originalSpec)));
         const isFamily = trueMatchingSwaps.length === 0 && familySwaps.length > 0;
 
         if (trueMatchingSwaps.length === 0 && !isFamily) continue;
@@ -808,7 +841,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         const agreementShare = specAppearances > 0 ? matchingSwapCount / specAppearances : 1;
         // Whether the spec text is a real product identity — generic keys
         // ("DOWNLIGHT", "NO SPEC") equality-match on vocabulary, not identity.
-        const identifiableSpec = isIdentifiableSpecKey(catalogNumber);
+        const identifiableSpec = specTexts.some(isIdentifiableSpecKey);
 
         const matchDetails: string[] = [];
         if (isFamily) {
@@ -974,6 +1007,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             EXACT_CONFIDENCE_BASE + EXACT_CONFIDENCE_SPAN * agreementShare * recencySaturation + timesUsedBonus);
         let matchReason = `Bid ${matchingSwapCount} of ${specAppearances} time${specAppearances === 1 ? '' : 's'} — same spec → this item`;
         let autoSelectSafe: boolean | undefined;
+        let autoSelectReason: string | undefined;
         let confidenceCap: number | undefined;
 
         if (isFamily) {
@@ -984,6 +1018,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             adjustedConfidence = Math.min(FAMILY_CONFIDENCE_CAP,
                 Math.round(FAMILY_CONFIDENCE_BASE + weightedSwaps * FAMILY_CONFIDENCE_PER_SWAP));
             matchReason = `Family match: same product series bid ${matchingSwapCount} time${matchingSwapCount > 1 ? 's' : ''} → this item`;
+            autoSelectReason = 'Not pre-checked: family evidence — the right series, but the exact variant is unverified.';
             matchDetails.push(`Confidence ${Math.round(adjustedConfidence)}%: family evidence — right series, options differed, so the exact variant is unverified`);
         } else {
             if (!identifiableSpec) {
@@ -992,6 +1027,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 // as a pointer but never let it look or act confident.
                 adjustedConfidence = Math.min(adjustedConfidence, GENERIC_SPEC_CONFIDENCE_CAP);
                 autoSelectSafe = false;
+                autoSelectReason = `Not pre-checked: "${catalogNumber.trim()}" is a generic description, not a unique catalog #.`;
                 confidenceCap = GENERIC_SPEC_CONFIDENCE_CAP;   // ranking bonuses must not undo the cap
                 matchDetails.push(`"${catalogNumber.trim()}" is a generic description, not a unique catalog # — confidence capped, never pre-checked`);
             } else if (isAuthoritative) {
@@ -1011,6 +1047,9 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 const legacyMass = Math.min(100, Math.round(weightedSwaps * 20)) +
                     (isPremierOwnBrand({ premierItem: resolvedItemId, bidItem: bidItemValue }) ? OWN_BRAND_BONUS : 0);
                 autoSelectSafe = legacyMass >= MIN_AUTOSELECT_CONFIDENCE;
+                if (!autoSelectSafe) {
+                    autoSelectReason = `Not pre-checked: ${matchingSwapCount} prior swap${matchingSwapCount === 1 ? '' : 's'} on this spec — the pre-check bar is repeated or recent agreement. Select it if you agree.`;
+                }
                 const recencyDesc = weightedSwaps >= matchingSwapCount * 0.85 ? 'recent'
                     : weightedSwaps >= matchingSwapCount * 0.45 ? 'aging' : 'stale';
                 const agreementDesc = agreementShare >= 0.999 ? 'full agreement'
@@ -1057,6 +1096,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             exactMatchCount: isFamily ? 0 : matchingSwapCount,
             ...(isFamily ? { familyMatch: true } : {}),
             ...(autoSelectSafe !== undefined ? { autoSelectSafe } : {}),
+            ...(autoSelectReason ? { autoSelectReason } : {}),
             ...(confidenceCap !== undefined ? { confidenceCap } : {}),
             matchDetails,
             itemAttributes,
@@ -1065,6 +1105,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             totalSpecAppearances,
             projectsUsed: uniqueProjects,
             productCategory: bidProductCategory || itemAttributes?.category,
+            categoryGroup: groupOfCatalogCategory(bidProductCategory || itemAttributes?.category || '', inferredCategory),
             specDescription: firstMatch?.specDescription,
             specVendor: firstMatch?.specVendor,
             specEnrichConfidence: firstMatch?.specEnrichConfidence,
@@ -1084,7 +1125,6 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         r.source === 'History' && !r.familyMatch && r.bidItem && r.bidItem.length > 3);
 
     if (!hasHistoryMatches) {
-        const normalizedCatalog = normalizeProductId(catalogNumber);
         const allowAccessories = specWantsAccessory(mark, catalogNumber);
         // Marks shorter than 3 normalized characters ("C", "W1") substring-hit
         // most of the catalog (3rd & Flower: mark "C" scored 85% against
@@ -1093,6 +1133,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
 
         for (const item of ctx.premierItems) {
             let score = 0;
+            /** Best item-#-similarity behind this card — the pre-check gate, see below. */
+            let identityScore = 0;
             const reasons: string[] = [];
             const matchDetails: string[] = [];
             const scoreParts: string[] = [];
@@ -1113,12 +1155,12 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             if (!allowAccessories && isAccessoryItem(itemId, item.itemDescription)) continue;
 
             if (itemId) {
-                const normalizedItemId = normalizeProductId(itemId);
-                if (normalizedItemId === normalizedCatalog && normalizedCatalog.length >= 6) {
+                if (specKeys.has(normalizeProductId(itemId))) {
                     continue;
                 }
 
-                const idScore = calculateCatalogMatchScore(catalogNumber, itemId);
+                const idMatch = bestCatalogMatch(itemId);
+                const idScore = idMatch.score;
                 // Null-category junk gate (Phase 4, backlog #5): with no
                 // category to gate on, a 40s-grade token overlap surfaces
                 // cross-category junk (Largo BH: "-100-" tokens offered pole
@@ -1128,8 +1170,9 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 const idScoreFloor = inferredCategory ? 40 : 55;
                 if (idScore >= idScoreFloor) {
                     score += idScore * 0.7;
+                    identityScore = Math.max(identityScore, idScore);
                     reasons.push(`Item ID match: ${idScore}%`);
-                    matchDetails.push(...describeIdMatch(catalogNumber, itemId));
+                    matchDetails.push(...describeIdMatch(idMatch.spec, itemId));
                     scoreParts.push(`item-# similarity ${idScore}% → ${Math.round(idScore * 0.7)} pts`);
                 }
 
@@ -1177,6 +1220,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     lightOutput: item.lightOutput || undefined,
                 };
 
+                const identified = identityScore >= MIN_DIRECT_MATCH_AUTOSELECT;
                 recommendations.push({
                     id: item.id,
                     source: 'Premier Items',
@@ -1188,6 +1232,11 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     itemAttributes,
                     matchDetails,
                     productCategory: category || undefined,
+                    categoryGroup: groupOfCatalogCategory(category, inferredCategory),
+                    autoSelectSafe: identified,
+                    ...(identified ? {} : {
+                        autoSelectReason: 'Not pre-checked: catalog text resemblance, not a confirmed item # or a past estimator decision.',
+                    }),
                     premierLinkId: item.id,
                 });
             }
@@ -1207,9 +1256,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         // item we already stock are noise, and a variant pre-checked at fuzzy
         // confidence would write a phantom swap to History on export. Premier
         // own-brand upsell is unaffected — the Premier block above already ran.
-        const resoldAsSpec = normalizedCatalog.length >= 6
-            ? ctx.thirdPartyItems.find(t => !isLampCatalogItem(t) && normalizeProductId(t.itemId) === normalizedCatalog)
-            : undefined;
+        const resoldAsSpec = ctx.thirdPartyItems.find(
+            t => !isLampCatalogItem(t) && specKeys.has(normalizeProductId(t.itemId)));
         if (resoldAsSpec) {
             recommendations.push({
                 id: resoldAsSpec.id,
@@ -1231,6 +1279,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     'Premier already carries this product — quote as specified',
                 ],
                 productCategory: resoldAsSpec.productCategories || undefined,
+                categoryGroup: groupOfCatalogCategory(resoldAsSpec.productCategories, inferredCategory),
                 thirdPartyLinkId: resoldAsSpec.id,
                 isPassthrough: true,
             });
@@ -1249,10 +1298,10 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 !fanSpansCompatible(catalogNumber, itemId)) continue;
             if (!allowAccessories && isAccessoryItem(itemId, item.itemDescription)) continue;
 
-            const normalizedItemId = normalizeProductId(itemId);
-            if (normalizedItemId === normalizedCatalog && normalizedCatalog.length >= 6) continue;
+            if (specKeys.has(normalizeProductId(itemId))) continue;
 
-            const idScore = calculateCatalogMatchScore(catalogNumber, itemId);
+            const idMatch = bestCatalogMatch(itemId);
+            const idScore = idMatch.score;
             const score = idScore * 0.7;
             // Floor at 50 (idScore ≈ 72): this tier exists for near-exact
             // family matches only. Anything weaker both reads as junk AND —
@@ -1278,7 +1327,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     manufacturer: item.manufacturer || undefined,
                 },
                 matchDetails: [
-                    ...describeIdMatch(catalogNumber, itemId),
+                    ...describeIdMatch(idMatch.spec, itemId),
                     ...(item.productCategories ? [inferredCategory
                         ? `Category: ${item.productCategories} — compatible with the spec's (${inferredCategory})`
                         : `Category: ${item.productCategories} (spec's category unknown — no category check possible)`] : []),
@@ -1286,6 +1335,11 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     `Score ${Math.round(score)}: item-# similarity ${idScore}% → ${Math.round(idScore * 0.7)} pts`,
                 ],
                 productCategory: item.productCategories || undefined,
+                categoryGroup: groupOfCatalogCategory(item.productCategories, inferredCategory),
+                autoSelectSafe: idScore >= MIN_DIRECT_MATCH_AUTOSELECT,
+                ...(idScore >= MIN_DIRECT_MATCH_AUTOSELECT ? {} : {
+                    autoSelectReason: 'Not pre-checked: catalog text resemblance, not a confirmed item # or a past estimator decision.',
+                }),
                 thirdPartyLinkId: item.id,
             });
         }
@@ -1301,10 +1355,10 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         recommendations.filter(r => r.source === 'History' && !r.familyMatch).length >= 2;
 
     if (ctx.fans.length > 0 && itemLooksLikeFan && !skipFanSearch) {
-        const normalizedCatalog = normalizeProductId(catalogNumber);
-
         for (const fan of ctx.fans) {
             let score = 0;
+            /** Best item-#-similarity behind this card — the pre-check gate. */
+            let identityScore = 0;
             const reasons: string[] = [];
             const matchDetails: string[] = [];
             const scoreParts: string[] = [];
@@ -1314,16 +1368,17 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             if (!dimensionsCompatible(specDimensionText, `${itemNumber} ${fan.fanSize}`)) continue;
 
             if (itemNumber) {
-                const normalizedItemNum = normalizeProductId(itemNumber);
-                if (normalizedItemNum === normalizedCatalog && normalizedCatalog.length >= 6) {
+                if (specKeys.has(normalizeProductId(itemNumber))) {
                     continue;
                 }
 
-                const itemScore = calculateCatalogMatchScore(catalogNumber, itemNumber);
+                const itemMatch = bestCatalogMatch(itemNumber);
+                const itemScore = itemMatch.score;
                 if (itemScore >= 40) {
                     score += itemScore * 0.8;
+                    identityScore = Math.max(identityScore, itemScore);
                     reasons.push(`Item number match: ${itemScore}%`);
-                    matchDetails.push(...describeIdMatch(catalogNumber, itemNumber));
+                    matchDetails.push(...describeIdMatch(itemMatch.spec, itemNumber));
                     scoreParts.push(`item-# similarity ${itemScore}% → ${Math.round(itemScore * 0.8)} pts`);
                 }
 
@@ -1358,6 +1413,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     matchDetails.push(`Size: ${fan.fanSize}`);
                 }
 
+                const identified = identityScore >= MIN_DIRECT_MATCH_AUTOSELECT;
                 recommendations.push({
                     id: fan.id,
                     source: 'Fans',
@@ -1369,6 +1425,11 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     itemAttributes,
                     matchDetails,
                     productCategory: 'Ceiling Fan',
+                    categoryGroup: 'Ceiling Fan',
+                    autoSelectSafe: identified,
+                    ...(identified ? {} : {
+                        autoSelectReason: 'Not pre-checked: catalog text resemblance, not a confirmed item # or a past estimator decision.',
+                    }),
                 });
             }
         }
@@ -1398,6 +1459,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                         'This is already our product — no VE substitution required',
                     ],
                     productCategory: alreadyPremier.fixtureCategory || undefined,
+                    categoryGroup: groupOfCatalogCategory(alreadyPremier.fixtureCategory, inferredCategory),
                     isPassthrough: true,
                 });
                 hasAnyRecommendations = true;

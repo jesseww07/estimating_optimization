@@ -14,7 +14,7 @@
 
 import Airtable from 'airtable';
 import type { EngineContext, FanRow, HistoryRow, PremierItemRow, ThirdPartyItemRow } from '../types';
-import { BASE_ID, FANS_FIELDS, HISTORY_FIELDS, PREMIER_FIELDS, TABLES, THIRD_PARTY_FIELDS } from './schema';
+import { BASE_ID, FANS_FIELDS, HISTORY_FIELDS, PREMIER_FIELDS, PRODUCT_CATEGORY_FIELDS, TABLES, THIRD_PARTY_FIELDS } from './schema';
 
 if (typeof window !== 'undefined') {
     throw new Error('lib/airtable/fetch.ts is server-only and must never be bundled for the browser.');
@@ -45,9 +45,12 @@ function getBase(): Airtable.Base | null {
 type CellValue = unknown;
 type FieldsById = Record<string, CellValue>;
 
+/** Airtable record id shape — never a display value, however it reached us. */
+const RECORD_ID_RE = /^rec[A-Za-z0-9]{14}$/;
+
 function asString(v: CellValue): string {
     if (v === null || v === undefined) return '';
-    if (typeof v === 'string') return v;
+    if (typeof v === 'string') return RECORD_ID_RE.test(v) ? '' : v;
     if (typeof v === 'number' || typeof v === 'boolean') return String(v);
     if (Array.isArray(v)) return v.map(asString).filter(Boolean).join(', ');
     if (typeof v === 'object' && v !== null && 'name' in v) return asString((v as { name: unknown }).name);
@@ -143,10 +146,34 @@ export async function fetchPremierItems(): Promise<PremierItemRow[]> {
     }));
 }
 
+/**
+ * Product Categories lookup (record id → name). The 3rd Party table's
+ * "Product Categories" is a linked-record field, so REST hands back record ids;
+ * without this map the app both DISPLAYED ids as category badges and failed
+ * every 3rd-party category gate (nothing in the Premier vocabulary is spelled
+ * "recVezggjIVgwPmsg"). The table is ~30 rows — one extra request.
+ */
+async function fetchProductCategoryNames(base: Airtable.Base): Promise<Map<string, string>> {
+    const names = new Map<string, string>();
+    try {
+        const rows = await selectAll(base, TABLES.PRODUCT_CATEGORIES, [PRODUCT_CATEGORY_FIELDS.NAME]);
+        for (const { id, fields } of rows) {
+            const name = asString(fields[PRODUCT_CATEGORY_FIELDS.NAME]).trim();
+            if (name) names.set(id, name);
+        }
+    } catch (err) {
+        // Degrade to "no category" rather than failing the whole context fetch:
+        // an unresolved category is a missed gate, an exception is a dead app.
+        console.error('Product Categories lookup failed — 3rd-party categories will be blank:', err);
+    }
+    return names;
+}
+
 export async function fetchThirdPartyItems(): Promise<ThirdPartyItemRow[]> {
     const base = getBase();
     if (!base) return [];
     const F = THIRD_PARTY_FIELDS;
+    const categoryNames = await fetchProductCategoryNames(base);
     const rows = await selectAll(base, TABLES.THIRD_PARTY_DOMESTIC, Object.values(F));
     return rows.map(({ id, fields }) => ({
         id,
@@ -157,7 +184,10 @@ export async function fetchThirdPartyItems(): Promise<ThirdPartyItemRow[]> {
         colorTemp: asString(fields[F.COLOR_TEMPERATURE]),
         maxWattage: asString(fields[F.MAX_WATTAGE]),
         lightOutput: asString(fields[F.LIGHT_OUTPUT]),
-        productCategories: asString(fields[F.PRODUCT_CATEGORIES]),
+        productCategories: asLinkIds(fields[F.PRODUCT_CATEGORIES])
+            .map(linkId => categoryNames.get(linkId) ?? '')
+            .filter(Boolean)
+            .join(', '),
     }));
 }
 
