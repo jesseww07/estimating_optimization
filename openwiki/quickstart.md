@@ -88,6 +88,24 @@ linked above.
   future scoring — see the auto-select gate in
   [Recommendation Engine](engine/recommendation-engine.md).
 
+## Task routing
+
+Start here for common change categories. "Focused tests" is the narrowest
+regression net; "Validation" is the quietest command that still surfaces
+failures. All commands run from the repo root.
+
+| Change area / intent | Wiki page | Source entry points | Key symbols/types | Focused tests | Minimal validation |
+|---|---|---|---|---|---|
+| Upload parsing (CSV/XLSX/PDF schedule) | [Architecture Overview](architecture/overview.md#upload--post-apiupload) | `app/api/upload/route.ts`, `lib/parse/workbook.ts`, `lib/identify/schedule.ts` | `parseWorkbook`, `extractScheduleFromPdf`, `scheduleRowsToLineItems`, `ParsedLineItem` | `__tests__/parse.test.ts`; `__tests__/identify.test.ts` ("schedule PDF row mapping") | `npx vitest run __tests__/parse.test.ts` |
+| Recommendation scoring/matching/ranking | [Recommendation Engine](engine/recommendation-engine.md) | `lib/engine/matcher.ts`, `lib/engine/recommend.ts`, `lib/engine/ranking.ts` | `analyzeLineItem`, `calculateCatalogMatchScore`, `isFamilySpecMatch`, `isIdentifiableSpecKey`, `shouldAutoSelect` | `__tests__/tuning.test.ts`, `__tests__/parity.test.ts` | `npx vitest run __tests__/tuning.test.ts __tests__/parity.test.ts`, then (conditional — any scoring/threshold change) `npm run eval` |
+| Learned series → category map | [Recommendation Engine](engine/recommendation-engine.md#learned-series-categories) | `scripts/build-series-map.ts`, `lib/engine/series-categories.ts` (generated) | `SERIES_CATEGORY_MAP`, `MIN_SUPPORT`, `MIN_AGREEMENT` | `__tests__/tuning.test.ts` ("Largo Station: learned series → category") | `npx tsx scripts/build-series-map.ts` (regenerate, review the diff), then `npm run eval` |
+| Per-line identify (URL / web / PDF) | [Architecture Overview](architecture/overview.md#per-line-identify--post-apiidentify) | `app/api/identify/route.ts`, `lib/identify/claude.ts`, `lib/identify/fetchUrl.ts`, `lib/identify/apply.ts` | `applyIdentifiedSpec`, `isFetchableSpecUrl`, `isIdentifyAvailable` | `__tests__/identify.test.ts` | `npx vitest run __tests__/identify.test.ts` |
+| Export / corporate workbook | [Architecture Overview](architecture/overview.md#export) | `app/api/export/route.ts`, `lib/export/corporate.ts` | `buildCorporateWorkbook`, `inferSubManufacturer` | `__tests__/export.test.ts` | `npx vitest run __tests__/export.test.ts` |
+| Airtable schema / fetch / cache | [Airtable Integration](data/airtable-integration.md) | `lib/airtable/schema.ts`, `lib/airtable/fetch.ts`, `lib/airtable/cached.ts` | `fetchEngineContext`, `getEngineContext`, `invalidateEngineContext`, `isLiveDataAvailable` | No dedicated unit file — exercised indirectly via `parity.test.ts`/`tuning.test.ts` fixtures that shape `EngineContext` | `npx tsc --noEmit` (typecheck; live-base changes need a manual `GET /api/recommendations` healthcheck against real `AIRTABLE_PAT`) |
+| History write-back / learning loop | [Airtable Integration](data/airtable-integration.md#history-write-back--the-learning-loop) | `lib/airtable/writeback.ts`, `app/api/export/route.ts` | `writeSelectionsToHistory`, `backfillBidManufacturers`, `getWritebackMode`, `writebackKey` | `__tests__/writeback.test.ts` | `npx vitest run __tests__/writeback.test.ts` |
+| Accuracy eval harness / ratchet | [Accuracy Eval Harness](engine/eval-harness.md) | `lib/eval/harness.ts`, `lib/eval/dataset.ts`, `scripts/eval/run.ts` | `buildEvalCases`, `runEval`, `checkRegression`, `toBaseline` | `__tests__/eval.test.ts` | `npx vitest run __tests__/eval.test.ts` (conditional — full-corpus check) `npm run eval` |
+| CI / test infrastructure | [Testing & CI](operations/testing-and-ci.md) | `.github/workflows/ci.yml`, `vitest.config.ts` | n/a | Whichever suite the workflow step covers | `npx vitest run` (conditional — release-shaped change) full CI dry run via a draft PR |
+
 ## Repo layout at a glance
 
 | Path | Role |

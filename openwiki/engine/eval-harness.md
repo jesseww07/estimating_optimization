@@ -109,12 +109,14 @@ Commands (`package.json`):
 ## Current baseline snapshot
 
 The committed `__tests__/eval.baseline.json` (966 headline cases) currently
-reports: top1 14.39%, top3 18.12%, junk 40.06%, silent 41.82%, autoWrong
-6.11%. This already supersedes the figures `docs/PHASE4-PRIMER.md` recorded
+reports: top1 14.6%, top3 18.12%, junk 40.06%, silent 41.82%, autoWrong
+5.69%. This already supersedes the figures `docs/PHASE4-PRIMER.md` recorded
 at its Phase 4 kickoff (top1 9.01%, top3 11.28%, junk 45.55%, silent 43.17%,
 autoWrong 6.94%) — the gap reflects the family/series-matching tier, learned
-series-category map, and null-category junk gate documented above, all of
-which had shipped by the time this baseline was generated. Treat both sets of
-numbers as point-in-time reference, not a live number — read
+series-category map, null-category junk gate, and the exact-history
+confidence/auto-select-eligibility rework (see
+[Recommendation Engine](recommendation-engine.md#history-matching-tiers)),
+all of which had shipped by the time this baseline was generated. Treat both
+sets of numbers as point-in-time reference, not a live number — read
 `__tests__/eval.baseline.json` and rerun `npm run eval` for the current
 figures; the committed baseline is the source of truth, not this page.
