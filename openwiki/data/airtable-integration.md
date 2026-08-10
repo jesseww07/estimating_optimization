@@ -110,6 +110,13 @@ Safety contract:
   Original Spec, normalized Bid Item)` already exists in History is skipped
   (`writebackKey`, shared normalization with the engine's
   `normalizeSpecKey`/`normalizeProductId`).
+- **Bid-manufacturer backfill** — before dedupe/write, `backfillBidManufacturers`
+  fills any row whose `bidManufacturer` is empty from a majority vote across
+  existing History rows for the same normalized bid item (never a brand
+  guess — it only uses manufacturers other estimators already recorded for
+  that exact item, and never overwrites a manufacturer that's already set).
+  This exists because prefix-based manufacturer inference misses items like
+  "REMINGTON…" or "FLAIRE…" that carry no recognizable own-brand prefix.
 - Only **selected substitutions** are written — RFI, LED-tape, and
   passthrough-only rows are filtered out before write-back, so guesses that
   were never real decisions can't enter History.

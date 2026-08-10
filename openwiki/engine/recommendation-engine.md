@@ -1,7 +1,7 @@
 ---
 type: Engine
 title: Recommendation Engine
-description: How analyzeLineItem scores, ranks, and gates VE substitution recommendations against Premier's catalogs and estimator History, including the Phase 4 family/series matching and null-category junk gate.
+description: How analyzeLineItem scores, ranks, and gates VE substitution recommendations against Premier's catalogs and estimator History, including the Phase 4 family/series matching, the null-category junk gate, and the exact-history confidence/auto-select-eligibility rework (agreement + recency-saturation display, autoSelectSafe veto, generic-spec confidence cap).
 tags: [engine, matching, ranking, history, learning-loop]
 ---
 
@@ -60,44 +60,51 @@ flowchart TD
 
 1. **URL-as-catalog scrub** — a spec-sheet link pasted into the catalog field
    is stripped before matching so it never becomes junk input.
-2. **RFI placeholder** (`isRfiPlaceholder`, `matcher.ts:596`) — TBD/missing
+2. **RFI placeholder** (`isRfiPlaceholder`, `matcher.ts`) — TBD/missing
    specs get an informational banner, plus category-level suggestions if a
    category can still be detected from surrounding text. Never fabricates a
    swap.
-3. **LED tape suppression** (`isLedTape`, `matcher.ts:633`) — tape runs are
+3. **LED tape suppression** (`isLedTape`, `matcher.ts`) — tape runs are
    project-specific; suppressed with an info message, by design (not a
    failure — the eval harness reports these separately as pipeline class
    `'tape'`).
-4. **Bulb/lamp path** (`isBulbLampLine`, `matcher.ts:535`; `isSatcoLampNumber`,
-   `matcher.ts:499`; `extractLampAttributes`, `matcher.ts:514`) — SATCO lamp
+4. **Bulb/lamp path** (`isBulbLampLine`, `isSatcoLampNumber`,
+   `extractLampAttributes` — all `matcher.ts`) — SATCO lamp
    numbers and companion bulb lines route to a dedicated scorer (shape/Kelvin/
    wattage attributes), never fixture candidates.
-5. **Fixture-type hint + `detectFixtureCategory`** (`matcher.ts:244`) —
+5. **Fixture-type hint + `detectFixtureCategory`** (`matcher.ts`) —
    category inference cascade: an explicit fixture-type-hint column wins
    first, then the **learned series map** (see below), then regex/keyword
    branches per category (Ceiling Fan, Vanity, Pendant, Sconce, Recessed,
    Linear, Exit/Emergency, Outdoor, Ceiling, Mirror, Undercabinet). Returns
    `null` when nothing matches — a null category is itself a gate condition
    downstream (see the null-category junk gate below).
-6. **History matching** (`recommend.ts:457` region, roughly lines 536-857) —
+6. **History matching** (`recommend.ts`, the main `bidItemMatchMap` loop) —
    see [History matching tiers](#history-matching-tiers) below.
 7. **Premier direct match** — only runs when History produced no exact
-   (non-family) match (`recommend.ts:864`, `hasHistoryMatches`). Scores every
+   (non-family) match (`recommend.ts`, `hasHistoryMatches`). Scores every
    Premier Items row via `calculateCatalogMatchScore`, gated by category
    compatibility (`categoriesCompatible`), the dimension hard-gate
    (`dimensionsCompatible`), and the accessory gate (`isAccessoryItem` /
-   `specWantsAccessory`). Includes the **null-category junk gate**
-   (`recommend.ts:908`): `idScoreFloor = inferredCategory ? 40 : 55` — with no
-   category to gate on, matching requires a stronger token-overlap score
-   before a candidate surfaces at all, trading junk for silence on unknown
-   lines (Phase 4 backlog #5; the identify flow is meant to absorb that
-   silence).
+   `specWantsAccessory`). Includes the **null-category junk gate**: `const
+   idScoreFloor = inferredCategory ? 40 : 55` — with no category to gate on,
+   matching requires a stronger token-overlap score before a candidate
+   surfaces at all, trading junk for silence on unknown lines (Phase 4
+   backlog #5; the identify flow is meant to absorb that silence).
 8. **3rd Party direct match** — mirrors the Premier block on the 3rd Party
-   Domestic Items table; no own-brand bonus; its own floor.
+   Domestic Items table; no own-brand bonus; its own floor. Includes its own
+   "already carried" passthrough: when the spec's catalog number IS a resold
+   3rd-party Item ID, the card is "carry as spec" (confidence 99, source
+   `'3rd Party'`) rather than a sibling variant — a fuzzy-confidence sibling
+   pre-checked here would write a phantom swap to History on export.
 9. **Fans matching** — only evaluated when the inferred category is
    `'Ceiling Fan'`; uses `fanSpansCompatible` for blade-span dimension gating.
-10. **Already-a-Premier-item passthrough** — an exact match on the spec's own
-    catalog number is surfaced as "already a Premier item," not a swap.
+   Skipped when History already produced 2+ non-family matches
+   (`skipFanSearch`).
+10. **Already-a-Premier-item passthrough** — a last-resort check (only when
+    nothing else in steps 6-9 produced a recommendation): an exact match on
+    the spec's own catalog number in the Premier Items table is surfaced as
+    "already a Premier / Global Concepts item," not a swap.
 11. **Category fallback** (`categoryFallbackRecommendations`) — token-overlap
     + Times Used across Premier and 3rd-party, always `matchType: 'partial'`,
     capped at 60 (description-based) / 45 (usage-based).
@@ -112,17 +119,47 @@ flowchart TD
 
 ## History matching tiers
 
-Every History row is scored against the input spec (`recommend.ts` around
-lines 536-857). Two evidence tiers can produce a `source: 'History'`
-recommendation:
+Every History row is scored against the input spec (`recommend.ts`, the
+`bidItemMatchMap` loop and the per-bid-item pass that follows it). Two
+evidence tiers can produce a `source: 'History'` recommendation, and the
+non-family tier's confidence/eligibility model was substantially reworked
+(2026-08-05, "exact-history confidence rework") after measuring that the old
+flat curve punished exactly the evidence the system exists to learn from:
 
 - **Authoritative tier** — `trueMatchingSwaps`: History rows whose normalized
-  Original Spec **exactly** equals the input's normalized key. When
-  `matchingSwapCount >= AUTHORITATIVE_SWAP_COUNT` (3), confidence is floored
-  at `AUTHORITATIVE_CONFIDENCE` (95), `matchType: 'exact'`, reason `"✓ Bid N
-  times — same spec → same item"`. This is settled precedent: the same
-  spec→item swap has been made by estimators 3+ times.
-- **Family tier (Phase 4)** — `isFamilySpecMatch` (`matcher.ts:212`) accepts a
+  Original Spec **exactly** equals the input's normalized key. A match is
+  authoritative only when *all three* hold: `matchingSwapCount >=
+  AUTHORITATIVE_SWAP_COUNT` (3), the spec is `identifiableSpec` (see below —
+  a real product identity, not generic vocabulary), and `agreementShare >
+  0.5` — a **strict majority** of every History row that carries this exact
+  spec chose this item (not just an absolute swap count), so a 3-vs-3 split
+  can never mint two competing "authoritative" answers. When authoritative,
+  confidence is floored at `AUTHORITATIVE_CONFIDENCE` (95), `matchType:
+  'exact'`, reason `"✓ Bid N times — same spec → same item"`. This is settled
+  precedent: the same spec→item swap has been made by estimators 3+ times,
+  on a real product identity, with majority agreement.
+- **Sub-authoritative exact-spec evidence** — same normalized-key equality,
+  but failing one of the three authoritative conditions above (fewer than 3
+  swaps, a minority pick, or an even split). `matchType: 'fuzzy'`. Displayed
+  confidence is calibrated to measured precision rather than floored:
+  `EXACT_CONFIDENCE_BASE` (45) + `EXACT_CONFIDENCE_SPAN` (50) × `agreementShare`
+  × a recency-saturation term (`weightedSwaps / (weightedSwaps +
+  EXACT_RECENCY_SATURATION)`, `EXACT_RECENCY_SATURATION = 0.6`) + a
+  catalog-usage prior (`min(20, timesUsed/2)`), capped at
+  `EXACT_CONFIDENCE_CAP` (92). Eligibility for the UI pre-check deliberately
+  does **not** follow that honest display upward: `autoSelectSafe` mirrors
+  the old evidence-mass bar instead (`legacyMass = min(100, round(weightedSwaps
+  * 20)) + ownBrandBonus; autoSelectSafe = legacyMass >=
+  MIN_AUTOSELECT_CONFIDENCE`), so raising a card's displayed percentage never
+  widens auto-select — see [autoSelectSafe](#ranking-dedupe-and-the-auto-select-gate).
+  A **generic spec key** (`isIdentifiableSpecKey` returns false — e.g. "NO
+  SPEC", "DOWNLIGHT": normalizes to a stable key that equality-matches other
+  rows on vocabulary, not product identity) additionally caps confidence at
+  `GENERIC_SPEC_CONFIDENCE_CAP` (45) via `confidenceCap` and forces
+  `autoSelectSafe: false` unconditionally, however many rows agree — two
+  generic "authoritative" cards at 100% displayed confidence were both wrong
+  in the eval corpus before this cap existed.
+- **Family tier (Phase 4)** — `isFamilySpecMatch` (`matcher.ts`) accepts a
   History row as **family evidence** (same product series, different
   options) when any of: (a) the normalized specs share a prefix
   ≥ `FAMILY_PREFIX_MIN` (9) characters, (b) both specs resolve to the same
@@ -142,8 +179,8 @@ recommendation:
   series but different options (e.g. `S7R835K10AL` vs. `S7R-8-27K-10-ZI0U` —
   the Largo Station case documented in `docs/PHASE4-PRIMER.md`).
 
-Recency weighting (`recencyWeight` in `lib/engine/ranking.ts:129`) applies to
-both tiers: recent swaps count close to full weight, decaying toward 0.25 for
+Recency weighting (`recencyWeight`, `lib/engine/ranking.ts`) applies to
+every tier: recent swaps count close to full weight, decaying toward 0.25 for
 stale ones, so a recent swap outranks older ones and breaks confidence ties in
 ranking. `referenceDate` on `EngineContext` pins "now" so tests and the eval
 harness get reproducible weighting.
@@ -154,7 +191,11 @@ A **dimension hard-gate** (`dimensionsCompatible`) and an **accessory gate**
 linked catalog item that is dimensionally incompatible with the spec, or an
 accessory SKU (driver/downrod/clip) offered for a fixture spec, is blocked
 outright rather than merely demoted. Authoritative history (3+ real estimator
-decisions) is trusted enough to override both heuristics.
+decisions) is trusted enough to override both heuristics. A History row that
+"swapped" a spec to itself (an as-spec record) is excluded from evidence
+entirely before scoring — otherwise it would starve a line down to the
+category fallback by satisfying `hasHistoryMatches` with nothing substantive
+behind it.
 
 ## Learned series categories
 
@@ -179,33 +220,46 @@ review mechanism for whether it helped or hurt.
 
 ## Ranking, dedupe, and the auto-select gate
 
-`lib/engine/ranking.ts`:
-
-- **Own-brand bonus** — `isPremierOwnBrand` recognizes Premier's private-label
-  series (GC/CUSTGC, LUC/LUCIUS, PL-, GCL-/MIR-/MDL-/PKL-/FRIS-/HW-, and the
-  recessed/disk-light systems R-/REC-/COM-/TJ) and applies
-  `OWN_BRAND_BONUS = 15` before ranking. Third-party brands (SATCO, Westgate,
-  etc.) never receive it.
-- **`shouldAutoSelect(rec)`** (`ranking.ts:86`) — the UI pre-check gate:
-  `confidence >= MIN_AUTOSELECT_CONFIDENCE (50)` **and** `matchType !==
-  'partial'` **and** not `isPassthrough` **and** not `familyMatch`. Family
-  matches are excluded deliberately: they reliably identify the right product
-  *family* but the exact *variant* only at low precision, so pre-checking one
-  would risk writing a wrong-but-plausible selection back to History. This
-  gate exists because pre-checking a low-confidence guess makes it
-  exportable — and export can write to History (see
+- **Own-brand ranking bonus** — `isPremierOwnBrand` (`lib/engine/ranking.ts`)
+  recognizes Premier's private-label series (GC/CUSTGC, LUC/LUCIUS, PL-,
+  GCL-/MIR-/MDL-/PKL-/FRIS-/HW-, and the recessed/disk-light systems
+  R-/REC-/COM-/TJ). `applyOwnBrandPreference` (`recommend.ts`, called once at
+  the end of the main pipeline, the RFI branch, and the post-dedupe retry)
+  adds `OWN_BRAND_BONUS = 15` to every own-brand, non-passthrough
+  recommendation — but never past the tier's confidence ceiling: `rec.
+  confidenceCap` if the tier set one (e.g. the generic-spec 45% cap), else
+  the family cap (75) or the sub-authoritative exact-history cap (92), else
+  100. This is a **ranking preference, not extra evidence** — it must not let
+  a bonus undo a cap that exists because the underlying evidence is weak.
+  Third-party brands (SATCO, Westgate, etc.) never receive it.
+- **`shouldAutoSelect(rec)`** (`lib/engine/ranking.ts`) — the UI pre-check
+  gate: not `isPassthrough`, not `familyMatch`, `rec.autoSelectSafe !==
+  false`, and `confidence >= MIN_AUTOSELECT_CONFIDENCE (50)`.
+  `autoSelectSafe` is an explicit veto set by tiers whose *displayed*
+  confidence is calibrated to real-world precision rather than to this
+  50-point bar (currently: sub-authoritative exact-history matches, via the
+  legacy evidence-mass formula described in
+  [History matching tiers](#history-matching-tiers) above) — `false` blocks
+  the pre-check outright regardless of confidence; `undefined` defers to the
+  confidence/matchType check alone. Family matches are excluded
+  unconditionally: they reliably identify the right product *family* but the
+  exact *variant* only at low precision, so pre-checking one would risk
+  writing a wrong-but-plausible selection back to History. This gate exists
+  because pre-checking a low-confidence guess makes it exportable — and
+  export can write to History (see
   [Airtable Integration](../data/airtable-integration.md)) — which
   would otherwise create a self-reinforcing loop for a suggestion nobody
   actually endorsed.
-- **`compareRecommendations`** (`ranking.ts:101`) — non-family exact History
-  matches sort ahead of direct-tier matches; otherwise sorted by confidence,
-  then by most-recent matching swap date.
+- **`compareRecommendations`** (`lib/engine/ranking.ts`) — non-family exact
+  History matches sort ahead of direct-tier matches; otherwise sorted by
+  confidence, then by most-recent matching swap date.
 - **`deduplicateRecommendations`** / `areProductsSimilar` — collapses
   near-identical SKUs and drops any candidate that would recommend the input
   spec back to itself.
 - **Post-dedupe fallback retry** — a line whose category was confidently
   detected should never end silent; if dedupe empties the list for a
-  known-category line, the pipeline retries the category fallback tier so a
+  known-category line, the pipeline retries the category fallback tier (with
+  its own `applyOwnBrandPreference` + sort + dedupe pass) so a
   weak-but-present suggestion still surfaces.
 
 ## Known rough edges (for future changes)
@@ -216,4 +270,19 @@ exact ≥70 / fuzzy ≥40, bulbs use exact ≥70 / fuzzy ≥45, category fallbac
 always `'partial'`. `docs/PHASE3-PRIMER.md`'s accuracy backlog (items 6-9) and
 `docs/PHASE4-PRIMER.md`'s backlog (items 3, 6, 7) track further planned work
 here — read those primers before changing scoring thresholds, and always run
-the [eval harness](eval-harness.md) before and after.
+the [eval harness](eval-harness.md) before and after. Note that both primers
+predate the exact-history confidence rework above, so their displayed-vs-
+authoritative confidence numbers for History matches are historical
+narrative, not current behavior — trust this page and `recommend.ts` over
+the primers for that tier.
+
+**Focused tests for this area:** `__tests__/tuning.test.ts`'s `'exact-history
+confidence rework'` describe block (generic-spec cap, 3-vs-3 split guard, the
+`autoSelectSafe` veto, minority-pick eligibility, space-separated part
+numbers as identifiable keys) is the narrowest regression net for the
+scoring/eligibility model in this section; the `'Largo Station'` and
+`'3rd & Flower'`-prefixed describe blocks cover family matching and the
+direct-match/passthrough tiers respectively. Run
+`npx vitest run __tests__/tuning.test.ts` for a quiet pass/fail signal, then
+`npm run eval` to see the corpus-wide effect before committing a scoring
+change (see [Accuracy Eval Harness](eval-harness.md)).
