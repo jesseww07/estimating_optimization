@@ -1440,10 +1440,15 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // ── Already a Premier / Global Concepts Item ──────────────────────────────
     // When the spec IS already one of our items, there is no substitution to
     // recommend. Show an informational card instead of "No recommendations found".
-    if (!hasAnyRecommendations && catalogNumber) {
-        const normCat = normalizeProductId(catalogNumber);
-        if (normCat.length >= 3) {
-            const alreadyPremier = ctx.premierItems.find(p => normalizeProductId(p.itemId) === normCat);
+    if (!hasAnyRecommendations && specTexts.length > 0) {
+        // Either spec key qualifies: identifying a line as one of our own items
+        // must land on this 99% carry-as-spec card. Matching only the TYPED
+        // value meant an identified Premier item was skipped as a candidate
+        // (it equals a spec key) and then missed here too, leaving the line on
+        // low-confidence category suggestions.
+        const selfKeys = specTexts.map(normalizeProductId).filter(k => k.length >= 3);
+        if (selfKeys.length > 0) {
+            const alreadyPremier = ctx.premierItems.find(p => selfKeys.includes(normalizeProductId(p.itemId)));
             if (alreadyPremier) {
                 recommendations.push({
                     id: alreadyPremier.id,

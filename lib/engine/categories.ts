@@ -140,8 +140,17 @@ const REVERSE_INDEX: Map<string, string[]> = (() => {
  */
 export function groupOfCatalogCategory(catalogCategory: string, preferred?: string | null): string | null {
     if (!catalogCategory) return null;
-    const groups = REVERSE_INDEX.get(norm(catalogCategory));
-    if (!groups || groups.length === 0) return null;
+    // 3rd-party cells can list several categories ("Wall Sconce, Chandelier").
+    // The compatibility gate already splits them, so the display has to as well
+    // — resolving the joined string as one name found nothing and dropped those
+    // cards back to raw text, which is the mismatch this file exists to remove.
+    const groups: string[] = [];
+    for (const entry of splitCategoryList(catalogCategory)) {
+        for (const group of REVERSE_INDEX.get(norm(entry)) ?? []) {
+            if (!groups.includes(group)) groups.push(group);
+        }
+    }
+    if (groups.length === 0) return null;
     if (preferred && groups.includes(preferred)) return preferred;
     return groups[0]!;
 }

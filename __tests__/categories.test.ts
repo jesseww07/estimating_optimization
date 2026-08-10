@@ -108,6 +108,15 @@ describe('shared display group', () => {
         expect(groupOfCatalogCategory('', 'Pendant')).toBeNull();
     });
 
+    it('resolves multi-category cells entry by entry, preferring the spec group', () => {
+        // 3rd-party items link several categories; the gate splits them, so the
+        // display must too, or those cards fall back to raw joined text.
+        expect(groupOfCatalogCategory('Wall Sconce, Chandelier', 'Pendant')).toBe('Pendant');
+        expect(groupOfCatalogCategory('Wall Sconce, Chandelier', 'Sconce')).toBe('Sconce');
+        expect(groupOfCatalogCategory('Other / Uncategorized, Recessed Light', 'Recessed')).toBe('Recessed');
+        expect(groupOfCatalogCategory('Other / Uncategorized, Specialty Item', 'Recessed')).toBeNull();
+    });
+
     it('recommendations carry the group alongside the specific catalog category', () => {
         const ctx: EngineContext = {
             history: [], fans: [], thirdPartyItems: [],
@@ -128,7 +137,7 @@ describe('identifiable spec keys', () => {
     it('accepts digit-free manufacturer model names', () => {
         // Every one of these is a real spec off the Firecrest sheet whose exact
         // history precedent displayed the 45% generic cap.
-        for (const spec of ['LUMENPAD', 'FMVCSL', 'AXCENT', 'LUMIERE 1003']) {
+        for (const spec of ['LUMENPAD', 'FMVCSL', 'AXCENT', 'LUMIERE 1003', 'FARO MUD IN']) {
             expect(isIdentifiableSpecKey(spec), `${spec} should read as product identity`).toBe(true);
         }
     });
@@ -264,6 +273,26 @@ describe('identify keeps the typed spec as the history key', () => {
         const r = analyzeLineItem(merged, { ...ctx, referenceDate: '2026-08-10' });
         expect(r.recommendations.map(x => x.bidItem)).toContain('WS-W230301-30-XX');
         expect(r.specCategory).toBe('Outdoor');
+    });
+
+    it('an identified spec that IS a Premier item gets the 99% carry-as-spec card', () => {
+        // Exact-match on the identified key is skipped as a substitution
+        // candidate (rightly — it's the spec); it has to land on the passthrough
+        // path instead of falling through to category-level guesses.
+        const ctx: EngineContext = {
+            history: [], fans: [], thirdPartyItems: [],
+            premierItems: [
+                premier({ id: 'gc', itemId: 'GC-WM-1003-30K-BZ', fixtureCategory: 'Wall Mount', itemDescription: 'LED WALL MOUNT SIGN LIGHT', timesUsed: 5 }),
+            ],
+        };
+        const r = analyzeLineItem(
+            applyIdentifiedSpec(line('R13', 'LUMIERE', 'SIGNLIGHT'), identified('GC-WM-1003-30K-BZ', 'Outdoor')),
+            ctx,
+        );
+        const top = r.recommendations[0];
+        expect(top?.isPassthrough).toBe(true);
+        expect(top?.confidence).toBe(99);
+        expect(top?.matchReason).toContain('Already a Premier');
     });
 
     it('the identified catalog # adds catalog matches the typed one could not reach', () => {

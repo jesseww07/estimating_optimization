@@ -104,11 +104,11 @@ export function isIdentifiableSpecKey(spec: string): boolean {
             .filter(t => /^[A-Z0-9.]+$/.test(t) && /[A-Z]/.test(t) && /\d/.test(t));
         return mixedTokens.length >= 2;
     }
-    // No digits at all: a compact alphabetic model name ("LUMENPAD", "FMVCSL")
-    // is product identity; a phrase is not. Prose and multi-word strings stay
-    // non-identifiable so descriptive specs keep the cap.
-    const words = spec.trim().split(/[\s\-_/]+/).filter(t => t.length >= 2);
-    return words.length <= 2 && !looksLikeProse(spec);
+    // No digits at all: a model name ("LUMENPAD", "FMVCSL", "FARO MUD IN") is
+    // product identity; a description is not. The prose check and the generic-
+    // vocabulary check above are the discriminators — a word count is not one
+    // (it capped "FARO MUD IN" for having three words).
+    return !looksLikeProse(spec);
 }
 
 // Words that name a CATEGORY rather than a product. A spec built only from

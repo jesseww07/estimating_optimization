@@ -35,15 +35,20 @@ export function isIdentifyAvailable(): boolean {
 // estimator's side: the button row swapped to "Identifying (web)…" and never
 // came back (Firecrest review, 2026-08-10). Bounded here so the route always
 // returns something the UI can render, error included.
-const RESEARCH_TIMEOUT_MS = 120_000;
-const EXTRACT_TIMEOUT_MS = 60_000;
+// Budgeted so the WORST case (web = research + extraction) stays under the
+// client-side abort, which in turn stays under the route's maxDuration:
+// 90 + 45 = 135s < 180s browser abort < 300s route. Any retry would break that
+// chain — the SDK's default 2 retries turn a 90s ceiling into a 270s one, and
+// the server would still be doing billable work long after the UI gave up.
+const RESEARCH_TIMEOUT_MS = 90_000;
+const EXTRACT_TIMEOUT_MS = 45_000;
 
 function getClient(timeoutMs: number): Anthropic {
     const apiKey = getApiKey();
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set — identification is unavailable.');
-    // maxRetries 1: a retry multiplies the wall-clock the estimator waits, and
-    // this call is user-triggered per line — failing fast beats hanging.
-    return new Anthropic({ apiKey, timeout: timeoutMs, maxRetries: 1 });
+    // No retries: this call is user-triggered per line and the estimator is
+    // watching it. Failing fast with a message beats a silent second attempt.
+    return new Anthropic({ apiKey, timeout: timeoutMs, maxRetries: 0 });
 }
 
 /** Model is env-switchable; claude-sonnet-5 is the right cost/latency for extraction (decision 2026-07-20). */
