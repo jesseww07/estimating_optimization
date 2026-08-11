@@ -21,6 +21,7 @@ export const TABLES = {
     PREMIER_ITEMS: 'tblXfEOWWjDkpt5tw',
     FANS: 'tblII85uQlaASZMF0',
     THIRD_PARTY_DOMESTIC: 'tbl0CaWIugEoo8gwo',  // Non-PREMCOL items Premier resells but does not manufacture.
+    PRODUCT_CATEGORIES: 'tblwHPGnJO6gYUxTL',    // Category names linked from 3rd Party Domestic Items.
 } as const;
 
 // History table — bid line items from past projects.
@@ -87,4 +88,12 @@ export const THIRD_PARTY_FIELDS = {
     MAX_WATTAGE: 'fldogRWXKSzIXREve',          // "Max Wattage" (singleLineText)
     LIGHT_OUTPUT: 'fld1jB4gYDMZtpKrZ',         // "Light Output" (singleLineText)
     PRODUCT_CATEGORIES: 'fldVZ4Hoz9UYiSj5F',   // "Product Categories" (multipleRecordLinks → Product Categories)
+                                               //   REST returns record IDS here, never names — resolve through
+                                               //   PRODUCT_CATEGORY_FIELDS.NAME or the app renders "recVezggjIVgwPmsg"
+                                               //   as a category badge (Firecrest Ridge review, 2026-08-10).
+} as const;
+
+// Product Categories table — the category vocabulary the 3rd Party catalog links to.
+export const PRODUCT_CATEGORY_FIELDS = {
+    NAME: 'fldRd5i8lylxIteDl',                 // "Name" (singleLineText, primary)
 } as const;

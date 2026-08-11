@@ -29,10 +29,26 @@ export function isIdentifyAvailable(): boolean {
     return getApiKey().length > 0;
 }
 
-function getClient(): Anthropic {
+// Hard latency ceiling per Claude call. The SDK defaults to a 10-minute timeout
+// AND two automatic retries, so a single slow web-lookup could occupy the route
+// for half an hour — which is exactly what "Look up spec" looked like from the
+// estimator's side: the button row swapped to "Identifying (web)…" and never
+// came back (Firecrest review, 2026-08-10). Bounded here so the route always
+// returns something the UI can render, error included.
+// Budgeted so the WORST case (web = research + extraction) stays under the
+// client-side abort, which in turn stays under the route's maxDuration:
+// 90 + 45 = 135s < 180s browser abort < 300s route. Any retry would break that
+// chain — the SDK's default 2 retries turn a 90s ceiling into a 270s one, and
+// the server would still be doing billable work long after the UI gave up.
+const RESEARCH_TIMEOUT_MS = 90_000;
+const EXTRACT_TIMEOUT_MS = 45_000;
+
+function getClient(timeoutMs: number): Anthropic {
     const apiKey = getApiKey();
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set — identification is unavailable.');
-    return new Anthropic({ apiKey });
+    // No retries: this call is user-triggered per line and the estimator is
+    // watching it. Failing fast with a message beats a silent second attempt.
+    return new Anthropic({ apiKey, timeout: timeoutMs, maxRetries: 0 });
 }
 
 /** Model is env-switchable; claude-sonnet-5 is the right cost/latency for extraction (decision 2026-07-20). */
@@ -165,7 +181,7 @@ async function extract(
     userContent: Anthropic.Messages.ContentBlockParam[],
     source: IdentifySource,
 ): Promise<IdentifiedSpec> {
-    const client = getClient();
+    const client = getClient(EXTRACT_TIMEOUT_MS);
     const model = getModel();
     const response = await client.messages.create({
         model,
@@ -226,7 +242,7 @@ export async function identifyFromPdf(pdfBase64: string, line: ParsedLineItem): 
  * as the primary lead.
  */
 export async function identifyFromWeb(line: ParsedLineItem, blockedUrl?: string): Promise<IdentifiedSpec> {
-    const client = getClient();
+    const client = getClient(RESEARCH_TIMEOUT_MS);
     const model = getModel();
     const urlLead = blockedUrl
         ? `\n\nThe estimator pasted this spec link, but the page refused a direct fetch: ${blockedUrl}\n` +

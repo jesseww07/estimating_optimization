@@ -1,13 +1,13 @@
 {
  "datasetFingerprint": "7ad6d0054a7f40e16680eea42a092d7087cf72413199f02d0ffbb34bf509ff1c",
- "generatedAt": "2026-08-05T17:13:18.557Z",
+ "generatedAt": "2026-08-10T22:50:24.424Z",
  "headline": {
   "cases": 966,
   "top1Rate": 14.6,
-  "top3Rate": 18.12,
-  "junkRate": 40.06,
+  "top3Rate": 18.22,
+  "junkRate": 39.96,
   "silentRate": 41.82,
-  "autoWrongRate": 5.69
+  "autoWrongRate": 0.83
  },
  "caseOutcomes": {
   "1868 Ogden::ale2497315": "silent",
@@ -563,7 +563,7 @@
   "Havana::urbanbarn": "silent",
   "Headwaters Gilbert::65821r140w30k": "junk",
   "Headwaters Gilbert::65821r150w30k": "junk",
-  "Headwaters Gilbert::65840": "junk",
+  "Headwaters Gilbert::65840": "top1",
   "Headwaters Gilbert::bvyw0410lajudsn": "silent",
   "Headwaters Gilbert::lsms48500wwbk": "silent",
   "Headwaters Gilbert::tbdnospec": "junk",
@@ -693,7 +693,7 @@
   "Lompa::corridordownlights": "top3",
   "Lompa::csvtl48alo3mvoltsww380cri": "top1",
   "Lompa::exitsign": "top3",
-  "Lompa::festoonlights": "top1",
+  "Lompa::festoonlights": "top3",
   "Lompa::jsf13in": "junk",
   "Lompa::p1001fbled": "silent",
   "Lompa::wallmountedoutdoorcoachlantern": "junk",
@@ -768,7 +768,7 @@
   "Marina Square::4downlight": "junk",
   "Marina Square::bugeyetbd": "junk",
   "Marina Square::downlighttbd": "top3",
-  "Marina Square::fantbd": "junk",
+  "Marina Square::fantbd": "top1",
   "Marina Square::jb3ledesssv": "silent",
   "Marina Square::lcs430mleu": "silent",
   "Marina Square::lxen430xwrfaedu": "silent",

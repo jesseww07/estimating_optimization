@@ -3,6 +3,7 @@
  * Ported from harvest/index.tsx (~788–1085). No React, no Airtable, no Next.
  */
 
+import { CATEGORY_TAXONOMY, splitCategoryList } from './categories';
 import { SERIES_CATEGORY_MAP } from './series-categories';
 
 // ── Text similarity (harvest ~788) ───────────────────────────────────────────
@@ -84,15 +85,55 @@ export function significantSpecTokens(spec: string): string[] {
  */
 export function isIdentifiableSpecKey(spec: string): boolean {
     const norm = normalizeProductId(spec);
-    if (norm.length < 6 || !/\d/.test(norm)) return false;
-    if (!looksLikeProse(spec)) return true;
-    // Space-separated part numbers ("DSXB LED P1 40K") trip the prose check on
-    // vocabulary like LED, but option-grammar tokens — letter+digit mixes such
-    // as P1, 40K, T4M — are part-number DNA that descriptive prose doesn't
-    // have. Two or more rescue the string as catalog-style.
-    const mixedTokens = spec.toUpperCase().split(/[-_/\s]+/)
-        .filter(t => /^[A-Z0-9.]+$/.test(t) && /[A-Z]/.test(t) && /\d/.test(t));
-    return mixedTokens.length >= 2;
+    if (norm.length < 6) return false;
+    // Category vocabulary is not identity: "NO SPEC", "DOWNLIGHT", "WALL PACK"
+    // all normalize to stable keys that equality-match other rows carrying the
+    // same WORD. This is the real discriminator — the old "must contain a
+    // digit" proxy also rejected genuine digit-free series names (Firecrest
+    // Ridge, 2026-08-10: LUMENPAD, FMVCSL, AXCENT are Liton / Lithonia /
+    // Lumark products, and every one of their exact-history precedents
+    // displayed the 45% generic cap and was blocked from auto-select).
+    if (isGenericSpecVocabulary(spec)) return false;
+    if (/\d/.test(norm)) {
+        if (!looksLikeProse(spec)) return true;
+        // Space-separated part numbers ("DSXB LED P1 40K") trip the prose check on
+        // vocabulary like LED, but option-grammar tokens — letter+digit mixes such
+        // as P1, 40K, T4M — are part-number DNA that descriptive prose doesn't
+        // have. Two or more rescue the string as catalog-style.
+        const mixedTokens = spec.toUpperCase().split(/[-_/\s]+/)
+            .filter(t => /^[A-Z0-9.]+$/.test(t) && /[A-Z]/.test(t) && /\d/.test(t));
+        return mixedTokens.length >= 2;
+    }
+    // No digits at all: a model name ("LUMENPAD", "FMVCSL", "FARO MUD IN") is
+    // product identity; a description is not. The prose check and the generic-
+    // vocabulary check above are the discriminators — a word count is not one
+    // (it capped "FARO MUD IN" for having three words).
+    return !looksLikeProse(spec);
+}
+
+// Words that name a CATEGORY rather than a product. A spec built only from
+// these is vocabulary, not identity — see isIdentifiableSpecKey.
+const GENERIC_SPEC_WORDS = new Set([
+    // Placeholders
+    'NO', 'SPEC', 'SPECIFIED', 'TBD', 'RFI', 'NONE', 'NA', 'UNKNOWN', 'MISSING',
+    'SEE', 'PLANS', 'PLAN', 'SCHEDULE', 'BY', 'OTHERS', 'OWNER', 'FURNISHED', 'PROVIDED',
+    // Fixture vocabulary
+    'LIGHT', 'LIGHTS', 'LIGHTING', 'FIXTURE', 'FIXTURES', 'LAMP', 'BULB', 'LED',
+    'DOWNLIGHT', 'DOWN', 'CAN', 'RECESSED', 'DISK', 'DISC', 'TRIM',
+    'VANITY', 'SCONCE', 'PENDANT', 'CHANDELIER', 'MIRROR', 'FAN',
+    'LINEAR', 'STRIP', 'TAPE', 'TROFFER', 'PANEL', 'WRAP',
+    'EXIT', 'EMERGENCY', 'EGRESS', 'SIGN', 'EM', 'EMG',
+    'CEILING', 'WALL', 'PACK', 'WALLPACK', 'SURFACE', 'MOUNT', 'MOUNTED', 'FLUSH', 'SEMI',
+    'POLE', 'POST', 'TOP', 'BOLLARD', 'AREA', 'FLOOD', 'SITE', 'STEP', 'PATH', 'TRACK',
+    'CABINET', 'UNDER', 'UNDERCABINET', 'UNDERCAB', 'CLOSET', 'SHELF',
+    'UNIT', 'TYPE', 'ITEM', 'NEW', 'EXISTING', 'TYPICAL', 'TYP', 'AND', 'OR', 'THE', 'WITH',
+]);
+
+/** True when every word in a spec is category vocabulary rather than product identity. */
+function isGenericSpecVocabulary(spec: string): boolean {
+    const words = spec.toUpperCase().split(/[^A-Z0-9]+/).filter(w => w.length >= 2);
+    if (words.length === 0) return true;
+    return words.every(w => GENERIC_SPEC_WORDS.has(w) || /^\d+$/.test(w));
 }
 
 /**
@@ -517,24 +558,15 @@ export function looksLikeProse(s: string): boolean {
 
 // ── Category vocabulary mapping ───────────────────────────────────────────────
 // The detector's labels are broad groupings; the Premier Items "Fixture Category"
-// singleSelect carries 30+ specific choices ("Post/Pier Head", "LED Mirror",
-// "Disk Light", …). Pulled from the live base 2026-07-20. The old substring
-// overlap silently matched almost nothing ("Outdoor" vs "Post/Pier Head") —
-// gate through this map instead.
-export const CATEGORY_GROUPS: Record<string, string[]> = {
-    'Ceiling Fan': ['Ceiling Fan', 'Ceiling Fans + Accessories'],
-    'Vanity': ['Vanity'],
-    'Mirror': ['LED Mirror'],
-    'Pendant': ['Pendant', 'Chandelier', 'Linear / Island Chandeliers'],
-    'Sconce': ['Sconce', 'Wall Sconce', 'Wall Mount', 'Outdoor Wall Sconce'],
-    'Outdoor Pole': ['Post/Pier Head', 'Post & Bollard'],
-    'Outdoor': ['Post/Pier Head', 'Post & Bollard', 'Flood Light', 'Outdoor Wall Sconce', 'Wall Mount'],
-    'Exit/Emergency': ['Exit Sign', 'Exit Sign / EMG'],
-    'Recessed': ['Disk Light', 'Downlight'],
-    'Linear': ['Linear Surface Mount', 'Surface Mount'],
-    'Undercabinet': ['Undercabinet / Tape Light + Connectors', 'Surface Mount'],
-    'Ceiling': ['Ceiling Mount', 'Flush / Surface Mount', 'Surface Mount'],
-};
+// singleSelect carries 35 specific choices ("Pole Heads", "LED Mirror",
+// "Disk Light", …). The vocabulary now lives in ./categories.ts, which pairs the
+// Premier choices with the 3rd-party Product Categories names for the same group
+// and powers the shared display label — see that file for why (the old map here
+// named three choices that don't exist in the live base, so "Outdoor Pole"
+// matched nothing at all).
+export const CATEGORY_GROUPS: Record<string, string[]> = Object.fromEntries(
+    Object.entries(CATEGORY_TAXONOMY).map(([group, def]) => [group, def.premier]),
+);
 
 /**
  * True when a catalog item's Fixture Category is acceptable for the inferred
@@ -613,15 +645,21 @@ export function isBulbLampLine(mark: string, catalogNumber: string, manufacturer
  * is a display string of linked category names (possibly several, comma
  * joined) rather than a single select. Conservative: an item with no category
  * signal never qualifies for the in-category fallback.
+ *
+ * The 3rd-party table has its OWN category vocabulary ("Recessed Light",
+ * "Exit / Emergency", "Area Light"), not the Premier one — matching it against
+ * the Premier choices is why this gate used to reject the whole resold catalog
+ * whenever a spec's category was known.
  */
 export function thirdPartyCategoriesCompatible(inferredLabel: string, productCategories: string): boolean {
     if (!inferredLabel || !productCategories) return false;
-    const cats = productCategories.toLowerCase();
-    const group = CATEGORY_GROUPS[inferredLabel];
-    if (group) {
-        return group.some(g => cats.includes(g.toLowerCase()));
+    const cats = splitCategoryList(productCategories).map(c => c.toLowerCase());
+    if (cats.length === 0) return false;
+    const def = CATEGORY_TAXONOMY[inferredLabel];
+    if (def) {
+        return def.thirdParty.some(g => cats.includes(g.toLowerCase()));
     }
-    return cats.includes(inferredLabel.toLowerCase());
+    return cats.some(c => c.includes(inferredLabel.toLowerCase()));
 }
 
 // ── Accessory detection (Collective MedSpa review, 2026-07-28) ───────────────

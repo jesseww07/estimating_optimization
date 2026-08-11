@@ -42,8 +42,8 @@ const CTX: EngineContext = {
     thirdPartyItems: [],
     fans: [],
     premierItems: [
-        premier({ id: 'p1', itemId: 'GC-PPH-D25-30K', fixtureCategory: 'Post/Pier Head', itemDescription: 'LED POLE HEAD DOUBLE 25FT MOUNT', timesUsed: 40 }),
-        premier({ id: 'p2', itemId: 'GC-PB-BOL-36', fixtureCategory: 'Post & Bollard', itemDescription: '36" LED BOLLARD', timesUsed: 12 }),
+        premier({ id: 'p1', itemId: 'GC-PPH-D25-30K', fixtureCategory: 'Pole Heads', itemDescription: 'LED POLE HEAD DOUBLE 25FT MOUNT', timesUsed: 40 }),
+        premier({ id: 'p2', itemId: 'GC-PB-BOL-36', fixtureCategory: 'Bollards', itemDescription: '36" LED BOLLARD', timesUsed: 12 }),
         premier({ id: 'v22', itemId: 'GC-VAN-LED-22-30K', fixtureCategory: 'Vanity', itemDescription: '22" LED VANITY BAR BRUSHED NICKEL', timesUsed: 18 }),
         premier({ id: 'v34', itemId: 'GC-VAN-LED-34-30K', fixtureCategory: 'Vanity', itemDescription: '34" LED VANITY BAR BRUSHED NICKEL', timesUsed: 22 }),
         premier({ id: 'wm', itemId: 'GC-WM-100-30K', fixtureCategory: 'Wall Mount', itemDescription: 'LED WALL MOUNT UP/DOWN', timesUsed: 30 }),
@@ -85,11 +85,11 @@ describe('category detection from real Camino Del Rio rows', () => {
 });
 
 describe('in-category fallback recommendations', () => {
-    it('site pole gets Post/Pier Head + Post & Bollard candidates, never wall mounts or silence', () => {
+    it('site pole gets Pole Heads + Bollards candidates, never wall mounts or silence', () => {
         const r = analyzeLineItem(line("OP1A - 20' POLE", 'WE-EF', '693-1234-3X3-9004 POLE'), CTX);
         expect(r.recommendations.length).toBeGreaterThan(0);
         for (const cat of categories(r)) {
-            expect(['Post/Pier Head', 'Post & Bollard']).toContain(cat);
+            expect(['Pole Heads', 'Bollards']).toContain(cat);
         }
         expect(itemIds(r)).toContain('GC-PPH-D25-30K');
     });
@@ -182,7 +182,7 @@ describe('3rd-party items in the in-category fallback (Phase 2 backlog)', () => 
         ],
         thirdPartyItems: [
             third('t1', 'SAT-VAN-22', 'Vanity', '22" VANITY BAR BUDGET LED'),
-            third('t2', 'WG-POLE-25', 'Post/Pier Head', 'LED POLE HEAD', 'WESTGATE'),
+            third('t2', 'WG-POLE-25', 'Poles', 'LED POLE HEAD', 'WESTGATE'),
         ],
     };
 
@@ -232,7 +232,7 @@ describe('Candlewood tuning', () => {
             premier({ id: 'v22', itemId: 'GC-VAN-LED-22-30K', fixtureCategory: 'Vanity', itemDescription: '22" LED VANITY BAR', timesUsed: 18 }),
             premier({ id: 'mir', itemId: 'GC-MIR-4836-BL', fixtureCategory: 'LED Mirror', itemDescription: '48"X36" BACKLIT LED FRONT LIT MIRROR', timesUsed: 9 }),
             premier({ id: 'sc', itemId: 'GC-WB337-BK', fixtureCategory: 'Sconce', itemDescription: 'WALL SCONCE BLACK', timesUsed: 22 }),
-            premier({ id: 'bol', itemId: '4" RD-120-94', fixtureCategory: 'Post & Bollard', itemDescription: '4 INCH BOLLARD', timesUsed: 3 }),
+            premier({ id: 'bol', itemId: '4" RD-120-94', fixtureCategory: 'Bollards', itemDescription: '4 INCH BOLLARD', timesUsed: 3 }),
         ],
         thirdPartyItems: [
             lamp('t-a15', 'S12407', '8.2W A15 MED BASE LED 30K DIM 90CRI', '3000', '8.20'),
@@ -482,7 +482,7 @@ describe('3rd & Flower: 3rd-party direct matching tier', () => {
             {
                 id: 't-f896', itemId: 'F896-65-WHF', itemDescription: 'MINKA AIRE 65" XTREME H2O FLAT WHITE',
                 manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '',
-                productCategories: 'Ceiling Fans + Accessories',
+                productCategories: 'Ceiling Fan',
             },
             {
                 id: 't-rod', itemId: 'DR524-CL', itemDescription: 'MOUNTING DOWNROD 24" FOR CEILING FAN',
@@ -537,7 +537,7 @@ describe('3rd & Flower: fan-span and accessory-history gates', () => {
             {
                 id: 't-f896', itemId: 'F896-65-WHF', itemDescription: 'MINKA AIRE 65" XTREME H2O FLAT WHITE',
                 manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '',
-                productCategories: 'Ceiling Fans + Accessories',
+                productCategories: 'Ceiling Fan',
             },
             {
                 id: 't-rod', itemId: 'DR524-CL', itemDescription: 'MOUNTING DOWNROD 24" FOR CEILING FAN',
@@ -587,12 +587,12 @@ describe('3rd & Flower: resold-as-spec and as-spec history echoes', () => {
             {
                 id: 't-cl', itemId: 'F896-65-CL', itemDescription: 'MINKA AIRE 65" XTREME H2O COAL',
                 manufacturer: 'MINKA AIRE', finish: 'COAL', colorTemp: '', maxWattage: '', lightOutput: '',
-                productCategories: 'Ceiling Fans + Accessories',
+                productCategories: 'Ceiling Fan',
             },
             {
                 id: 't-whf', itemId: 'F896-65-WHF', itemDescription: 'MINKA AIRE 65" XTREME H2O FLAT WHITE',
                 manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '',
-                productCategories: 'Ceiling Fans + Accessories',
+                productCategories: 'Ceiling Fan',
             },
         ],
     };
@@ -701,8 +701,8 @@ describe('Largo Station: end-to-end exemplars', () => {
             premier({ id: 'efv40', itemId: 'EFV-002-LED40-PATU-MV-WH-O-DIM-4FT', fixtureCategory: 'Surface Mount', itemDescription: 'LED VAPOR TIGHT 40W 4FT', timesUsed: 58 }),
             premier({ id: 'efv75', itemId: 'EFV-002-LED75-PATU-MV-WH-O-DIM-4FT', fixtureCategory: 'Surface Mount', itemDescription: 'LED VAPOR TIGHT 75W 4FT', timesUsed: 12 }),
             premier({ id: 'efs40', itemId: 'EFS-001-LED40-PATU-MV-WH-O-DIM-4FT', fixtureCategory: 'Surface Mount', itemDescription: 'LED WRAP 40W 4FT', timesUsed: 44 }),
-            premier({ id: 'sat100', itemId: 'GC-SAT-LED-100W-30k-T3-MV-BZ', fixtureCategory: 'Post/Pier Head', itemDescription: 'LED AREA LIGHT 100W TYPE 3', timesUsed: 20 }),
-            premier({ id: 'cont100', itemId: 'CONT-S-100-30K-MV-SM-T3-D-BZ', fixtureCategory: 'Post/Pier Head', itemDescription: 'LED POLE HEAD 100W', timesUsed: 15 }),
+            premier({ id: 'sat100', itemId: 'GC-SAT-LED-100W-30k-T3-MV-BZ', fixtureCategory: 'Pole Heads', itemDescription: 'LED AREA LIGHT 100W TYPE 3', timesUsed: 20 }),
+            premier({ id: 'cont100', itemId: 'CONT-S-100-30K-MV-SM-T3-D-BZ', fixtureCategory: 'Pole Heads', itemDescription: 'LED POLE HEAD 100W', timesUsed: 15 }),
         ],
         history: [
             // BH's answer, thrown away by the engine @ PR #6: Flourney bid the
@@ -744,7 +744,7 @@ describe('Largo Station: end-to-end exemplars', () => {
         expect(top.matchType).toBe('fuzzy');
         expect(top.confidence).toBeLessThanOrEqual(75);           // family cap
         for (const rec of r.recommendations) {
-            expect(rec.productCategory).not.toBe('Post/Pier Head');
+            expect(rec.productCategory).not.toBe('Pole Heads');
             expect(rec.premierItem ?? '').not.toMatch(/GC-SAT|CONT-S/);
         }
     });
@@ -805,7 +805,7 @@ describe('Largo Station: end-to-end exemplars', () => {
     it('BD without any type hint: silence over cross-category junk', () => {
         const r = analyzeLineItem(line('BD', 'HE WILLIAMS', '75L-4-L50/835-AF12125-EM/10WLP-DIM-UNV'), LARGO_CTX);
         for (const rec of r.recommendations) {
-            expect(rec.productCategory).not.toBe('Post/Pier Head');
+            expect(rec.productCategory).not.toBe('Pole Heads');
         }
     });
 
@@ -819,7 +819,7 @@ describe('null-category junk gate (backlog #5)', () => {
     const POLE_CTX: EngineContext = {
         history: [], thirdPartyItems: [], fans: [],
         premierItems: [
-            premier({ id: 'cont100', itemId: 'CONT-S-100-30K-MV-SM-T3-D-BZ', fixtureCategory: 'Post/Pier Head', itemDescription: 'LED POLE HEAD 100W', timesUsed: 15 }),
+            premier({ id: 'cont100', itemId: 'CONT-S-100-30K-MV-SM-T3-D-BZ', fixtureCategory: 'Pole Heads', itemDescription: 'LED POLE HEAD 100W', timesUsed: 15 }),
         ],
     };
 
