@@ -14,6 +14,7 @@ import { analyzeLineItem } from '@/lib/engine/recommend';
 import { coerceLineItem } from '@/lib/parse/coerce';
 import { extractUrlsFromCells } from '@/lib/parse/workbook';
 import { htmlToText, isFetchableSpecUrl } from '@/lib/identify/fetchUrl';
+import { ACCEPTED_MEDIA_LABEL, PDF_MEDIA, detectSupportedMedia, mediaContentBlock } from '@/lib/identify/media';
 
 const premier = (o: Partial<PremierItemRow> & Pick<PremierItemRow, 'id' | 'itemId' | 'fixtureCategory'>): PremierItemRow => ({
     itemDescription: '',
@@ -229,5 +230,51 @@ describe('schedule PDF row mapping', async () => {
         ]);
         expect(items).toHaveLength(1);
         expect(items[0]!.catalogNumber).toBe('20FT POLE DOUBLE HEAD');
+    });
+});
+
+// ── Intake hardening (2026-08-31): schedules and cut sheets as images ───────
+
+describe('upload media detection', () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46]);
+    const gif = Buffer.concat([Buffer.from('GIF89a', 'latin1'), Buffer.from([0x01, 0x00, 0x01, 0x00])]);
+    const webp = Buffer.concat([Buffer.from('RIFF', 'latin1'), Buffer.from([0x1a, 0, 0, 0]), Buffer.from('WEBPVP8 ', 'latin1')]);
+    const pdf = Buffer.from('%PDF-1.7\n1 0 obj\n', 'latin1');
+
+    it('reads the media type from the bytes, not the filename', () => {
+        // Every one of these arrives from the browser as some other extension or
+        // an empty MIME at least some of the time.
+        expect(detectSupportedMedia(pdf)).toEqual(PDF_MEDIA);
+        expect(detectSupportedMedia(png)?.mediaType).toBe('image/png');
+        expect(detectSupportedMedia(jpeg)?.mediaType).toBe('image/jpeg');
+        expect(detectSupportedMedia(gif)?.mediaType).toBe('image/gif');
+        expect(detectSupportedMedia(webp)?.mediaType).toBe('image/webp');
+    });
+
+    it('rejects sheets and junk so they fall through to the workbook parser', () => {
+        expect(detectSupportedMedia(Buffer.from('MARK,QTY,MAN,CATALOG #\nP1,4,RAB,ALED26\n'))).toBeNull();
+        expect(detectSupportedMedia(Buffer.from([0x50, 0x4b, 0x03, 0x04]))).toBeNull(); // xlsx (zip)
+        expect(detectSupportedMedia(Buffer.alloc(0))).toBeNull();
+        expect(detectSupportedMedia(Buffer.from('RIFF____AVI ', 'latin1'))).toBeNull();
+    });
+
+    it('sends a PDF as a document block and an image as an image block', () => {
+        const doc = mediaContentBlock(PDF_MEDIA, 'QkFTRTY0');
+        expect(doc.type).toBe('document');
+        if (doc.type === 'document' && doc.source.type === 'base64') {
+            expect(doc.source.media_type).toBe('application/pdf');
+            expect(doc.source.data).toBe('QkFTRTY0');
+        }
+        const media = detectSupportedMedia(jpeg)!;
+        const img = mediaContentBlock(media, 'QkFTRTY0');
+        expect(img.type).toBe('image');
+        if (img.type === 'image' && img.source.type === 'base64') {
+            expect(img.source.media_type).toBe('image/jpeg');
+        }
+    });
+
+    it('names what is accepted so an error string can teach the fix', () => {
+        expect(ACCEPTED_MEDIA_LABEL).toBe('PDF, PNG, JPEG, WebP, or GIF');
     });
 });

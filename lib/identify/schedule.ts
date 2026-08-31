@@ -1,14 +1,19 @@
 /**
- * SERVER-ONLY fixture-schedule PDF extraction (pulled forward from Phase 3,
+ * SERVER-ONLY fixture-schedule extraction (pulled forward from Phase 3,
  * 2026-07-28 — Jesse hit the upload wall in live use).
  *
  * One Claude call per uploaded document (user-triggered, token usage logged —
  * consistent with the Phase 2 cost guardrails): the schedule grid comes back
  * as structured line items that feed the exact same recommendation flow as a
  * pre-converted CSV/XLSX.
+ *
+ * The document may be a PDF or an image (2026-08-31) — schedules arrive as
+ * phone photos and screenshots, and Claude reads both through the same vision
+ * path. `media` decides which content block and media type they are sent as.
  */
 
 import { createAnthropicClient, getApiKey } from './anthropic';
+import { mediaContentBlock, type SupportedMedia } from './media';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { ParsedLineItem } from '../types';
 
@@ -45,7 +50,7 @@ const SCHEDULE_SCHEMA = {
     },
 } as const;
 
-const SCHEDULE_PROMPT = `The attached PDF is a lighting fixture schedule (or bid sheet) from a construction project.
+const SCHEDULE_PROMPT = `The attached document is a lighting fixture schedule (or bid sheet) from a construction project.
 Extract EVERY fixture line item in document order. Rules:
 - One entry per fixture row. Do not invent rows; do not merge distinct rows.
 - catalogNumber must be verbatim from the document, including option suffixes. Never abbreviate it.
@@ -100,8 +105,14 @@ export function scheduleRowsToLineItems(rows: ScheduleRow[]): ParsedLineItem[] {
     return items;
 }
 
-export async function extractScheduleFromPdf(pdfBase64: string): Promise<ParsedLineItem[]> {
-    if (!getApiKey()) throw new Error('ANTHROPIC_API_KEY is not set — PDF schedule parsing is unavailable.');
+/**
+ * Read a fixture schedule (PDF or image) into line items.
+ *
+ * Named for the document rather than the format: the same call reads a phone
+ * photo of a schedule taped to a wall.
+ */
+export async function extractScheduleFromDocument(base64: string, media: SupportedMedia): Promise<ParsedLineItem[]> {
+    if (!getApiKey()) throw new Error('ANTHROPIC_API_KEY is not set — schedule parsing is unavailable.');
     const client = createAnthropicClient();
     const model = getModel();
 
@@ -114,7 +125,7 @@ export async function extractScheduleFromPdf(pdfBase64: string): Promise<ParsedL
         messages: [{
             role: 'user',
             content: [
-                { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+                mediaContentBlock(media, base64),
                 { type: 'text', text: SCHEDULE_PROMPT },
             ],
         }],
@@ -128,7 +139,7 @@ export async function extractScheduleFromPdf(pdfBase64: string): Promise<ParsedL
         throw new Error('Schedule extraction declined by the model (refusal).');
     }
     if (response.stop_reason === 'max_tokens') {
-        throw new Error('Schedule too large — extraction output was truncated. Split the PDF and try again.');
+        throw new Error('Schedule too large — extraction output was truncated. Split the document and try again.');
     }
     const text = response.content.find((b): b is Anthropic.Messages.TextBlock => b.type === 'text')?.text ?? '';
     if (!text) throw new Error('Schedule extraction returned no output.');
