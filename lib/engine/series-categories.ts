@@ -12,9 +12,9 @@
  * series learned from one past job (real knowledge for the next bid) cannot
  * be used to score that same job.
  *
- * Source snapshot: fetched 2026-07-29T19:49:10.000Z (9479 history rows)
- * Series learned: 129 (from 653 usable linked rows —
- * 480 Premier-linked, 173 3rd-party-linked;
+ * Source snapshot: fetched 2026-08-31T22:59:32.744Z (9485 history rows)
+ * Series learned: 128 (from 663 usable linked rows —
+ * 487 Premier-linked, 176 3rd-party-linked;
  * support ≥ 2 rows, agreement ≥ 80%).
  * 90 of them rest on a single project — legitimate for the next
  * bid, and invisible to the eval by construction.
@@ -41,7 +41,6 @@ export const SERIES_CATEGORY_MAP: Record<string, string> = {
     "bs100led": "Linear", // 5/5 rows, 3 projects
     "bva": "Recessed", // 4/4 rows, 1 project
     "bva002": "Recessed", // 9/9 rows, 1 project
-    "cer": "Sconce", // 2/2 rows, 2 projects
     "cite": "Linear", // 2/2 rows, 1 project
     "clx": "Linear", // 13/13 rows, 3 projects
     "clxl48": "Linear", // 6/6 rows, 1 project
