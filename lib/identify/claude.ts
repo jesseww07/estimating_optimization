@@ -11,6 +11,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient, isIdentifyAvailable } from './anthropic';
 import { CATEGORY_GROUPS } from '../engine/matcher';
 import type { ParsedLineItem } from '../types';
 import type { IdentifiedSpec, IdentifySource } from './types';
@@ -19,15 +20,7 @@ if (typeof window !== 'undefined') {
     throw new Error('lib/identify/claude.ts is server-only and must never be bundled for the browser.');
 }
 
-function getApiKey(): string {
-    // Trim defensively, same as AIRTABLE_PAT: a trailing newline pasted into the
-    // Vercel env editor turns into an auth error that is miserable to spot.
-    return (process.env.ANTHROPIC_API_KEY ?? '').trim();
-}
-
-export function isIdentifyAvailable(): boolean {
-    return getApiKey().length > 0;
-}
+export { isIdentifyAvailable };
 
 // Hard latency ceiling per Claude call. The SDK defaults to a 10-minute timeout
 // AND two automatic retries, so a single slow web-lookup could occupy the route
@@ -44,11 +37,9 @@ const RESEARCH_TIMEOUT_MS = 90_000;
 const EXTRACT_TIMEOUT_MS = 45_000;
 
 function getClient(timeoutMs: number): Anthropic {
-    const apiKey = getApiKey();
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set — identification is unavailable.');
-    // No retries: this call is user-triggered per line and the estimator is
-    // watching it. Failing fast with a message beats a silent second attempt.
-    return new Anthropic({ apiKey, timeout: timeoutMs, maxRetries: 0 });
+    // Credentials, retry policy, and the identity-linked-key workspace header
+    // all live in ./anthropic — see that module for why the header is required.
+    return createAnthropicClient({ timeoutMs });
 }
 
 /** Model is env-switchable; claude-sonnet-5 is the right cost/latency for extraction (decision 2026-07-20). */

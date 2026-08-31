@@ -8,15 +8,12 @@
  * pre-converted CSV/XLSX.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient, getApiKey } from './anthropic';
+import type Anthropic from '@anthropic-ai/sdk';
 import type { ParsedLineItem } from '../types';
 
 if (typeof window !== 'undefined') {
     throw new Error('lib/identify/schedule.ts is server-only and must never be bundled for the browser.');
-}
-
-function getApiKey(): string {
-    return (process.env.ANTHROPIC_API_KEY ?? '').trim();
 }
 
 function getModel(): string {
@@ -100,9 +97,8 @@ export function scheduleRowsToLineItems(rows: ScheduleRow[]): ParsedLineItem[] {
 }
 
 export async function extractScheduleFromPdf(pdfBase64: string): Promise<ParsedLineItem[]> {
-    const apiKey = getApiKey();
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set — PDF schedule parsing is unavailable.');
-    const client = new Anthropic({ apiKey });
+    if (!getApiKey()) throw new Error('ANTHROPIC_API_KEY is not set — PDF schedule parsing is unavailable.');
+    const client = createAnthropicClient();
     const model = getModel();
 
     // Streamed on purpose: a long schedule can produce well past the safe
