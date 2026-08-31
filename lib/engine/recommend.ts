@@ -52,6 +52,7 @@ import {
     looksLikeProse,
     normalizeProductId,
     normalizeSpecKey,
+    seriesCategory,
     specWantsAccessory,
     thirdPartyCategoriesCompatible,
 } from './matcher';
@@ -123,6 +124,13 @@ const GENERIC_SPEC_CONFIDENCE_CAP = 45;
 // scores 85+ — identifies a product well enough to default-select it; token
 // overlap stays one click away.
 const MIN_DIRECT_MATCH_AUTOSELECT = 85;
+
+// Item-# similarity an OFF-CATEGORY candidate must reach to be admitted at all.
+// It is only in the running because the spec's category was a regex guess rather
+// than evidence, so it has to stand on its own item-# resemblance — well above
+// the 40 an in-category candidate gets, and above the 55 the null-category junk
+// gate demands. Candidates admitted this way are never pre-checked.
+const OFF_CATEGORY_ID_FLOOR = 85;
 
 // Family-tier confidence shape (Phase 4, backlog #2): graduated, sub-authoritative.
 // base + 15 per recency-weighted family swap, capped at 75. One undated swap
@@ -674,6 +682,26 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         (description ? detectFixtureCategory('', description, manufacturer) : null);
     const inferredCategory = identifiedCategory ?? detectedCategory ?? identifiedLabel;
 
+    // ── How much should the category gate be trusted? (Phase 4, measured) ────
+    // The category gate is a hard `continue` in every tier. Measured against the
+    // frozen corpus, that gate BLOCKS THE CORRECT ANSWER on 223 of 386 junk
+    // cases (57.8%) — the labeled item exists in the catalog and clears the
+    // dimension and accessory gates, but its catalog category disagrees with the
+    // one the detector guessed. That is the largest single failure the engine has
+    // after outright silence.
+    //
+    // The fix is not to weaken the gate everywhere — it is to weaken it exactly
+    // where the category is a GUESS. Provenance, strongest first:
+    //   identification — read off the real spec sheet or product page
+    //   learned series — 3+ linked estimator decisions agree on what this series is
+    //   heuristic      — a regex fired on the mark or catalog text
+    // The first two stay hard gates. The third demotes instead of eliminating,
+    // and only for candidates carrying strong item-# evidence of their own.
+    const categoryFromIdentification = identifiedCategory !== null;
+    const categoryFromLearnedSeries = !categoryFromIdentification && !!detectedCategory &&
+        seriesCategory(catalogNumber) === detectedCategory;
+    const categoryIsHeuristic = !!inferredCategory && !categoryFromIdentification && !categoryFromLearnedSeries;
+
     // The dimension signature the spec exposes — candidates are gated against this.
     const specDimensionText = `${mark} ${catalogNumber}`;
 
@@ -1178,9 +1206,11 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             const itemId = item.itemId;
             const category = item.fixtureCategory;
 
-            // If we have a confident fixture category inference, skip Premier Items
-            // whose Fixture Category is outside the inferred label's vocabulary group.
-            if (inferredCategory && category && !categoriesCompatible(inferredCategory, category)) continue;
+            // Category gate. A category backed by identification or learned series
+            // evidence eliminates; a regex GUESS only demotes — see the provenance
+            // block above for the 223-case measurement behind this.
+            const offCategory = !!(inferredCategory && category && !categoriesCompatible(inferredCategory, category));
+            if (offCategory && !categoryIsHeuristic) continue;
 
             // Dimension hard-gate: a candidate matching on category but dimensionally
             // incompatible must be blocked, not just demoted.
@@ -1203,7 +1233,10 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 // heads for a vapor-tight at 43%). An unknown category demands
                 // stronger identity evidence; the identify flow absorbs the
                 // silence this trades junk for.
-                const idScoreFloor = inferredCategory ? 40 : 55;
+                // An off-category candidate admitted only because the category was a
+                // guess must pay for it: it needs real item-# evidence, not the 40
+                // that in-category candidates get.
+                const idScoreFloor = offCategory ? OFF_CATEGORY_ID_FLOOR : inferredCategory ? 40 : 55;
                 if (idScore >= idScoreFloor) {
                     score += idScore * 0.7;
                     identityScore = Math.max(identityScore, idScore);
@@ -1234,9 +1267,11 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 // Category is always stated on the card, with the spec-side
                 // verdict: candidates here have already passed the category
                 // gate whenever the spec's category is known.
-                matchDetails.push(inferredCategory
-                    ? `Category: ${category} — compatible with the spec's (${inferredCategory})`
-                    : `Category: ${category} (spec's category unknown — no category check possible)`);
+                matchDetails.push(offCategory
+                    ? `⚠ Category: ${category} — differs from the spec's inferred category (${inferredCategory}), which is a text heuristic, not a confirmed reading. Shown because the item # matches strongly; verify the category before accepting.`
+                    : inferredCategory
+                        ? `Category: ${category} — compatible with the spec's (${inferredCategory})`
+                        : `Category: ${category} (spec's category unknown — no category check possible)`);
             }
 
             if (item.timesUsed > 0) {
@@ -1256,7 +1291,9 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     lightOutput: item.lightOutput || undefined,
                 };
 
-                const identified = identityScore >= MIN_DIRECT_MATCH_AUTOSELECT;
+                // Off-category candidates never pre-check: the whole reason they are
+                // here is that the engine is unsure what the spec IS.
+                const identified = identityScore >= MIN_DIRECT_MATCH_AUTOSELECT && !offCategory;
                 recommendations.push({
                     id: item.id,
                     source: 'Premier Items',
@@ -1271,7 +1308,9 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                     categoryGroup: groupOfCatalogCategory(category, inferredCategory),
                     autoSelectSafe: identified,
                     ...(identified ? {} : {
-                        autoSelectReason: 'Not pre-checked: catalog text resemblance, not a confirmed item # or a past estimator decision.',
+                        autoSelectReason: offCategory
+                            ? `Not pre-checked: this item's category (${category}) differs from the spec's inferred one (${inferredCategory}) — it is shown on item-# resemblance alone.`
+                            : 'Not pre-checked: catalog text resemblance, not a confirmed item # or a past estimator decision.',
                     }),
                     premierLinkId: item.id,
                 });
