@@ -96,6 +96,43 @@ describe('engine category override from identification', () => {
         const result = analyzeLineItem(merged, CTX);
         expect(result.recommendations).toHaveLength(0);
     });
+
+    // The category is a HARD GATE on every tier, so the confidence the identifier
+    // reported has to matter. LOW means "identification is a guess" (identify
+    // system prompt) — it may FILL a null category, never REPLACE a real one.
+    // The eval corpus never populates `identified`, so the ratchet cannot catch a
+    // regression here; these three cases are the only guard.
+    it('lets a LOW-confidence category fill a category the detector could not infer', () => {
+        const merged = applyIdentifiedSpec(line('FA', 'UNKNOWNBRAND', 'ZZZ-UNMATCHABLE-123456'), spec({
+            category: 'Pendant',
+            confidence: 'LOW',
+        }));
+        const result = analyzeLineItem(merged, CTX);
+        expect(result.specCategory).toBe('Pendant');
+        expect(result.recommendations.length).toBeGreaterThan(0);
+    });
+
+    it('does not let a LOW-confidence category override a category the detector DID infer', () => {
+        // Mark "V1" classifies as Vanity on the detector's own evidence; a guessed
+        // "Pendant" must not gate the vanity candidates out of the line.
+        const merged = applyIdentifiedSpec(line('V1', 'UNKNOWNBRAND', 'ZZZ-UNMATCHABLE-123456'), spec({
+            category: 'Pendant',
+            confidence: 'LOW',
+        }));
+        const result = analyzeLineItem(merged, CTX);
+        expect(result.specCategory).toBe('Vanity');
+        expect(result.recommendations.every(r => r.productCategory === 'Vanity')).toBe(true);
+    });
+
+    it('still lets a MEDIUM/HIGH category override the detector', () => {
+        const merged = applyIdentifiedSpec(line('V1', 'UNKNOWNBRAND', 'ZZZ-UNMATCHABLE-123456'), spec({
+            category: 'Pendant',
+            confidence: 'MEDIUM',
+        }));
+        const result = analyzeLineItem(merged, CTX);
+        expect(result.specCategory).toBe('Pendant');
+        expect(result.recommendations.every(r => r.productCategory === 'Pendant')).toBe(true);
+    });
 });
 
 describe('URL detection in raw rows', () => {

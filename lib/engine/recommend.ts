@@ -632,11 +632,22 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // A category from a per-line identification (URL/web/PDF, Phase 2) is authoritative
     // over the text heuristic: it was extracted from the actual spec sheet / product page
     // and is already expressed in the detector's vocabulary.
-    const identifiedCategory =
+    //
+    // ...but only when the identification actually stands behind it. The category
+    // is a HARD GATE — it filters candidates out of every tier — so a LOW-confidence
+    // label ("identification is a guess", per the identify system prompt) must not
+    // override a detector that DID recognize the spec. LOW is demoted to a
+    // last-resort hint: it fills a null category, never replaces a real one.
+    // Without this, one shaky guess silently blocks the right answer, and batch
+    // identification would industrialize that failure across a whole sheet.
+    const identifiedLabel =
         lineItem.identified?.category && CATEGORY_GROUPS[lineItem.identified.category]
             ? lineItem.identified.category
             : null;
-    const inferredCategory = identifiedCategory ?? detectFixtureCategory(mark, catalogNumber, manufacturer, fixtureTypeHint);
+    const identifiedIsAuthoritative = lineItem.identified?.confidence !== 'LOW';
+    const identifiedCategory = identifiedLabel && identifiedIsAuthoritative ? identifiedLabel : null;
+    const detectedCategory = detectFixtureCategory(mark, catalogNumber, manufacturer, fixtureTypeHint);
+    const inferredCategory = identifiedCategory ?? detectedCategory ?? identifiedLabel;
 
     // The dimension signature the spec exposes — candidates are gated against this.
     const specDimensionText = `${mark} ${catalogNumber}`;
