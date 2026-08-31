@@ -238,14 +238,33 @@ export function calculateCatalogMatchScore(catalogNumber: string, originalSpec: 
  * learned key that prefixes the token at an option boundary (next char is a
  * digit: series identity ends where the option grammar begins).
  */
+let activeSeriesMap: Record<string, string> = SERIES_CATEGORY_MAP;
+
+/**
+ * Swap the active series map. THE EVAL HARNESS IS THE ONLY CALLER.
+ *
+ * The map is learned from History, so under leave-one-project-out it has to be
+ * relearned per fold from that fold's history — otherwise a case is scored with
+ * series knowledge derived from its own project's rows, which is the label
+ * reaching the input through a side channel. Measured on the frozen snapshot
+ * (2026-08-31): 77 of 129 keys had single-project support, and hits resting on
+ * them were 3.93 of a reported 16.87% top1.
+ *
+ * Production never calls this — it runs on the committed generated map, where
+ * single-project series are legitimate knowledge for the next bid.
+ */
+export function setActiveSeriesCategoryMap(map: Record<string, string> | null): void {
+    activeSeriesMap = map ?? SERIES_CATEGORY_MAP;
+}
+
 export function seriesCategoryKey(spec: string): string | null {
     const firstToken = (spec || '').trim().split(/[\s\-_/,;:()]+/)[0] ?? '';
     const norm = normalizeProductId(firstToken);
     if (norm.length < 3 || !/[a-z]/.test(norm)) return null;
-    if (SERIES_CATEGORY_MAP[norm]) return norm;
+    if (activeSeriesMap[norm]) return norm;
     for (let len = Math.min(norm.length - 1, 12); len >= 3; len--) {
         const key = norm.slice(0, len);
-        if (SERIES_CATEGORY_MAP[key] && /\d/.test(norm[len]!)) return key;
+        if (activeSeriesMap[key] && /\d/.test(norm[len]!)) return key;
     }
     return null;
 }
@@ -253,7 +272,7 @@ export function seriesCategoryKey(spec: string): string | null {
 /** History-learned category label for a spec's series, or null when unlearned. */
 export function seriesCategory(spec: string): string | null {
     const key = seriesCategoryKey(spec);
-    return key ? SERIES_CATEGORY_MAP[key] ?? null : null;
+    return key ? activeSeriesMap[key] ?? null : null;
 }
 
 // ── Family/series spec matching (Phase 4, backlog #2) ────────────────────────
