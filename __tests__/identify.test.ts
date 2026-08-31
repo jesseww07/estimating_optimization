@@ -6,15 +6,18 @@
  * URL detection in the parser, and request coercion round-trips.
  */
 
+import { deflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import type { EngineContext, ParsedLineItem, PremierItemRow } from '@/lib/types';
 import type { IdentifiedSpec } from '@/lib/identify/types';
+import type { ScheduleChunkRequest, ScheduleRow } from '@/lib/identify/schedule';
 import { applyIdentifiedSpec } from '@/lib/identify/apply';
 import { analyzeLineItem } from '@/lib/engine/recommend';
 import { coerceLineItem } from '@/lib/parse/coerce';
 import { extractUrlsFromCells } from '@/lib/parse/workbook';
 import { htmlToText, isFetchableSpecUrl } from '@/lib/identify/fetchUrl';
 import { ACCEPTED_MEDIA_LABEL, PDF_MEDIA, detectSupportedMedia, mediaContentBlock } from '@/lib/identify/media';
+import { countPdfPages } from '@/lib/identify/pdfPages';
 
 const premier = (o: Partial<PremierItemRow> & Pick<PremierItemRow, 'id' | 'itemId' | 'fixtureCategory'>): PremierItemRow => ({
     itemDescription: '',
@@ -233,7 +236,7 @@ describe('schedule PDF row mapping', async () => {
     });
 });
 
-// ── Intake hardening (2026-08-31): schedules and cut sheets as images ───────
+// ── Intake hardening (2026-08-31): images, and long schedules ────────────────
 
 describe('upload media detection', () => {
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
@@ -276,5 +279,204 @@ describe('upload media detection', () => {
 
     it('names what is accepted so an error string can teach the fix', () => {
         expect(ACCEPTED_MEDIA_LABEL).toBe('PDF, PNG, JPEG, WebP, or GIF');
+    });
+
+    it('adds a cache breakpoint only when asked', () => {
+        expect(mediaContentBlock(PDF_MEDIA, 'x')).not.toHaveProperty('cache_control');
+        expect(mediaContentBlock(PDF_MEDIA, 'x', true)).toHaveProperty('cache_control', { type: 'ephemeral' });
+    });
+});
+
+describe('PDF page counting (no PDF library)', () => {
+    /** Minimal, synthetic PDF bodies — no customer document is involved. */
+    function classicPdf(pages: number, extra = ''): Buffer {
+        const kids = Array.from({ length: pages }, (_, i) => `${i + 3} 0 R`).join(' ');
+        const pageObjects = Array.from({ length: pages }, (_, i) =>
+            `${i + 3} 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >> endobj`).join('\n');
+        return Buffer.from(
+            '%PDF-1.4\n'
+            + '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n'
+            + `2 0 obj << /Type /Pages /Kids [${kids}] /Count ${pages} >> endobj\n`
+            + `${extra}\n${pageObjects}\n%%EOF\n`,
+            'latin1',
+        );
+    }
+
+    it('counts pages from the page tree', () => {
+        expect(countPdfPages(classicPdf(1))).toBe(1);
+        expect(countPdfPages(classicPdf(37))).toBe(37);
+    });
+
+    it('ignores /Count on a neighbouring outline tree', () => {
+        // The outline's /Count is a bookmark count and is routinely larger than
+        // the page count — reading it would over-chunk every bookmarked schedule.
+        const pdf = classicPdf(4, '9 0 obj << /Type /Outlines /First 10 0 R /Count 99 >> endobj');
+        expect(countPdfPages(pdf)).toBe(4);
+    });
+
+    it('reads a page tree hidden inside a compressed object stream', () => {
+        const inner = Buffer.from('<< /Type /Pages /Kids [4 0 R 5 0 R] /Count 12 >>', 'latin1');
+        const pdf = Buffer.concat([
+            Buffer.from('%PDF-1.5\n6 0 obj << /Type /ObjStm /N 2 /First 12 /Filter /FlateDecode >>\nstream\n', 'latin1'),
+            deflateSync(inner),
+            Buffer.from('\nendstream\nendobj\n%%EOF\n', 'latin1'),
+        ]);
+        expect(countPdfPages(pdf)).toBe(12);
+    });
+
+    it('returns null when the bytes say nothing usable', () => {
+        expect(countPdfPages(Buffer.alloc(0))).toBeNull();
+        expect(countPdfPages(Buffer.from('%PDF-1.4\nnot really a pdf\n%%EOF', 'latin1'))).toBeNull();
+    });
+});
+
+describe('schedule page-range planning', async () => {
+    const { planPageRanges, buildSchedulePrompt, WHOLE_DOCUMENT } = await import('@/lib/identify/schedule');
+
+    it('reads a short schedule in a single whole-document pass', () => {
+        expect(planPageRanges(1, 8, 12)).toEqual([WHOLE_DOCUMENT]);
+        expect(planPageRanges(8, 8, 12)).toEqual([WHOLE_DOCUMENT]);
+        // Unknown page count (an image, or a PDF we could not read) — one pass.
+        expect(planPageRanges(null, 8, 12)).toEqual([WHOLE_DOCUMENT]);
+    });
+
+    it('splits a long schedule into contiguous ranges with an open-ended tail', () => {
+        expect(planPageRanges(20, 8, 12)).toEqual([
+            { start: 1, end: 8 },
+            { start: 9, end: 16 },
+            // Open-ended so a page count that reads low cannot drop the tail.
+            { start: 17, end: null },
+        ]);
+    });
+
+    it('refuses a document past the pass ceiling with a message that says what to do', () => {
+        expect(() => planPageRanges(500, 8, 12)).toThrow(/96-page limit/);
+        expect(() => planPageRanges(500, 8, 12)).toThrow(/Split it into smaller files/);
+    });
+
+    it('scopes the prompt only when the document is actually chunked', () => {
+        expect(buildSchedulePrompt(WHOLE_DOCUMENT, '')).not.toContain('PAGE SCOPE');
+        const scoped = buildSchedulePrompt({ start: 9, end: 16 }, '');
+        expect(scoped).toContain('pages 9-16');
+        expect(scoped).toContain('PAGE SCOPE');
+        expect(buildSchedulePrompt({ start: 17, end: null }, '')).toContain('pages 17 to the end of the document');
+    });
+});
+
+describe('schedule chunked extraction', async () => {
+    const { extractScheduleRows, scheduleRowsToLineItems } = await import('@/lib/identify/schedule');
+
+    const row = (mark: string, section = ''): ScheduleRow => ({
+        mark,
+        quantity: '2',
+        manufacturer: 'ACME',
+        catalogNumber: `CAT-${mark}`,
+        section,
+        description: '',
+        specUrl: null,
+    });
+
+    /** Records every pass and answers with rows named after the range. */
+    function recorder(rowsFor: (req: ScheduleChunkRequest) => ScheduleRow[]) {
+        const calls: ScheduleChunkRequest[] = [];
+        return {
+            calls,
+            extract: async (req: ScheduleChunkRequest) => {
+                calls.push(req);
+                return { rows: rowsFor(req), truncated: false };
+            },
+        };
+    }
+
+    it('costs exactly one call on a short schedule', async () => {
+        const { calls, extract } = recorder(() => [row('A'), row('B')]);
+        const rows = await extractScheduleRows(extract, { pageCount: 3 });
+        expect(calls).toHaveLength(1);
+        expect(calls[0]!.range).toEqual({ start: 1, end: null });
+        expect(calls[0]!.prompt).not.toContain('PAGE SCOPE');
+        expect(rows.map(r => r.mark)).toEqual(['A', 'B']);
+    });
+
+    it('keeps document order and renumbers rowIndex continuously across chunks', async () => {
+        const { calls, extract } = recorder(({ range }) => [
+            row(`${range.start}A`),
+            // A row with nothing identifying is dropped by the mapper — the
+            // numbering must stay gapless anyway.
+            { mark: '', quantity: '', manufacturer: '', catalogNumber: '', section: '', description: '', specUrl: null },
+            row(`${range.start}B`),
+        ]);
+        const rows = await extractScheduleRows(extract, { pageCount: 20, pagesPerChunk: 8 });
+        expect(calls.map(c => c.range)).toEqual([
+            { start: 1, end: 8 },
+            { start: 9, end: 16 },
+            { start: 17, end: null },
+        ]);
+        const items = scheduleRowsToLineItems(rows);
+        expect(items.map(i => i.mark)).toEqual(['1A', '1B', '9A', '9B', '17A', '17B']);
+        expect(items.map(i => i.rowIndex)).toEqual([0, 1, 2, 3, 4, 5]);
+    });
+
+    it('carries the last section heading into the next chunk prompt', async () => {
+        const { calls, extract } = recorder(({ range }) => (range.start === 1
+            ? [row('A', 'LEVEL 1 - LOBBY'), row('B', 'LEVEL 2 - CORRIDOR')]
+            : [row(`${range.start}A`)]));
+        await extractScheduleRows(extract, { pageCount: 20, pagesPerChunk: 8 });
+        expect(calls[1]!.prompt).toContain('CARRIED CONTEXT');
+        expect(calls[1]!.prompt).toContain('LEVEL 2 - CORRIDOR');
+        expect(calls[1]!.prompt).toContain('before page 9');
+        // Nothing to carry into the first pass.
+        expect(calls[0]!.prompt).not.toContain('CARRIED CONTEXT');
+    });
+
+    it('drops a row repeated at a chunk boundary but keeps a real repeat elsewhere', async () => {
+        const { extract } = recorder(({ range }) => (range.start === 1
+            ? [row('A'), row('B')]
+            // "B" straddles the page break and comes back from both passes; the
+            // second "A" is the same fixture genuinely scheduled again later.
+            : [row('B'), row('C'), row('A')]));
+        const rows = await extractScheduleRows(extract, { pageCount: 16, pagesPerChunk: 8 });
+        expect(rows.map(r => r.mark)).toEqual(['A', 'B', 'C', 'A']);
+    });
+
+    it('subdivides a truncated pass instead of failing the upload', async () => {
+        const calls: ScheduleChunkRequest[] = [];
+        const rows = await extractScheduleRows(async req => {
+            calls.push(req);
+            // The whole-document pass overflows; the halves fit.
+            if (req.range.end === null && req.range.start === 1) {
+                return { rows: [row('JUNK-PARTIAL')], truncated: true };
+            }
+            return { rows: [row(`p${req.range.start}`)], truncated: false };
+        }, { pageCount: 4 });
+        expect(calls.map(c => c.range)).toEqual([
+            { start: 1, end: null },
+            { start: 1, end: 2 },
+            { start: 3, end: null },
+        ]);
+        // Rows from the truncated pass are discarded, not half-kept.
+        expect(rows.map(r => r.mark)).toEqual(['p1', 'p3']);
+    });
+
+    it('fails clearly when a single page cannot fit in one pass', async () => {
+        await expect(extractScheduleRows(
+            async () => ({ rows: [], truncated: true }),
+            { pageCount: 1 },
+        )).rejects.toThrow(/Page 1 alone holds more rows/);
+    });
+
+    it('fails clearly when truncation happens with no page count to split on', async () => {
+        await expect(extractScheduleRows(
+            async () => ({ rows: [], truncated: true }),
+            { pageCount: null },
+        )).rejects.toThrow(/page count could not be read/);
+    });
+
+    it('bounds the work: repeated truncation stops at the pass ceiling', async () => {
+        let passes = 0;
+        await expect(extractScheduleRows(
+            async () => { passes++; return { rows: [], truncated: true }; },
+            { pageCount: 24, pagesPerChunk: 8, maxChunks: 3 },
+        )).rejects.toThrow(/more than 3 extraction passes/);
+        expect(passes).toBe(3);
     });
 });

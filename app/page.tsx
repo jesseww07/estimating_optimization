@@ -555,7 +555,7 @@ export default function Home() {
                     <p className="text-muted text-sm mb-6 font-data">
                         CSV / single-sheet Excel with Mark / Qty / Manufacturer / Catalog # columns —
                         or a fixture schedule as a PDF, photo, or screenshot (read automatically;
-                        takes a minute or two).
+                        takes a minute or two, longer for a schedule read in several passes).
                     </p>
                     <input
                         ref={fileInputRef}

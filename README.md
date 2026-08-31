@@ -13,7 +13,8 @@ takeoff draft, not a quote; pricing columns are intentionally blank.
 1. **Upload** a bid sheet (CSV/XLSX) or a fixture schedule as a PDF or an image
    (PNG/JPEG/WebP/GIF — schedules arrive as phone photos and screenshots too).
 2. The app **parses** it into line items (mark, quantity, manufacturer,
-   catalog number). PDFs and images are read by Claude.
+   catalog number). PDFs and images are read by Claude; a long schedule is read
+   in several page-range passes and the rows are joined in document order.
 3. The **recommendation engine** scores each line against Premier's Airtable
    catalogs (Premier Items, 3rd Party Domestic, Fans) and **History** — past
    estimator decisions — and returns up to three ranked substitutions per
@@ -74,7 +75,7 @@ the committed baseline. If you change anything in `lib/engine/`, run
 | `app/page.tsx` | Client UI: upload, review, identify, export |
 | `app/api/{upload,recommendations,identify,export}/route.ts` | Thin API routes; logic lives in `lib/**` |
 | `lib/parse/` | CSV/XLSX parsing and request coercion |
-| `lib/identify/` | Claude-powered identification and schedule extraction (PDF or image) |
+| `lib/identify/` | Claude-powered identification and schedule extraction (PDF/image, page-range chunked) |
 | `lib/engine/` | Matching, ranking, recommendation orchestration (pure TS — no Next.js/React imports) |
 | `lib/airtable/` | Schema/field IDs, fetch, in-memory cache, create-only History write-back |
 | `lib/export/` | Corporate-template workbook builder |

@@ -73,16 +73,27 @@ export function detectSupportedMedia(bytes: Uint8Array): SupportedMedia | null {
  * The content block for an upload: `document` for a PDF, `image` for an image.
  * Not a soft distinction — the API rejects a base64 image sent as a document
  * source, and vice versa.
+ *
+ * `cache`: put an ephemeral cache breakpoint on the block. The schedule path
+ * re-sends the same document on every page-range pass, so from the second pass
+ * on it reads the document from cache instead of paying full input price again.
  */
-export function mediaContentBlock(media: SupportedMedia, base64: string): Anthropic.Messages.ContentBlockParam {
+export function mediaContentBlock(
+    media: SupportedMedia,
+    base64: string,
+    cache = false,
+): Anthropic.Messages.ContentBlockParam {
+    const cacheControl = cache ? { cache_control: { type: 'ephemeral' as const } } : {};
     if (media.kind === 'pdf') {
         return {
             type: 'document',
             source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+            ...cacheControl,
         };
     }
     return {
         type: 'image',
         source: { type: 'base64', media_type: media.mediaType, data: base64 },
+        ...cacheControl,
     };
 }
