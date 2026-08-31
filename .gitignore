@@ -50,3 +50,6 @@ credentials*
 secrets*
 *.pem
 *.jsonl
+
+# agent worktrees (transient)
+.claude/worktrees/

@@ -311,3 +311,54 @@ describe('identify keeps the typed spec as the history key', () => {
         expect(withIdent.recommendations.map(x => x.premierItem)).toContain('GC-WM-1003-30K-BZ');
     });
 });
+
+// ── The description column as a last-resort category channel ─────────────────
+// Fixture schedules carry the words that name the fixture type. The parser
+// captured them into rawRow and the engine read that map only through
+// FIXTURE_HINT_RE (3–20 chars, whole-string match) — which no real description
+// can pass. These cases pin the channel AND its deliberate weakness.
+//
+// Note the eval ratchet cannot see any of this: the eval corpus builds line
+// items from History rows, which carry no description column. (History's own
+// `specDescription` is the LINKED item's description on mapped rows — using it
+// here would leak the label into the input.) These tests are the only guard.
+describe('description column as a category channel', () => {
+    const CTX: EngineContext = {
+        history: [], thirdPartyItems: [], fans: [],
+        premierItems: [
+            premier({ id: 'lin', itemId: 'EFV-002-LED40-PATU-MV-WH-O-DIM-4FT', fixtureCategory: 'Surface Mount', itemDescription: '4FT LED VAPOR TIGHT LINEAR', timesUsed: 12 }),
+            premier({ id: 'van', itemId: 'GC-VAN-LED-22-30K', fixtureCategory: 'Vanity', itemDescription: '22IN LED VANITY BAR', timesUsed: 18 }),
+        ],
+    };
+    const withDescription = (li: ParsedLineItem, description: string): ParsedLineItem => ({ ...li, description });
+
+    it('rescues a category the catalog number alone cannot produce', () => {
+        const bare = line('BH', 'BEGHELLI', 'ZZQQ-9910-XX');
+        expect(analyzeLineItem(bare, CTX).specCategory).toBeNull();
+
+        const described = withDescription(bare, '4FT LED VAPOR TIGHT STRIP, 4000K, WHITE');
+        const result = analyzeLineItem(described, CTX);
+        expect(result.specCategory).toBe('Linear');
+        expect(result.recommendations.length).toBeGreaterThan(0);
+    });
+
+    it('never overrides a category the catalog number DID produce', () => {
+        // "GC-VAN-..."-style evidence wins; a description naming a different
+        // fixture type must not gate the real answer out.
+        const described = withDescription(line('V1', 'ACME', 'ZZQQ-9910-XX'), '4FT LED VAPOR TIGHT STRIP');
+        expect(analyzeLineItem(described, CTX).specCategory).toBe('Vanity');
+    });
+
+    it('ignores a description that names no fixture type at all', () => {
+        const described = withDescription(line('BH', 'BEGHELLI', 'ZZQQ-9910-XX'), 'SEE ELECTRICAL PLANS FOR ROUGH-IN');
+        expect(analyzeLineItem(described, CTX).specCategory).toBeNull();
+    });
+
+    it('does not let prose fragments fire the mark-code chains', () => {
+        // The mark-code branches (\bV\d+\b, \bR\d+[A-Z]?\b, \bF\d+\b) match
+        // measurements and voltages inside ordinary English. The description pass
+        // runs with an EMPTY mark so only catalog-text branches can fire.
+        const described = withDescription(line('ZZ', 'ACME', 'ZZQQ-9910-XX'), 'DRIVER RATED 24V, R30 COMPATIBLE, F2 RATED');
+        expect(analyzeLineItem(described, CTX).specCategory).toBeNull();
+    });
+});

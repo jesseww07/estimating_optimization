@@ -17,6 +17,22 @@ export interface ParsedLineItem {
     quantity: string;
     manufacturer: string;
     catalogNumber: string;
+    /**
+     * The sheet's own prose description of the fixture, when it ships one in a
+     * column of its own ("4' LED WRAPAROUND, 4000K", "RECESSED DOWNLIGHT, 6IN").
+     *
+     * Set only when the description is a SEPARATE column from the catalog number
+     * — when a sheet has no catalog column, the description already IS
+     * `catalogNumber` and duplicating it here would double-count the same text.
+     *
+     * Deliberately its own field rather than appended to `catalogNumber`: it is
+     * weaker, prose-shaped evidence, and the engine treats it that way (a
+     * null-category-only fallback in detectFixtureCategory, never an override).
+     * Fixture schedules almost always carry the words that name the fixture
+     * type; before this field the parser captured them and the engine dropped
+     * them on the floor.
+     */
+    description?: string;
     rawRow: Record<string, string>;
     /** Spec-sheet URLs found anywhere in the raw row (estimators paste links in stray columns). */
     specUrls?: string[];

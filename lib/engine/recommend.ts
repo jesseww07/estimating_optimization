@@ -438,7 +438,14 @@ function categoryFallbackRecommendations(
     const allowAccessories = specWantsAccessory(mark, catalogNumber);
 
     const stopWords = new Set(['AND', 'OR', 'THE', 'FOR', 'WITH', 'NOT', 'LED', 'A', 'AN', 'IN', 'OF', 'W', 'X', 'FAN', 'LIGHT', 'FIXTURE']);
-    const tokenSource = catalogIsProse ? catalogNumber : markIsProse ? mark : `${mark} ${catalogNumber}`;
+    const baseTokenSource = catalogIsProse ? catalogNumber : markIsProse ? mark : `${mark} ${catalogNumber}`;
+    // The description column is prose about the fixture, and the catalog side of
+    // this comparison is prose too (Premier's Item Description) — so it belongs in
+    // the token pool. This tier is already capped at 60 and never auto-selects, so
+    // extra description tokens can only re-rank in-category candidates, never mint
+    // a confident wrong answer.
+    const description = (lineItem.description ?? '').trim();
+    const tokenSource = description ? `${baseTokenSource} ${description}` : baseTokenSource;
     const proseTokens = tokenSource.toUpperCase()
         .split(/[\s\-\/,()'"]+/)
         .filter(t => t.length >= 3 && !stopWords.has(t) && !/^\d+(\.\d+)?["']?$/.test(t));
@@ -646,7 +653,25 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             : null;
     const identifiedIsAuthoritative = lineItem.identified?.confidence !== 'LOW';
     const identifiedCategory = identifiedLabel && identifiedIsAuthoritative ? identifiedLabel : null;
-    const detectedCategory = detectFixtureCategory(mark, catalogNumber, manufacturer, fixtureTypeHint);
+
+    // The sheet's own description column, as a LAST-RESORT category channel.
+    // Fixture schedules carry the words that name the fixture type ("VAPOR TIGHT",
+    // "RECESSED DOWNLIGHT", "WALL SCONCE") and the engine has been dropping them:
+    // rawRow is only read through FIXTURE_HINT_RE, which caps at 20 characters and
+    // demands a whole-string match, so no real description ever qualified.
+    //
+    // Deliberately a second pass, and deliberately weaker than the first:
+    //   - it runs ONLY when the catalog/mark evidence produced nothing, so it can
+    //     never override a category the detector inferred on real part-number
+    //     evidence;
+    //   - it passes an EMPTY mark, so only the catalog-text branches fire. The
+    //     mark-code chains (`\bV\d+\b`, `\bR\d+[A-Z]?\b`, `\bF\d+\b`) match
+    //     accidental fragments of English prose and would manufacture categories
+    //     out of measurements and voltages.
+    const description = (lineItem.description ?? '').trim();
+    const detectedCategory =
+        detectFixtureCategory(mark, catalogNumber, manufacturer, fixtureTypeHint) ??
+        (description ? detectFixtureCategory('', description, manufacturer) : null);
     const inferredCategory = identifiedCategory ?? detectedCategory ?? identifiedLabel;
 
     // The dimension signature the spec exposes — candidates are gated against this.
