@@ -56,6 +56,8 @@ import {
     normalizeProductId,
     normalizeSpecKey,
 } from '../engine/matcher';
+import { setActiveSeriesCategoryMap } from '../engine/matcher';
+import { learnSeriesCategories, toSeriesCategoryMap } from '../engine/series-learning';
 import { shouldAutoSelect } from '../engine/ranking';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
@@ -329,10 +331,25 @@ export function runEval(ctx: EngineContext, built: BuiltCases, opts: RunOptions 
     const progressEvery = opts.progressEvery ?? 100;
 
     for (const [project, projectCases] of byProject) {
+        const foldHistory = cleanHistory.filter(h => h.project.trim() !== project);
         const lopoCtx: EngineContext = {
             ...ctx,
-            history: cleanHistory.filter(h => h.project.trim() !== project),
+            history: foldHistory,
         };
+
+        // Relearn the series map from THIS FOLD's history. The committed map is
+        // built from the whole corpus, so scoring a fold against it lets series
+        // knowledge derived from the withheld project's own rows decide that
+        // project's cases — the label reaching the input through a side channel.
+        // Measured before this was fixed (2026-08-31, frozen snapshot): 77 of the
+        // 129 keys in the widened map had support from a single project, and hits
+        // resting on those keys were 3.93 of a reported 16.87% top1 — widening the
+        // map read as +2.27pp when almost all of it was leak.
+        //
+        // Production is untouched: it keeps the full committed map, where a series
+        // learned from one past job is real knowledge for the NEXT bid. It just
+        // cannot be used to score that same job.
+        setActiveSeriesCategoryMap(toSeriesCategoryMap(learnSeriesCategories(foldHistory, ctx)));
 
         for (const c of projectCases) {
             const input: ParsedLineItem = {
@@ -388,6 +405,10 @@ export function runEval(ctx: EngineContext, built: BuiltCases, opts: RunOptions 
             }
         }
     }
+
+    // Leave the process on the committed map — vitest suites share a module
+    // registry, so a fold's map must not outlive the run that installed it.
+    setActiveSeriesCategoryMap(null);
 
     return buildReport(results, built.skipped);
 }

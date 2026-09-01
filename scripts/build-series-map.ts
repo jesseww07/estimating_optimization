@@ -1,20 +1,24 @@
 /**
  * Series → category knowledge, learned from History (Phase 4 backlog item 4).
  *
- * Reads the frozen eval snapshot (__tests__/eval.context.json.gz) and derives a
- * map from manufacturer SERIES PREFIX → detector category label: every History
- * row that links to a Premier Items record is a real estimator decision whose
- * linked item carries an authoritative Fixture Category. The first token of the
- * ORIGINAL SPEC ("BS100LED-4-SA-HO-…" → "BS100LED") is the series key; when 3+
- * linked rows agree ≥80% on the category, the series is considered known.
+ * Reads the frozen eval snapshot and writes lib/engine/series-categories.ts —
+ * the map PRODUCTION runs on. The learning rules themselves live in
+ * lib/engine/series-learning.ts, because the eval harness needs the same logic
+ * over a different corpus: it relearns the map per leave-one-project-out fold so
+ * a project is never scored using series knowledge derived from its own rows.
+ * See that module's header for the leak this arrangement fixes.
  *
- * The map would have categorized all three Largo Station null-category
- * exemplars (S7R → Disk Light → Recessed, BS100LED → Surface Mount → Linear)
- * from data that already existed. It scales with the learning loop: every
- * export adds rows, every snapshot refresh + rerun of this script adds series.
+ * Both catalogs are evidence. Learning from Premier links alone discarded the
+ * 1,471 History rows linked to 3rd Party items — and roughly 60% of labeled
+ * estimator decisions resolve to a resold third-party item, so the map was built
+ * from a minority of the corpus (480 usable rows of 9,479 → 62 series).
  *
- * Output: lib/engine/series-categories.ts (generated, committed — review the
- * diff like any code change; the eval ratchet measures its effect).
+ * Measured honestly (per-fold relearning, frozen snapshot, 2026-08-31):
+ *   support ≥ 3, Premier only:   top1 12.01%  top3 15.22%  junk 40.79%  silent 44.00%
+ *   support ≥ 2, both catalogs:  top1 13.04%  top3 16.36%  junk 40.06%  silent 43.58%
+ * Better on every metric, with autoWrong flat — no trade-off to weigh.
+ *
+ * Output is committed. Review the diff like any code change.
  *
  * Usage: npx tsx scripts/build-series-map.ts   (regenerate after eval:fetch)
  */
@@ -22,86 +26,19 @@
 import path from 'node:path';
 import { writeFileSync } from 'node:fs';
 import { defaultSnapshotPath, loadSnapshot } from '../lib/eval/dataset';
-import { CATEGORY_GROUPS, looksLikeProse, normalizeProductId } from '../lib/engine/matcher';
-
-/** Minimum linked rows for a series to be considered known. */
-const MIN_SUPPORT = 3;
-/** Minimum share of rows agreeing on one category label. */
-const MIN_AGREEMENT = 0.8;
-
-// First tokens that are vocabulary, not series identity — never map keys.
-// (Mirrors the GENERIC_MATCH_TOKENS posture in matcher.ts.)
-const KEY_STOPLIST = new Set([
-    'led', 'light', 'lamp', 'bulb', 'fixture', 'type', 'custom', 'mini',
-    'wall', 'ceiling', 'surface', 'recessed', 'pendant', 'sconce', 'vanity',
-    'linear', 'strip', 'exit', 'emergency', 'outdoor', 'indoor', 'mount',
-    'black', 'white', 'bronze', 'nickel', 'brass', 'chrome',
-]);
-
-/**
- * Detector label for a Premier "Fixture Category" value — the inverse of
- * CATEGORY_GROUPS, resolved in a fixed priority order (a category appearing in
- * several groups maps to the most specific label: 'Surface Mount' → Linear).
- */
-const LABEL_PRIORITY = [
-    'Ceiling Fan', 'Vanity', 'Mirror', 'Pendant', 'Sconce', 'Outdoor Pole',
-    'Outdoor', 'Exit/Emergency', 'Recessed', 'Linear', 'Undercabinet', 'Ceiling',
-];
-
-function detectorLabelFor(fixtureCategory: string): string | null {
-    const cat = fixtureCategory.trim().toLowerCase();
-    if (!cat) return null;
-    for (const label of LABEL_PRIORITY) {
-        if (CATEGORY_GROUPS[label]!.some(g => g.toLowerCase() === cat)) return label;
-    }
-    return null;
-}
-
-/** Normalized series key from a spec's first token; null when it carries no identity. */
-function seriesKeyOf(originalSpec: string): string | null {
-    const firstToken = originalSpec.trim().split(/[\s\-_/,;:()]+/)[0] ?? '';
-    const norm = normalizeProductId(firstToken);
-    if (norm.length < 3) return null;             // too short to be a series
-    if (!/[a-z]/.test(norm)) return null;         // pure numbers carry no identity
-    if (KEY_STOPLIST.has(norm)) return null;      // vocabulary, not identity
-    return norm;
-}
+import {
+    MIN_AGREEMENT,
+    MIN_SUPPORT,
+    learnSeriesCategories,
+} from '../lib/engine/series-learning';
 
 function main(): void {
     const repoRoot = path.resolve(__dirname, '..');
     const snapshot = loadSnapshot(defaultSnapshotPath(repoRoot));
     const ctx = snapshot.context;
-    const premierById = new Map(ctx.premierItems.map(p => [p.id, p]));
 
-    // key → detector label → supporting row count
-    const tally = new Map<string, Map<string, number>>();
-    let usableRows = 0;
-
-    for (const row of ctx.history) {
-        if (row.matchType === 'NON-ITEM') continue;
-        if (looksLikeProse(row.originalSpec)) continue;   // prose first words aren't series
-        const premier = row.premierLinkIds[0] ? premierById.get(row.premierLinkIds[0]) : undefined;
-        if (!premier) continue;                            // only Premier links carry the exact category vocabulary
-        const label = detectorLabelFor(premier.fixtureCategory);
-        if (!label) continue;
-        const key = seriesKeyOf(row.originalSpec);
-        if (!key) continue;
-
-        usableRows++;
-        const labels = tally.get(key) ?? new Map<string, number>();
-        labels.set(label, (labels.get(label) ?? 0) + 1);
-        tally.set(key, labels);
-    }
-
-    const entries: Array<{ key: string; label: string; support: number; total: number }> = [];
-    for (const [key, labels] of tally) {
-        const total = [...labels.values()].reduce((a, b) => a + b, 0);
-        if (total < MIN_SUPPORT) continue;
-        const [topLabel, topCount] = [...labels.entries()].sort((a, b) => b[1] - a[1])[0]!;
-        if (topCount / total < MIN_AGREEMENT) continue;
-        entries.push({ key, label: topLabel, support: topCount, total });
-    }
-    entries.sort((a, b) => (a.key < b.key ? -1 : 1));
+    const { entries, usableRows, premierRows, thirdPartyRows } = learnSeriesCategories(ctx.history, ctx);
+    const singleProject = entries.filter(e => e.projects < 2).length;
 
     const lines: string[] = [
         '/**',
@@ -109,17 +46,26 @@ function main(): void {
         ' *   npx tsx scripts/build-series-map.ts',
         ' *',
         ' * Series prefix → detector category label, learned from History rows whose',
-        ' * Bid Item links to a Premier Items record (the linked item\'s Fixture',
-        ' * Category is the ground truth). See the script header for the rules.',
+        ' * Bid Item links to a catalog record — Premier Items (its Fixture Category)',
+        ' * or 3rd Party Domestic Items (its linked Product Categories, resolved',
+        ' * through the shared taxonomy). Rules live in lib/engine/series-learning.ts.',
+        ' *',
+        ' * This is the PRODUCTION map, built from the whole corpus. The eval harness',
+        ' * does NOT use it — it relearns per leave-one-project-out fold, so that a',
+        ' * series learned from one past job (real knowledge for the next bid) cannot',
+        ' * be used to score that same job.',
         ' *',
         ` * Source snapshot: fetched ${snapshot.meta.fetchedAt} (${snapshot.meta.counts.history} history rows)`,
-        ` * Series learned: ${entries.length} (from ${usableRows} usable linked rows;`,
-        ` * support ≥ ${MIN_SUPPORT} rows, agreement ≥ ${MIN_AGREEMENT * 100}%)`,
+        ` * Series learned: ${entries.length} (from ${usableRows} usable linked rows —`,
+        ` * ${premierRows} Premier-linked, ${thirdPartyRows} 3rd-party-linked;`,
+        ` * support ≥ ${MIN_SUPPORT} rows, agreement ≥ ${MIN_AGREEMENT * 100}%).`,
+        ` * ${singleProject} of them rest on a single project — legitimate for the next`,
+        ' * bid, and invisible to the eval by construction.',
         ' */',
         '',
         'export const SERIES_CATEGORY_MAP: Record<string, string> = {',
         ...entries.map(e =>
-            `    ${JSON.stringify(e.key)}: ${JSON.stringify(e.label)}, // ${e.support}/${e.total} rows`),
+            `    ${JSON.stringify(e.key)}: ${JSON.stringify(e.label)}, // ${e.support}/${e.total} rows, ${e.projects} project${e.projects === 1 ? '' : 's'}`),
         '};',
         '',
     ];
@@ -127,7 +73,9 @@ function main(): void {
     const outPath = path.join(repoRoot, 'lib', 'engine', 'series-categories.ts');
     writeFileSync(outPath, lines.join('\n'));
     console.log(`Wrote ${entries.length} series to ${outPath}`);
-    for (const e of entries) console.log(`  ${e.key} → ${e.label} (${e.support}/${e.total})`);
+    console.log(`  usable linked rows: ${usableRows} (${premierRows} premier, ${thirdPartyRows} 3rd-party)`);
+    console.log(`  single-project series: ${singleProject} (kept for production, invisible to the eval)`);
+    for (const e of entries) console.log(`  ${e.key} → ${e.label} (${e.support}/${e.total}, ${e.projects} proj)`);
 }
 
 main();
