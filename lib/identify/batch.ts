@@ -35,7 +35,8 @@
  * ANTHROPIC_API_KEY (`__tests__/identify-batch.test.ts`).
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { createAnthropicClient, getApiKey } from './anthropic';
+import type Anthropic from '@anthropic-ai/sdk';
 import { detectFixtureCategory, isLedTape, isRfiPlaceholder, isUrlLike } from '../engine/matcher';
 import type { ParsedLineItem } from '../types';
 import { ENGINE_CATEGORY_LABELS, SPEC_REQUIRED_KEYS, specSchemaProperties, toIdentifiedSpec, type RawSpec } from './spec';
@@ -448,12 +449,6 @@ export function summarizeOutcomes(
 
 // ── The one impure part ──────────────────────────────────────────────────────
 
-function getApiKey(): string {
-    // Trimmed defensively, same as the per-line path: a trailing newline pasted
-    // into the Vercel env editor turns into an auth error that is miserable to spot.
-    return (process.env.ANTHROPIC_API_KEY ?? '').trim();
-}
-
 export function isBatchIdentifyAvailable(): boolean {
     return getApiKey().length > 0;
 }
@@ -540,8 +535,7 @@ export async function identifyCategoriesInBatch(
     lines: ParsedLineItem[],
     opts: BatchIdentifyOptions = {},
 ): Promise<BatchIdentifyReport> {
-    const apiKey = getApiKey();
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set — batch identification is unavailable.');
+    if (!getApiKey()) throw new Error('ANTHROPIC_API_KEY is not set — batch identification is unavailable.');
 
     const maxCalls = opts.maxCalls ?? MAX_BATCH_CALLS;
     const plan = planBatchIdentify(lines, { chunkSize: opts.chunkSize, maxCalls });
@@ -551,7 +545,10 @@ export async function identifyCategoriesInBatch(
     let calls = 0;
 
     if (plan.chunks.length > 0) {
-        const client = new Anthropic({ apiKey, timeout: BATCH_CALL_TIMEOUT_MS, maxRetries: 0 });
+        // Credentials, maxRetries: 0, and the identity-linked-key workspace header
+        // all come from ./anthropic — an identity-linked key 400s on every request
+        // without it, which would take this whole path down.
+        const client = createAnthropicClient({ timeoutMs: BATCH_CALL_TIMEOUT_MS });
         const model = getModel();
         const deadline = Date.now() + (opts.totalBudgetMs ?? BATCH_TOTAL_BUDGET_MS);
         const concurrency = Math.max(1, Math.min(opts.concurrency ?? BATCH_CONCURRENCY, plan.chunks.length));
