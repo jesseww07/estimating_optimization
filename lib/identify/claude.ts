@@ -1,8 +1,9 @@
 /**
  * SERVER-ONLY Claude identification engine.
  *
- * One engine for all three input types (URL page text, web search, spec-sheet
- * PDF): given raw evidence, return an IdentifiedSpec as structured output.
+ * One engine for all three input types (URL page text, web search, an uploaded
+ * cut sheet — PDF or image): given raw evidence, return an IdentifiedSpec as
+ * structured output.
  * Same credential discipline as the Airtable adapter — ANTHROPIC_API_KEY is
  * read only here, trimmed, never bundled client-side.
  *
@@ -33,6 +34,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createAnthropicClient, isIdentifyAvailable } from './anthropic';
+import { mediaContentBlock, type SupportedMedia } from './media';
 import type { ParsedLineItem } from '../types';
 import { ENGINE_CATEGORY_LABELS, specSchema, toIdentifiedSpec, type RawSpec } from './spec';
 import type { IdentifiedSpec, IdentifySource } from './types';
@@ -152,17 +154,26 @@ export async function identifyFromText(evidence: string, line: ParsedLineItem, s
     );
 }
 
-/** Identify from a spec-sheet PDF (mode: pdf) — Claude reads the PDF natively, no OCR pipeline. */
-export async function identifyFromPdf(pdfBase64: string, line: ParsedLineItem): Promise<IdentifiedSpec> {
+/**
+ * Identify from an uploaded cut sheet (mode: pdf) — Claude reads it natively,
+ * no OCR pipeline. The file may be a PDF or a photo/screenshot of the cut sheet;
+ * `media` decides which content block and media type it is sent as.
+ *
+ * The IdentifySource stays 'pdf' for an image too: it is the route's public
+ * contract for "identified from an uploaded document", and the UI renders it as
+ * "spec sheet".
+ */
+export async function identifyFromDocument(
+    base64: string,
+    media: SupportedMedia,
+    line: ParsedLineItem,
+): Promise<IdentifiedSpec> {
     return extract(
         [
-            {
-                type: 'document',
-                source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 },
-            },
+            mediaContentBlock(media, base64),
             {
                 type: 'text',
-                text: `${lineContext(line)}\n\nThe attached document is the manufacturer cut sheet / spec sheet for this bid line. Identify the product it specifies (respect any option boxes that are marked/circled).`,
+                text: `${lineContext(line)}\n\nThe attached ${media.label} is the manufacturer cut sheet / spec sheet for this bid line. Identify the product it specifies (respect any option boxes that are marked/circled).`,
             },
         ],
         'pdf',

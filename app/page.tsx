@@ -142,6 +142,19 @@ const BATCH_FAILURE_TEXT: Record<string, string> = {
     error: 'Batch identification failed for this line.',
 };
 
+/**
+ * Files the server reads with Claude: PDFs and images. Schedules and cut sheets
+ * arrive as phone photos and screenshots as often as PDFs. The server sniffs the
+ * real type from the bytes — this list only drives the picker and drop targets.
+ */
+const DOCUMENT_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.gif,application/pdf,image/png,image/jpeg,image/webp,image/gif';
+
+function isClaudeReadable(file: File): boolean {
+    return file.type === 'application/pdf'
+        || file.type.startsWith('image/')
+        || /\.(pdf|png|jpe?g|webp|gif)$/i.test(file.name);
+}
+
 function looksLikeUrl(value: string): boolean {
     return /^https?:\/\//i.test(value.trim()) || /^www\./i.test(value.trim());
 }
@@ -185,7 +198,7 @@ function attrChips(attrs?: ItemAttributes): string[] {
 
 export default function Home() {
     const [health, setHealth] = useState<{ liveData: boolean; counts?: HealthCounts } | null>(null);
-    const [phase, setPhase] = useState<'idle' | 'uploading' | 'reading-pdf' | 'analyzing'>('idle');
+    const [phase, setPhase] = useState<'idle' | 'uploading' | 'reading-doc' | 'analyzing'>('idle');
     const [error, setError] = useState<string | null>(null);
     const [warning, setWarning] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
@@ -237,7 +250,7 @@ export default function Home() {
         setBatchError(null);
         setIdentifyError({});
         setFileName(file.name);
-        setPhase(file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf' ? 'reading-pdf' : 'uploading');
+        setPhase(isClaudeReadable(file) ? 'reading-doc' : 'uploading');
         try {
             const form = new FormData();
             form.append('file', file);
@@ -328,7 +341,7 @@ export default function Home() {
             setIdentifyError(s => ({
                 ...s,
                 [rowIndex]: aborted
-                    ? `Identification timed out after ${Math.round(IDENTIFY_TIMEOUT_MS / 1000)}s — try again, or identify from the spec-sheet PDF.`
+                    ? `Identification timed out after ${Math.round(IDENTIFY_TIMEOUT_MS / 1000)}s — try again, or identify from the cut sheet.`
                     : e instanceof Error ? e.message : 'Identification failed.',
             }));
         } finally {
@@ -541,12 +554,13 @@ export default function Home() {
                     <h2 className="text-2xl mb-2">Upload a bid sheet or fixture schedule</h2>
                     <p className="text-muted text-sm mb-6 font-data">
                         CSV / single-sheet Excel with Mark / Qty / Manufacturer / Catalog # columns —
-                        or a fixture-schedule PDF (read automatically; takes a minute or two).
+                        or a fixture schedule as a PDF, photo, or screenshot (read automatically;
+                        takes a minute or two, longer for a schedule read in several passes).
                     </p>
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,.pdf,application/pdf"
+                        accept={`.csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,${DOCUMENT_ACCEPT}`}
                         className="hidden"
                         onChange={e => {
                             const f = e.target.files?.[0];
@@ -559,7 +573,7 @@ export default function Home() {
                         disabled={phase !== 'idle'}
                         className="bg-plteal text-white px-8 py-3 text-sm tracking-widest uppercase hover:bg-steel disabled:opacity-50 font-data"
                     >
-                        {phase === 'uploading' ? 'Parsing…' : phase === 'reading-pdf' ? 'Reading PDF…' : phase === 'analyzing' ? 'Analyzing…' : 'Choose file'}
+                        {phase === 'uploading' ? 'Parsing…' : phase === 'reading-doc' ? 'Reading schedule…' : phase === 'analyzing' ? 'Analyzing…' : 'Choose file'}
                     </button>
                     {fileName && phase === 'idle' && (
                         <p className="text-xs text-muted mt-3 font-data">{fileName}</p>
@@ -714,11 +728,11 @@ export default function Home() {
                             </div>
                         )}
 
-                        {/* Shared picker for per-line cut-sheet PDFs */}
+                        {/* Shared picker for per-line cut sheets (PDF or image) */}
                         <input
                             ref={identifyFileRef}
                             type="file"
-                            accept=".pdf,application/pdf"
+                            accept={DOCUMENT_ACCEPT}
                             className="hidden"
                             onChange={e => {
                                 const f = e.target.files?.[0];
@@ -741,13 +755,13 @@ export default function Home() {
                                         }}
                                         onDrop={e => {
                                             const f = e.dataTransfer.files?.[0];
-                                            if (f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
+                                            if (f && isClaudeReadable(f)) {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 handleIdentify(a, 'pdf', { file: f });
                                             }
                                         }}
-                                        title="Drop a cut-sheet PDF here to identify this line"
+                                        title="Drop a cut sheet here (PDF, photo, or screenshot) to identify this line"
                                     >
                                         {/* Line-item header */}
                                         <div className="flex flex-wrap gap-x-8 gap-y-1 px-4 py-3 bg-offwhite border-b-2 border-line text-sm">
@@ -838,9 +852,9 @@ export default function Home() {
                                                                     identifyFileRef.current?.click();
                                                                 }}
                                                                 className="border-2 border-line text-muted px-3 py-1 uppercase tracking-wider hover:border-plteal hover:text-plteal"
-                                                                title="Upload (or drop anywhere on this card) a manufacturer cut-sheet PDF"
+                                                                title="Upload (or drop anywhere on this card) a manufacturer cut sheet — PDF, photo, or screenshot"
                                                             >
-                                                                Identify from PDF
+                                                                Identify from cut sheet
                                                             </button>
                                                         </>
                                                     )}

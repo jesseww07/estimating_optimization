@@ -7,8 +7,11 @@
  *      engine on the identified line.
  *   web  (JSON body):      { mode: 'web', lineItem: ParsedLineItem }
  *      Claude with web search → cited findings → extraction → re-run engine.
- *   pdf  (multipart/form-data): mode=pdf, lineItem=<JSON>, file=<cut-sheet PDF>
- *      Claude reads the PDF natively (vision) → extraction → re-run engine.
+ *   pdf  (multipart/form-data): mode=pdf, lineItem=<JSON>, file=<cut sheet>
+ *      Claude reads the file natively (vision) → extraction → re-run engine.
+ *      The file may be a PDF or an image (PNG/JPEG/WebP/GIF) — cut sheets arrive
+ *      as phone photos and screenshots as often as PDFs. The mode name stays
+ *      "pdf" because it is the route's public contract.
  *      Synchronous on maxDuration=300 per the handoff — no job queue until
  *      real cut sheets prove they blow the budget.
  *
@@ -23,8 +26,9 @@ import { getEngineContext } from '@/lib/airtable/cached';
 import { isLiveDataAvailable } from '@/lib/airtable/fetch';
 import { analyzeLineItem } from '@/lib/engine/recommend';
 import { applyIdentifiedSpec } from '@/lib/identify/apply';
-import { identifyFromPdf, identifyFromText, identifyFromWeb, isIdentifyAvailable } from '@/lib/identify/claude';
+import { identifyFromDocument, identifyFromText, identifyFromWeb, isIdentifyAvailable } from '@/lib/identify/claude';
 import { fetchSpecUrl, isFetchableSpecUrl } from '@/lib/identify/fetchUrl';
+import { ACCEPTED_MEDIA_LABEL, PDF_MEDIA, detectSupportedMedia } from '@/lib/identify/media';
 import { coerceLineItem, str } from '@/lib/parse/coerce';
 import type { IdentifiedSpec } from '@/lib/identify/types';
 import type { ParsedLineItem } from '@/lib/types';
@@ -45,9 +49,9 @@ async function respondWith(identified: IdentifiedSpec, lineItem: ParsedLineItem)
     return NextResponse.json({ identified, result, liveData: isLiveDataAvailable() });
 }
 
-const MAX_PDF_BYTES = 15 * 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 15 * 1024 * 1024;
 
-async function handlePdfUpload(request: Request): Promise<NextResponse> {
+async function handleDocumentUpload(request: Request): Promise<NextResponse> {
     let form: FormData;
     try {
         form = await request.formData();
@@ -63,15 +67,18 @@ async function handlePdfUpload(request: Request): Promise<NextResponse> {
     if (!lineItem) return err(400, 'Missing or invalid "lineItem" field (JSON).');
 
     const file = form.get('file');
-    if (!(file instanceof File)) return err(400, 'Missing "file" field (the cut-sheet PDF).');
-    if (file.size === 0) return err(400, 'Uploaded PDF is empty.');
-    if (file.size > MAX_PDF_BYTES) return err(413, `PDF too large (max ${MAX_PDF_BYTES / 1024 / 1024} MB).`);
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    if (!isPdf) return err(415, 'Only PDF cut sheets are supported for per-line identification.');
+    if (!(file instanceof File)) return err(400, 'Missing "file" field (the cut sheet).');
+    if (file.size === 0) return err(400, 'Uploaded cut sheet is empty.');
+    if (file.size > MAX_DOCUMENT_BYTES) return err(413, `Cut sheet too large (max ${MAX_DOCUMENT_BYTES / 1024 / 1024} MB).`);
+
+    // Sniffed from the bytes: the filename and the browser-supplied MIME are
+    // both routinely wrong, and the API rejects a mislabelled media type.
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const media = detectSupportedMedia(buffer);
+    if (!media) return err(415, `Unsupported cut-sheet type. Upload ${ACCEPTED_MEDIA_LABEL} — a photo or screenshot of the spec sheet works.`);
 
     try {
-        const base64 = Buffer.from(await file.arrayBuffer()).toString('base64');
-        const identified = await identifyFromPdf(base64, lineItem);
+        const identified = await identifyFromDocument(buffer.toString('base64'), media, lineItem);
         return await respondWith(identified, lineItem);
     } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
@@ -85,10 +92,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         return err(503, 'Identification is unavailable: ANTHROPIC_API_KEY is not configured.');
     }
 
-    // PDF uploads arrive as multipart; url/web modes as JSON.
+    // Cut-sheet uploads arrive as multipart; url/web modes as JSON.
     const contentType = request.headers.get('content-type') ?? '';
     if (contentType.includes('multipart/form-data')) {
-        return handlePdfUpload(request);
+        return handleDocumentUpload(request);
     }
 
     let body: unknown;
@@ -132,7 +139,7 @@ export async function POST(request: Request): Promise<NextResponse> {
                 }
             }
             const identified = fetched.kind === 'pdf'
-                ? await identifyFromPdf(fetched.base64, lineItem)
+                ? await identifyFromDocument(fetched.base64, PDF_MEDIA, lineItem)
                 : await identifyFromText(fetched.text, lineItem, 'url');
             return await respondWith(identified, lineItem);
         }

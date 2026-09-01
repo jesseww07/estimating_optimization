@@ -1,14 +1,31 @@
 /**
- * SERVER-ONLY fixture-schedule PDF extraction (pulled forward from Phase 3,
+ * SERVER-ONLY fixture-schedule extraction (pulled forward from Phase 3,
  * 2026-07-28 — Jesse hit the upload wall in live use).
  *
- * One Claude call per uploaded document (user-triggered, token usage logged —
- * consistent with the Phase 2 cost guardrails): the schedule grid comes back
- * as structured line items that feed the exact same recommendation flow as a
- * pre-converted CSV/XLSX.
+ * The schedule grid comes back as structured line items that feed the exact same
+ * recommendation flow as a pre-converted CSV/XLSX. The document may be a PDF or
+ * a photo/screenshot of the schedule — Claude reads both natively.
+ *
+ * Long schedules (2026-08-31): a 200-line schedule is a normal input, and one
+ * call with `max_tokens: 32000` truncated on it and threw "split the PDF and try
+ * again", which lost the upload. Extraction is now planned over PAGE RANGES: a
+ * short document is still exactly one call, and a long one is read in several
+ * passes whose rows are concatenated in document order. Every pass logs its own
+ * token usage, so a chunked read is as visible in the logs as a single one.
+ *
+ * Why page ranges are an instruction rather than a physical split: the Messages
+ * API takes a whole document, with no page-selection parameter, and splitting
+ * the file would mean adding a PDF library for it. So each pass attaches the
+ * same document (with a cache breakpoint, so passes 2..n read it from cache) and
+ * is scoped to its pages in the prompt.
+ *
+ * The planning/joining logic is pure and injected-extractor driven
+ * (`extractScheduleRows`) so it is unit-testable without an API key.
  */
 
 import { createAnthropicClient, getApiKey } from './anthropic';
+import { mediaContentBlock, type SupportedMedia } from './media';
+import { countPdfPages } from './pdfPages';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { ParsedLineItem } from '../types';
 
@@ -19,6 +36,13 @@ if (typeof window !== 'undefined') {
 function getModel(): string {
     return (process.env.IDENTIFY_MODEL ?? '').trim() || 'claude-sonnet-5';
 }
+
+/** Output ceiling for ONE extraction pass. Hitting it means the range is too wide. */
+const MAX_OUTPUT_TOKENS = 32000;
+/** Pages per pass. Wide enough that ordinary schedules stay a single call. */
+export const PAGES_PER_CHUNK = 8;
+/** Hard ceiling on passes per upload, so a pathological document cannot loop. */
+export const MAX_CHUNKS = 12;
 
 const SCHEDULE_SCHEMA = {
     type: 'object',
@@ -45,7 +69,7 @@ const SCHEDULE_SCHEMA = {
     },
 } as const;
 
-const SCHEDULE_PROMPT = `The attached PDF is a lighting fixture schedule (or bid sheet) from a construction project.
+const SCHEDULE_PROMPT = `The attached document is a lighting fixture schedule (or bid sheet) from a construction project.
 Extract EVERY fixture line item in document order. Rules:
 - One entry per fixture row. Do not invent rows; do not merge distinct rows.
 - catalogNumber must be verbatim from the document, including option suffixes. Never abbreviate it.
@@ -100,38 +124,264 @@ export function scheduleRowsToLineItems(rows: ScheduleRow[]): ParsedLineItem[] {
     return items;
 }
 
-export async function extractScheduleFromPdf(pdfBase64: string): Promise<ParsedLineItem[]> {
-    if (!getApiKey()) throw new Error('ANTHROPIC_API_KEY is not set — PDF schedule parsing is unavailable.');
+// ── Page-range planning ──────────────────────────────────────────────────────
+
+/** `end: null` means "through the last page", whatever the real page count is. */
+export interface PageRange {
+    start: number;
+    end: number | null;
+}
+
+/** The single pass that reads everything — used when the document is short. */
+export const WHOLE_DOCUMENT: PageRange = { start: 1, end: null };
+
+export function isWholeDocument(range: PageRange): boolean {
+    return range.start === 1 && range.end === null;
+}
+
+/**
+ * Split a document into extraction passes.
+ *
+ * A document at or under one chunk's worth of pages (and one whose page count
+ * could not be read at all) is a SINGLE whole-document pass — the common case
+ * must not get more expensive. The final range is left open-ended so a page
+ * count that reads low can never drop the end of the document.
+ */
+export function planPageRanges(
+    pageCount: number | null,
+    pagesPerChunk: number = PAGES_PER_CHUNK,
+    maxChunks: number = MAX_CHUNKS,
+): PageRange[] {
+    if (!pageCount || pageCount <= pagesPerChunk) return [WHOLE_DOCUMENT];
+    const chunks = Math.ceil(pageCount / pagesPerChunk);
+    if (chunks > maxChunks) {
+        throw new Error(
+            `Schedule is ${pageCount} pages — more than the ${maxChunks * pagesPerChunk}-page limit for one upload. ` +
+            'Split it into smaller files and upload them one at a time.',
+        );
+    }
+    const ranges: PageRange[] = [];
+    for (let start = 1; start <= pageCount; start += pagesPerChunk) {
+        const last = start + pagesPerChunk > pageCount;
+        ranges.push({ start, end: last ? null : start + pagesPerChunk - 1 });
+    }
+    return ranges;
+}
+
+/**
+ * The prompt for one pass: the shared extraction rules, the page scope, and the
+ * section heading that was in force at the end of the previous pass.
+ *
+ * Section carry-over is the whole reason chunk boundaries are not a data loss:
+ * a schedule prints "LEVEL 2 — CORRIDOR" once and then runs rows under it for
+ * three pages, so the pass that starts mid-run has no heading to read. It is
+ * told the heading instead, and told it only applies until the document shows a
+ * new one.
+ */
+export function buildSchedulePrompt(range: PageRange, carrySection: string): string {
+    if (isWholeDocument(range)) return SCHEDULE_PROMPT;
+    const pages = range.end === null
+        ? `pages ${range.start} to the end of the document`
+        : `pages ${range.start}-${range.end}`;
+    const scope =
+        `\n\nPAGE SCOPE: this pass covers ${pages} (the first page of the document is page 1). ` +
+        'Extract ONLY rows printed on those pages. The other pages are read in separate passes, so a ' +
+        'row repeated here would be duplicated in the result, and a row skipped here would be lost. ' +
+        'A row that starts on the last page of this range and wraps onto the next page belongs to this pass.';
+    const carry = carrySection
+        ? `\n\nCARRIED CONTEXT: the last section/location heading printed before page ${range.start} was ` +
+        `"${carrySection}". Rows at the top of page ${range.start} that continue under that heading — with no ` +
+        'new heading above them — take that section. Stop using it as soon as the document shows a new heading.'
+        : '';
+    return `${SCHEDULE_PROMPT}${scope}${carry}`;
+}
+
+/** The section still in force after these rows — what the next pass inherits. */
+export function lastSectionOf(rows: ScheduleRow[]): string {
+    for (let i = rows.length - 1; i >= 0; i--) {
+        const section = (rows[i]?.section ?? '').trim();
+        if (section) return section;
+    }
+    return '';
+}
+
+/** How many rows back a boundary duplicate is looked for. */
+const BOUNDARY_LOOKBACK = 2;
+
+function rowKey(row: ScheduleRow): string {
+    return [row.mark, row.catalogNumber, row.quantity]
+        .map(v => (v ?? '').trim().toUpperCase().replace(/\s+/g, ' '))
+        .join('|');
+}
+
+/**
+ * Append one pass's rows, dropping a leading row that repeats the tail of what
+ * we already have.
+ *
+ * Page ranges are disjoint and the prompt says so, but a row that straddles a
+ * page break is genuinely ambiguous and can come back from both passes. Only the
+ * HEAD of the incoming pass is checked, only against the last couple of rows,
+ * and only on an exact mark+catalog+qty match — a real repeat elsewhere in the
+ * schedule (the same fixture in another area) is untouched, because dropping a
+ * real row is worse than keeping a duplicate one.
+ */
+export function appendChunkRows(accumulated: ScheduleRow[], incoming: ScheduleRow[]): ScheduleRow[] {
+    if (accumulated.length === 0) return [...incoming];
+    const tail = accumulated.slice(-BOUNDARY_LOOKBACK).map(rowKey);
+    let skip = 0;
+    while (skip < incoming.length) {
+        const key = rowKey(incoming[skip]!);
+        if (!key.replace(/\|/g, '').trim()) break; // blank row — not a duplicate signal
+        if (!tail.includes(key)) break;
+        skip++;
+    }
+    return [...accumulated, ...incoming.slice(skip)];
+}
+
+// ── Chunked extraction driver (network injected, so it is testable) ──────────
+
+export interface ScheduleChunkRequest {
+    range: PageRange;
+    prompt: string;
+}
+
+export interface ScheduleChunkResult {
+    rows: ScheduleRow[];
+    /** The pass hit max_tokens — its rows are incomplete and must not be used. */
+    truncated: boolean;
+}
+
+export type ScheduleChunkExtractor = (request: ScheduleChunkRequest) => Promise<ScheduleChunkResult>;
+
+export interface ExtractScheduleOptions {
+    /** null when the page count could not be read (an image, or an unreadable PDF). */
+    pageCount: number | null;
+    pagesPerChunk?: number;
+    maxChunks?: number;
+}
+
+function resolveEnd(range: PageRange, pageCount: number | null): number | null {
+    if (range.end !== null) return range.end;
+    return pageCount && pageCount >= range.start ? pageCount : null;
+}
+
+/** Halve a range that produced too much output. Keeps an open end open. */
+function splitRange(range: PageRange, pageCount: number | null): [PageRange, PageRange] | null {
+    const end = resolveEnd(range, pageCount);
+    if (end === null || end <= range.start) return null;
+    const mid = range.start + Math.floor((end - range.start) / 2);
+    return [
+        { start: range.start, end: mid },
+        { start: mid + 1, end: range.end },
+    ];
+}
+
+/**
+ * Run the passes and join their rows in document order.
+ *
+ * The joined array is mapped to line items ONCE by the caller, which is what
+ * keeps `rowIndex` continuous and unique across the whole document —
+ * `scheduleRowsToLineItems` indexes from zero per call, so mapping per pass
+ * would restart the numbering at every boundary.
+ */
+export async function extractScheduleRows(
+    extract: ScheduleChunkExtractor,
+    options: ExtractScheduleOptions,
+): Promise<ScheduleRow[]> {
+    const pagesPerChunk = options.pagesPerChunk ?? PAGES_PER_CHUNK;
+    const maxChunks = options.maxChunks ?? MAX_CHUNKS;
+    const queue = planPageRanges(options.pageCount, pagesPerChunk, maxChunks);
+
+    let rows: ScheduleRow[] = [];
+    let passes = 0;
+    while (queue.length > 0) {
+        const range = queue.shift()!;
+        if (passes >= maxChunks) {
+            throw new Error(
+                `Schedule needed more than ${maxChunks} extraction passes — it is too dense to read in one upload. ` +
+                'Split it into smaller files and upload them one at a time.',
+            );
+        }
+        passes++;
+        const result = await extract({ range, prompt: buildSchedulePrompt(range, lastSectionOf(rows)) });
+        if (result.truncated) {
+            // Too many rows for one pass: read this range in halves instead of
+            // failing the upload. Rows from a truncated pass are discarded —
+            // the halves re-read the same pages.
+            const halves = splitRange(range, options.pageCount);
+            if (!halves) {
+                throw new Error(
+                    resolveEnd(range, options.pageCount) === null
+                        ? 'Schedule extraction was truncated and the document\'s page count could not be read, so it cannot be split automatically. Split the file and upload the parts separately.'
+                        : `Page ${range.start} alone holds more rows than one extraction pass can return. Re-export that page as a CSV/Excel sheet and upload that instead.`,
+                );
+            }
+            queue.unshift(...halves);
+            continue;
+        }
+        rows = appendChunkRows(rows, result.rows);
+    }
+    return rows;
+}
+
+// ── Live extraction ──────────────────────────────────────────────────────────
+
+function chunkLabel(range: PageRange, pageCount: number | null): string {
+    if (isWholeDocument(range)) return pageCount ? `1-${pageCount}` : 'all';
+    return `${range.start}-${range.end ?? (pageCount ?? '')}`;
+}
+
+/**
+ * Read a fixture schedule (PDF or image) into line items.
+ *
+ * Named for the document rather than the format: the same call reads a phone
+ * photo of a schedule taped to a wall.
+ */
+export async function extractScheduleFromDocument(base64: string, media: SupportedMedia): Promise<ParsedLineItem[]> {
+    if (!getApiKey()) throw new Error('ANTHROPIC_API_KEY is not set — schedule parsing is unavailable.');
     const client = createAnthropicClient();
     const model = getModel();
+    // An image is a single page by definition; a PDF states its own page count.
+    const pageCount = media.kind === 'image' ? 1 : countPdfPages(Buffer.from(base64, 'base64'));
 
-    // Streamed on purpose: a long schedule can produce well past the safe
-    // non-streaming output size.
-    const stream = client.messages.stream({
-        model,
-        max_tokens: 32000,
-        output_config: { format: { type: 'json_schema', schema: SCHEDULE_SCHEMA as unknown as Record<string, unknown> } },
-        messages: [{
-            role: 'user',
-            content: [
-                { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
-                { type: 'text', text: SCHEDULE_PROMPT },
-            ],
-        }],
-    });
-    const response = await stream.finalMessage();
-    console.log(
-        `[identify] source=schedule stage=extract model=${model} ` +
-        `input_tokens=${response.usage.input_tokens} output_tokens=${response.usage.output_tokens}`,
-    );
-    if (response.stop_reason === 'refusal') {
-        throw new Error('Schedule extraction declined by the model (refusal).');
-    }
-    if (response.stop_reason === 'max_tokens') {
-        throw new Error('Schedule too large — extraction output was truncated. Split the PDF and try again.');
-    }
-    const text = response.content.find((b): b is Anthropic.Messages.TextBlock => b.type === 'text')?.text ?? '';
-    if (!text) throw new Error('Schedule extraction returned no output.');
-    const parsed = JSON.parse(text) as { lineItems: ScheduleRow[] };
-    return scheduleRowsToLineItems(parsed.lineItems ?? []);
+    const rows = await extractScheduleRows(async ({ range, prompt }) => {
+        // Streamed on purpose: a long schedule can produce well past the safe
+        // non-streaming output size.
+        const stream = client.messages.stream({
+            model,
+            max_tokens: MAX_OUTPUT_TOKENS,
+            output_config: { format: { type: 'json_schema', schema: SCHEDULE_SCHEMA as unknown as Record<string, unknown> } },
+            messages: [{
+                role: 'user',
+                content: [
+                    // Cache the document ONLY when the read is chunked: every
+                    // pass re-sends it, so from the second pass on it is read
+                    // from cache instead of re-billed. A single-pass read would
+                    // pay the cache-write premium for a cache nothing reads.
+                    mediaContentBlock(media, base64, !isWholeDocument(range)),
+                    { type: 'text', text: prompt },
+                ],
+            }],
+        });
+        const response = await stream.finalMessage();
+        // Guardrail: every pass's token usage must be visible in the logs.
+        console.log(
+            `[identify] source=schedule stage=extract model=${model} ` +
+            `input_tokens=${response.usage.input_tokens} output_tokens=${response.usage.output_tokens}` +
+            (response.usage.cache_read_input_tokens ? ` cache_read=${response.usage.cache_read_input_tokens}` : '') +
+            ` pages=${chunkLabel(range, pageCount)}`,
+        );
+        if (response.stop_reason === 'refusal') {
+            throw new Error('Schedule extraction declined by the model (refusal).');
+        }
+        if (response.stop_reason === 'max_tokens') {
+            return { rows: [], truncated: true };
+        }
+        const text = response.content.find((b): b is Anthropic.Messages.TextBlock => b.type === 'text')?.text ?? '';
+        if (!text) throw new Error('Schedule extraction returned no output.');
+        const parsed = JSON.parse(text) as { lineItems?: ScheduleRow[] };
+        return { rows: parsed.lineItems ?? [], truncated: false };
+    }, { pageCount });
+
+    return scheduleRowsToLineItems(rows);
 }
