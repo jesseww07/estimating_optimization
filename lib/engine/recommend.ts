@@ -260,6 +260,9 @@ function isLampCatalogItem(item: { itemId: string; manufacturer: string; product
     return isSatcoLampNumber(item.itemId) && item.manufacturer.toLowerCase().includes('satco');
 }
 
+/** Cards per line the UI shows — the fallback tops a thin line up to this. */
+const MAX_RECOMMENDATIONS = 3;
+
 /** How many times each lamp (by normalized item number) was bid across all history. */
 function lampUsageCounts(ctx: EngineContext): Map<string, number> {
     const counts = new Map<string, number>();
@@ -542,7 +545,41 @@ function categoryFallbackRecommendations(
         });
     }
 
-    candidates.sort((a, b) =>
+    // ── A 3rd-party card has to earn its slot (2026-09-01) ───────────────────
+    // The 3rd-party table is CONTEXT for reading a spec — it is the resold
+    // catalog, so a spec naming a resold product can be recognized as one. It is
+    // not a substitution catalog. The old ordering treated it as one: slots went
+    // to the highest score with the tier only breaking ties, so a resold item
+    // that matched one more word than a Premier item took the slot from it. That
+    // works against the tool's own purpose, which is as much to increase
+    // private-line usage as to find value.
+    //
+    // But a blanket "Premier first" is wrong too, and measurably: on the frozen
+    // snapshot it cost 8 cases whose labelled answer WAS a resold item — the
+    // decorative specs (a Belinda sconce, a Calypso crystal chandelier, a Dawson
+    // sconce) that Premier resells precisely because it doesn't make them.
+    //
+    // What separates those from displacement is what the card recognizes. A
+    // resold card that matched the spec's DISTINCTIVE word — the product name no
+    // Premier item carries — is identifying the specified product. One whose
+    // every matched word is a word a Premier candidate matched too ("WALL",
+    // "SCONCE", "LED") is adding nothing but a scoring accident, and there is by
+    // construction a Premier item just as good behind it.
+    //
+    // So: a 3rd-party candidate is eligible only when it matches at least one
+    // spec token no Premier candidate matched. Eligible ones then compete on
+    // score as before, with the tier still breaking ties in Premier's favour.
+    // When Premier has nothing in the category, every 3rd-party candidate stays
+    // eligible — otherwise the estimator would see nothing at all.
+    const premierCandidates = candidates.filter(cand => cand.tier === 'premier');
+    const premierMatchedTokens = new Set(premierCandidates.flatMap(cand => cand.matchedTokens));
+    const eligible = candidates.filter(cand => {
+        if (cand.tier === 'premier') return true;
+        if (premierCandidates.length === 0) return true;
+        return cand.matchedTokens.some(token => !premierMatchedTokens.has(token));
+    });
+
+    eligible.sort((a, b) =>
         b.score - a.score ||
         // Equal signal: own-brand always outranks the 3rd-party tier.
         (a.tier === b.tier ? 0 : a.tier === 'premier' ? -1 : 1) ||
@@ -550,8 +587,8 @@ function categoryFallbackRecommendations(
     // Prefer candidates with a real signal (token match or usage history);
     // fall back to the top in-category items so the estimator still sees the
     // right family instead of "No recommendations".
-    const withSignal = candidates.filter(cand => cand.tokenScore > 0 || cand.timesUsed > 0);
-    const chosen = (withSignal.length > 0 ? withSignal : candidates).slice(0, 3);
+    const withSignal = eligible.filter(cand => cand.tokenScore > 0 || cand.timesUsed > 0);
+    const chosen = (withSignal.length > 0 ? withSignal : eligible).slice(0, 3);
     for (const cand of chosen) {
         const descriptionBased = cand.tokenScore > 0;
         const isThirdParty = cand.tier === 'third_party';
@@ -574,7 +611,11 @@ function categoryFallbackRecommendations(
                     ? `Spec words found in this item: ${cand.matchedTokens.join(', ')}`
                     : `No text overlap with the spec — offered as an in-category most-used item`,
                 ...(cand.timesUsed > 0 ? [`Used ${cand.timesUsed} time${cand.timesUsed === 1 ? '' : 's'} before`] : []),
-                ...(isThirdParty ? ['3rd-party budget alternative'] : []),
+                ...(isThirdParty
+                    ? [premierCandidates.length === 0
+                        ? `3rd-party alternative — the Premier catalog has nothing in the ${inferredCategory} category for this spec`
+                        : `3rd-party alternative — it matches wording no Premier ${inferredCategory} item does (${cand.matchedTokens.filter(t => !premierMatchedTokens.has(t)).join(', ')})`]
+                    : []),
                 'Exact item not identified from the spec — these are category-level suggestions, never pre-checked',
             ],
             productCategory: cand.category || undefined,
@@ -1550,9 +1591,39 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // ── Category Fallback (generalized prose fallback) ───────────────────────
     // When nothing matched but the fixture CATEGORY is known, recommend from the
     // Premier catalog inside that category (categoryFallbackRecommendations).
+    //
+    // It also TOPS UP a thin line, which used to be an all-or-nothing decision:
+    // one weak card was enough to suppress the whole tier. Aura Santan
+    // L1/DF-2000/A ("7\" ROUND LED DISK LIGHT, FLUSH MOUNT") drew exactly one
+    // card — `FLAIRE 5 LIGHT SEMI-FLUSH MOUNT` on a 45% item-# resemblance built
+    // out of the words FLUSH and MOUNT — and that one card hid every in-category
+    // Premier disk light behind it, including R-SLIM-DISK-12W-5CCT-WH, bid 91
+    // times and the exact item the estimator chose by hand (2026-09-01).
+    //
+    // Topping up can only add: fallback confidence is capped at 60, so a real
+    // match still outranks these, and the slice below still keeps the best three.
     if (!hasAnyRecommendations && inferredCategory) {
         recommendations.push(...categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber));
         hasAnyRecommendations = recommendations.length > 0;
+    } else if (hasAnyRecommendations && inferredCategory && recommendations.length < MAX_RECOMMENDATIONS
+        && !recommendations.every(rec => rec.isPassthrough)) {
+        // Two lines are thin for reasons that are NOT "we found too little".
+        //
+        // A line with no cards at all is the empty case above, and it has to stay
+        // that way: the passthrough badge below fires only on an empty line, and
+        // filling one would take "↻ Left as-spec — carry the specified product"
+        // away from the decorative specs it is right for.
+        //
+        // A line whose every card IS a passthrough — "already our product",
+        // "already a resold 3rd-party item — no substitution needed" — is
+        // answered, not thin. Its card is often removed downstream by the
+        // don't-recommend-the-input-back dedupe, which is what leaves it looking
+        // empty here. Topping those up offered substitutions for 51 decorative
+        // specs the estimator had kept as specified (measured on the snapshot).
+        const already = new Set(recommendations.map(rec => rec.id));
+        const topUp = categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber)
+            .filter(rec => !already.has(rec.id));
+        recommendations.push(...topUp.slice(0, MAX_RECOMMENDATIONS - recommendations.length));
     }
 
     // ── Passthrough badge ─────────────────────────────────────────────────────
@@ -1591,7 +1662,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         dedupedRecommendations = deduplicateRecommendations(retry, catalogNumber);
     }
 
-    return { lineItem, recommendations: dedupedRecommendations.slice(0, 3), specCategory: inferredCategory };
+    return { lineItem, recommendations: dedupedRecommendations.slice(0, MAX_RECOMMENDATIONS), specCategory: inferredCategory };
 }
 
 /** Batch orchestration for the /api/recommendations route. */

@@ -186,21 +186,43 @@ describe('3rd-party items in the in-category fallback (Phase 2 backlog)', () => 
         ],
     };
 
-    it('offers 3rd-party alternatives inside the inferred category', () => {
+    // AMENDED 2026-09-01 (Aura Santan review). This suite used to assert that a
+    // 3rd-party item always joins the fallback. It no longer does when it is a
+    // budget clone of an own-brand item — SAT-VAN-22's every matched word
+    // ("VANITY", "BAR", "22") is a word GC-VAN-LED-22-30K matches too, so it
+    // adds nothing and costs a slot. It still joins when it recognizes the
+    // specified product, or when Premier has nothing in the category; those are
+    // the cases below and in 'own-brand preference in the in-category tier'.
+    it('does not offer a 3rd-party clone of an own-brand item', () => {
         const r = analyzeLineItem(line('U-SS1B - 22" VANITY', 'NOBRAND', 'CUSTOM VANITY BAR 22 INCH'), ctx);
         const ids = r.recommendations.map(x => x.premierItem);
-        expect(ids).toContain('SAT-VAN-22');
+        expect(ids).toContain('GC-VAN-LED-22-30K');
+        expect(ids).not.toContain('SAT-VAN-22');
         // The pole-head item is category-incompatible with Vanity and must not appear.
         expect(ids).not.toContain('WG-POLE-25');
-        const thirdRec = r.recommendations.find(x => x.premierItem === 'SAT-VAN-22')!;
-        expect(thirdRec.source).toBe('3rd Party');
-        expect(thirdRec.thirdPartyLinkId).toBe('t1');
+    });
+
+    it('offers a 3rd-party item that matches wording no own-brand item does', () => {
+        const withDistinctive: EngineContext = {
+            ...ctx,
+            thirdPartyItems: [...ctx.thirdPartyItems, third('t3', 'SAT-ADA-22', 'Vanity', '22" ADA COMPLIANT VANITY BAR')],
+        };
+        const r = analyzeLineItem(line('U-SS1B - 22" VANITY', 'NOBRAND', 'ADA VANITY BAR 22 INCH'), withDistinctive);
+        const thirdRec = r.recommendations.find(x => x.premierItem === 'SAT-ADA-22');
+        expect(thirdRec).toBeDefined();
+        expect(thirdRec!.source).toBe('3rd Party');
+        expect(thirdRec!.thirdPartyLinkId).toBe('t3');
     });
 
     it('never ranks a 3rd-party alternative above an own-brand item with equal signal', () => {
-        const r = analyzeLineItem(line('U-SS1B - 22" VANITY', 'NOBRAND', 'CUSTOM VANITY BAR 22 INCH'), ctx);
+        const withDistinctive: EngineContext = {
+            ...ctx,
+            thirdPartyItems: [...ctx.thirdPartyItems, third('t3', 'SAT-ADA-22', 'Vanity', '22" ADA COMPLIANT VANITY BAR')],
+        };
+        const r = analyzeLineItem(line('U-SS1B - 22" VANITY', 'NOBRAND', 'ADA VANITY BAR 22 INCH'), withDistinctive);
         const ids = r.recommendations.map(x => x.premierItem);
-        expect(ids.indexOf('GC-VAN-LED-22-30K')).toBeLessThan(ids.indexOf('SAT-VAN-22'));
+        expect(ids).toContain('SAT-ADA-22');
+        expect(ids.indexOf('GC-VAN-LED-22-30K')).toBeLessThan(ids.indexOf('SAT-ADA-22'));
     });
 });
 
@@ -978,5 +1000,144 @@ describe('exact-history confidence rework', () => {
         expect(r.specCategory).toBe('Sconce');
         const unknown = analyzeLineItem(line('ZZ', 'ACME', 'TOTALLY-UNKNOWN-99Q'), XCTX);
         expect(unknown.specCategory).toBeNull();
+    });
+});
+
+// ── Aura Santan live-use review (Jesse's notes, 2026-09-01) ──────────────────
+// Three defects on one bid, all visible on the same sheet:
+//
+//  1. Category detection missed whole families, so 34 of 96 lines came back
+//     "category unknown" and had no in-category fallback at all.
+//  2. The 3rd-party table was being used as a substitution catalog, taking slots
+//     from own-brand items — the opposite of what the tool is for.
+//  3. One weak card suppressed the in-category tier entirely, hiding the Premier
+//     disk lights the estimator went on to pick by hand.
+
+describe('Aura Santan category detection', () => {
+    it('reads UNDER CABINET out of the catalog cell, space and all', () => {
+        // 21 of the sheet's lines printed the whole spec in the catalog column as
+        // `9" UNDER CABINET`, and the old test was mark-only and space-free.
+        expect(detectFixtureCategory('UCL18 - 18"', '9" UNDER CABINET', 'TBD')).toBe('Undercabinet');
+        expect(detectFixtureCategory('UCL42 - 81"', '9" UNDER CABINET', 'TBD')).toBe('Undercabinet');
+        expect(detectFixtureCategory('U-UC1', 'ELNU-24-30K', 'AFX')).toBe('Undercabinet');
+    });
+
+    it('reads a WP mark as an outdoor wall pack when the part number names nothing', () => {
+        // `ABOVE ALL AKT30401-III` is a wall pack, which a web search says in two
+        // seconds and no keyword in the string does. WP1/WP2 is the drawing
+        // convention, and it was the only signal on the line.
+        expect(detectFixtureCategory('WP1', 'AKT30401-III', 'ABOVE ALL')).toBe('Outdoor');
+        expect(detectFixtureCategory('WP2', 'AKT30401-III', 'ABOVE ALL')).toBe('Outdoor');
+        expect(detectFixtureCategory('WP-3', 'XYZ123', 'SOME BRAND')).toBe('Outdoor');
+    });
+
+    it('reads DISK / DISC as a disk light rather than falling through to Ceiling', () => {
+        // "FLUSH MOUNT" used to win, which gated out all 193 Premier Disk Light
+        // items — including the one the estimator chose.
+        expect(detectFixtureCategory('L1/DF-2000/A', '7" ROUND LED DISK LIGHT, FLUSH MOUNT', 'TBD')).toBe('Recessed');
+        expect(detectFixtureCategory('K (rfi#1)', 'DISC?', 'TBD')).toBe('Recessed');
+        // ...but a disconnect switch is not a disk light.
+        expect(detectFixtureCategory('SW1', 'DISCONNECT SWITCH 60A', 'SQUARE D')).not.toBe('Recessed');
+    });
+
+    it('reads a carpark light as Outdoor', () => {
+        expect(detectFixtureCategory('G2 (rfi#1)', 'CARPARK LED LIGHT, OUTDOOR RATED, VANDAL RESISTANT, TYPE-4', 'TBD')).toBe('Outdoor');
+    });
+
+    it('leaves the categories it already got right alone', () => {
+        expect(detectFixtureCategory('XS - S', 'RED LED EXIT SIGN SINGLE FACE DAMP LISTED', 'TBD')).toBe('Exit/Emergency');
+        expect(detectFixtureCategory('R5 (U-FL)', 'CEILING FAN', 'TBD')).toBe('Ceiling Fan');
+        expect(detectFixtureCategory('PL1B - SGL HEAD', 'DSX1 LED P2 30K 80CRI T3M', 'LITHONIA')).toBe('Outdoor Pole');
+        // A genuine flush mount is still a flush mount.
+        expect(detectFixtureCategory('CL1', '14" SEMI-FLUSH MOUNT CEILING', 'KICHLER')).toBe('Ceiling');
+    });
+});
+
+describe('own-brand preference in the in-category tier', () => {
+    const thirdParty = (o: { id: string; itemId: string; productCategories: string; itemDescription?: string; manufacturer?: string }) => ({
+        itemDescription: '', manufacturer: '', finish: '', colorTemp: '', maxWattage: '', lightOutput: '', ...o,
+    });
+    const disks: EngineContext = {
+        history: [],
+        fans: [],
+        premierItems: [
+            premier({ id: 'd1', itemId: 'R-SLIM-DISK-12W-5CCT-WH', fixtureCategory: 'Disk Light', itemDescription: '7" ROUND LED DISK LIGHT', timesUsed: 91 }),
+            premier({ id: 'd2', itemId: 'R-SLIM-DISK-7"-EMG', fixtureCategory: 'Disk Light', itemDescription: '7" ROUND LED DISK EMERGENCY', timesUsed: 26 }),
+        ],
+        thirdPartyItems: [
+            // Matches only words a Premier candidate matches too — pure displacement.
+            thirdParty({ id: 't1', itemId: 'SF0703212BK', productCategories: 'Flush Mount', itemDescription: '7" ROUND LED DISK LIGHT FLUSH MOUNT BLACK' }),
+        ],
+    };
+
+    it('does not let a 3rd-party card displace own-brand on shared wording', () => {
+        const r = analyzeLineItem(line('L1/DF-2000/A', 'TBD', '7" ROUND LED DISK LIGHT, FLUSH MOUNT'), disks);
+        expect(itemIds(r)).toContain('R-SLIM-DISK-12W-5CCT-WH');
+        expect(r.recommendations.every(rec => rec.source !== '3rd Party')).toBe(true);
+    });
+
+    it('keeps a 3rd-party card that recognizes the specified product by name', () => {
+        // The decorative case: Premier doesn't make a Belinda sconce, and the
+        // resold catalog is how the tool knows what one is. Blanket suppression
+        // cost 8 such cases on the frozen snapshot.
+        const ctx: EngineContext = {
+            history: [],
+            fans: [],
+            premierItems: [premier({ id: 'w1', itemId: 'GC-WM-100-30K', fixtureCategory: 'Wall Sconce', itemDescription: 'LED WALL SCONCE', timesUsed: 30 })],
+            thirdPartyItems: [thirdParty({ id: 't2', itemId: 'MTZ955390', productCategories: 'Wall Sconce', itemDescription: 'BELINDA WALL SCONCE AGED BRASS', manufacturer: 'Maxim' })],
+        };
+        const r = analyzeLineItem(line('WS1', 'MAXIM', 'BELINDA WALL SCONCE'), ctx);
+        expect(r.recommendations.some(rec => rec.source === '3rd Party')).toBe(true);
+    });
+
+    it('still offers 3rd-party when Premier has nothing in the category', () => {
+        const ctx: EngineContext = {
+            history: [],
+            fans: [],
+            premierItems: [],
+            thirdPartyItems: [thirdParty({ id: 't3', itemId: 'SF0703212BK', productCategories: 'Flush Mount', itemDescription: 'SEMI-FLUSH MOUNT CEILING FIXTURE BLACK' })],
+        };
+        const r = analyzeLineItem(line('CL1', 'TBD', 'SEMI-FLUSH MOUNT CEILING'), ctx);
+        expect(r.recommendations.some(rec => rec.source === '3rd Party')).toBe(true);
+    });
+});
+
+describe('a thin line is topped up from its own category', () => {
+    const ctx: EngineContext = {
+        history: [],
+        fans: [],
+        thirdPartyItems: [],
+        premierItems: [
+            // Scores on item-# resemblance alone, out of the words FLUSH + MOUNT.
+            premier({ id: 'f1', itemId: 'FLAIRE 5 LIGHT SEMI-FLUSH MOUNT', fixtureCategory: 'Disk Light', itemDescription: '' }),
+            premier({ id: 'd1', itemId: 'R-SLIM-DISK-12W-5CCT-WH', fixtureCategory: 'Disk Light', itemDescription: '7" ROUND LED DISK LIGHT', timesUsed: 91 }),
+            premier({ id: 'd2', itemId: 'R-SLIM-DISK-7"-EMG', fixtureCategory: 'Disk Light', itemDescription: '7" ROUND LED DISK EMERGENCY', timesUsed: 26 }),
+        ],
+    };
+
+    it('does not let one weak card hide the rest of the category', () => {
+        const r = analyzeLineItem(line('L1/DF-2000/A', 'TBD', '7" ROUND LED DISK LIGHT, FLUSH MOUNT'), ctx);
+        expect(itemIds(r)).toContain('R-SLIM-DISK-12W-5CCT-WH');
+        expect(r.recommendations.length).toBeGreaterThan(1);
+    });
+
+    it('leaves a passthrough line as specified instead of topping it up', () => {
+        // "Already a resold 3rd-party item — no substitution needed" answers the
+        // line. Filling the empty slots behind it offered substitutions for 51
+        // specs the estimator had kept as specified (measured on the snapshot).
+        const resold: EngineContext = {
+            history: [],
+            fans: [],
+            premierItems: [premier({ id: 'w1', itemId: 'GC-WM-100-30K', fixtureCategory: 'Wall Sconce', itemDescription: 'LED WALL SCONCE', timesUsed: 30 })],
+            thirdPartyItems: [{
+                id: 't1', itemId: 'MTZ955390', itemDescription: 'BELINDA WALL SCONCE AGED BRASS', manufacturer: 'Maxim',
+                finish: '', colorTemp: '', maxWattage: '', lightOutput: '', productCategories: 'Wall Sconce',
+            }],
+        };
+        const r = analyzeLineItem(line('WS1', 'MAXIM', 'MTZ955390'), resold);
+        expect(r.recommendations).toHaveLength(1);
+        expect(r.recommendations[0]!.isPassthrough).toBe(true);
+        // ...and the in-category Premier sconce was NOT added behind it.
+        expect(r.recommendations.map(rec => rec.premierItem)).not.toContain('GC-WM-100-30K');
     });
 });

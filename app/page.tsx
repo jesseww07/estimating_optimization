@@ -179,6 +179,43 @@ function looksLikeUrl(value: string): boolean {
     return /^https?:\/\//i.test(value.trim()) || /^www\./i.test(value.trim());
 }
 
+/** Manufacturer cells that name no manufacturer. */
+const PLACEHOLDER_MANUFACTURER = /^(TBD|TBA|N\/?A|NONE|NO SPEC|\?+|-+)$/i;
+
+/**
+ * True when the catalog cell carries something that reads as an orderable part
+ * number rather than a description: a token mixing letters and digits
+ * ("AKT30401-III", "GPX6-SO"), or a long run of digits ("12418-062").
+ */
+function hasPartNumber(catalogNumber: string): boolean {
+    return catalogNumber
+        .toUpperCase()
+        .split(/[\s,;]+/)
+        .some(token => {
+            const bare = token.replace(/[^A-Z0-9]/g, '');
+            if (bare.length < 4) return false;
+            if (/^\d{4,}$/.test(bare)) return true;
+            return /[A-Z]/.test(bare) && /\d/.test(bare);
+        });
+}
+
+/**
+ * Whether a line gives identification anything to work with.
+ *
+ * A batch call reads the line's own text and nothing else, so a line with no
+ * manufacturer and no part number — `TBD` + `9" UNDER CABINET`, `TBD` + `DISC?` —
+ * has nothing to identify and spends a call to come back with the same nothing.
+ * On Aura Santan that was 21 of 33 candidates (2026-09-01). Which lines are
+ * worth a call is a judgement about the document, so this only sets the initial
+ * checkbox state; the estimator can check any of them.
+ */
+function isIdentifiableLine(line: ParsedLineItem): boolean {
+    const manufacturer = line.manufacturer.trim();
+    if (manufacturer && !PLACEHOLDER_MANUFACTURER.test(manufacturer)) return true;
+    const catalog = looksLikeUrl(line.catalogNumber) ? '' : line.catalogNumber;
+    return hasPartNumber(catalog);
+}
+
 /**
  * Lines the batch identify pass would actually spend a call on — the client-side
  * mirror of batchSkipReason() in lib/identify/batch.ts, for the button's count.
@@ -240,6 +277,12 @@ export default function Home() {
     const [batchElapsed, setBatchElapsed] = useState(0);
     const [batchNotice, setBatchNotice] = useState<string | null>(null);
     const [batchError, setBatchError] = useState<string | null>(null);
+    /**
+     * Which unrecognized lines the next batch pass will cover, by rowIndex.
+     * null = not chosen yet, so the default below applies.
+     */
+    const [batchPicked, setBatchPicked] = useState<Set<number> | null>(null);
+    const [batchPickerOpen, setBatchPickerOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const identifyFileRef = useRef<HTMLInputElement>(null);
     const identifyTargetRow = useRef<number | null>(null);
@@ -268,6 +311,8 @@ export default function Home() {
         setSelections({});
         setBatchNotice(null);
         setBatchError(null);
+        setBatchPicked(null);
+        setBatchPickerOpen(false);
         setIdentifyError({});
         setFileName(file.name);
         setPhase(isReadableSchedule(file) ? 'reading-doc' : 'uploading');
@@ -390,10 +435,9 @@ export default function Home() {
      * Claude calls it will spend. A line that fails comes back as a per-line
      * message in that line's identify strip; the rest of the sheet is untouched.
      */
-    async function handleBatchIdentify() {
+    async function handleBatchIdentify(rowIndexes: number[]) {
         if (!results || batchBusy) return;
-        const targets = results.filter(needsBatchIdentify);
-        if (targets.length === 0) return;
+        if (rowIndexes.length === 0) return;
         setBatchBusy(true);
         setBatchError(null);
         setBatchNotice(null);
@@ -403,9 +447,11 @@ export default function Home() {
             const res = await fetch('/api/identify-batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // The whole sheet goes over; the server decides which lines it
-                // actually spends a call on, so its filter is the one that counts.
-                body: JSON.stringify({ lineItems: results.map(a => a.lineItem) }),
+                // The whole sheet goes over so the server can key results back to
+                // rows; its own candidate filter still decides what is eligible.
+                // rowIndexes is the estimator's narrowing of that set — the lines
+                // they judged worth a call.
+                body: JSON.stringify({ lineItems: results.map(a => a.lineItem), rowIndexes }),
                 signal: controller.signal,
             });
             // A gateway timeout answers with HTML, not JSON — parsing it blind
@@ -706,40 +752,136 @@ export default function Home() {
 
                         {/* Batch identification (Phase 4). Explicitly user-triggered:
                             it never fires on upload, and it says what it will spend
-                            before the estimator spends it. */}
+                            before the estimator spends it — and on WHICH lines. */}
                         {(() => {
-                            const pending = results.filter(needsBatchIdentify).length;
-                            if (pending === 0 && !batchNotice && !batchError) return null;
-                            const calls = Math.min(Math.ceil(pending / BATCH_LINES_PER_CALL), BATCH_MAX_CALLS);
-                            const covered = Math.min(pending, BATCH_LINES_PER_CALL * BATCH_MAX_CALLS);
+                            const candidates = results.filter(needsBatchIdentify).map(a => a.lineItem);
+                            if (candidates.length === 0 && !batchNotice && !batchError) return null;
+
+                            // Default selection: the lines that give identification
+                            // something to read. A `TBD` + `9" UNDER CABINET` line
+                            // has no manufacturer and no part number, so a call on
+                            // it returns the same nothing — but it is unchecked,
+                            // not hidden, because the call is the estimator's to
+                            // make. Aura Santan: 21 of 33 candidates (2026-09-01).
+                            const worthwhile = candidates.filter(isIdentifiableLine).map(line => line.rowIndex);
+                            const picked = batchPicked ?? new Set(worthwhile);
+                            const selected = candidates.filter(line => picked.has(line.rowIndex));
+                            const skipped = candidates.length - selected.length;
+                            const calls = Math.min(Math.ceil(selected.length / BATCH_LINES_PER_CALL), BATCH_MAX_CALLS);
+                            const covered = Math.min(selected.length, BATCH_LINES_PER_CALL * BATCH_MAX_CALLS);
+                            const setPicked = (rows: number[]): void => setBatchPicked(new Set(rows));
+                            const toggle = (rowIndex: number): void => {
+                                const next = new Set(picked);
+                                if (next.has(rowIndex)) next.delete(rowIndex);
+                                else next.add(rowIndex);
+                                setBatchPicked(next);
+                            };
+
                             return (
                                 <div className="mt-4 font-data">
-                                    {pending > 0 && (
-                                        <div className="border-2 border-line bg-offwhite px-4 py-3 flex flex-wrap items-center justify-between gap-4">
-                                            <div className="max-w-3xl">
-                                                <div className="text-xs uppercase tracking-wider text-muted">Unrecognized lines</div>
-                                                <p className="text-sm text-body mt-1">
-                                                    The engine could not work out what {pending} line{pending === 1 ? ' is' : 's are'}. Without a
-                                                    fixture category it has no in-category fallback, so those lines usually come back empty.
-                                                    One batched pass reads them all in {calls} Claude call{calls === 1 ? '' : 's'}
-                                                    {covered < pending ? ` (covering the first ${covered}; run it again for the rest)` : ''}.
-                                                </p>
+                                    {candidates.length > 0 && (
+                                        <div className="border-2 border-line bg-offwhite px-4 py-3">
+                                            <div className="flex flex-wrap items-start justify-between gap-4">
+                                                <div className="max-w-3xl">
+                                                    <div className="text-xs uppercase tracking-wider text-muted">Unrecognized lines</div>
+                                                    <p className="text-sm text-body mt-1">
+                                                        The engine could not work out what {candidates.length} line{candidates.length === 1 ? ' is' : 's are'}. Without a
+                                                        fixture category it has no in-category fallback, so those lines usually come back empty.
+                                                    </p>
+                                                    <p className="text-sm text-body mt-1">
+                                                        {selected.length === 0
+                                                            ? 'No lines are selected — pick the ones worth a lookup below.'
+                                                            : <>Reading {selected.length} selected line{selected.length === 1 ? '' : 's'} takes {calls} Claude
+                                                                call{calls === 1 ? '' : 's'}{covered < selected.length ? ` (covering the first ${covered}; run it again for the rest)` : ''}.</>}
+                                                        {skipped > 0 && (
+                                                            <> {skipped} line{skipped === 1 ? ' is' : 's are'} unchecked — nothing on {skipped === 1 ? 'it' : 'them'} to
+                                                                look up (no manufacturer, no part number), so a call would come back with the same nothing.</>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <div className="flex flex-col items-stretch gap-2">
+                                                    <button
+                                                        onClick={() => handleBatchIdentify(selected.map(line => line.rowIndex))}
+                                                        disabled={batchBusy || selected.length === 0}
+                                                        className="bg-plteal text-white px-6 py-2 text-sm tracking-widest uppercase hover:bg-steel disabled:opacity-50 whitespace-nowrap"
+                                                        title="Sends the selected lines to Claude in one batched request — nothing runs automatically"
+                                                    >
+                                                        {batchBusy
+                                                            ? `Identifying ${selected.length} lines… ${batchElapsed}s`
+                                                            : `Identify ${selected.length} selected line${selected.length === 1 ? '' : 's'}`}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setBatchPickerOpen(open => !open)}
+                                                        className="border-2 border-line text-body px-6 py-1.5 text-xs tracking-widest uppercase hover:border-plteal whitespace-nowrap"
+                                                    >
+                                                        {batchPickerOpen ? 'Hide lines' : `Choose lines (${selected.length}/${candidates.length})`}
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <button
-                                                onClick={handleBatchIdentify}
-                                                disabled={batchBusy}
-                                                className="bg-plteal text-white px-6 py-2 text-sm tracking-widest uppercase hover:bg-steel disabled:opacity-50 whitespace-nowrap"
-                                                title="Sends the unrecognized lines to Claude in one batched request — nothing runs automatically"
-                                            >
-                                                {batchBusy
-                                                    ? `Identifying ${pending} lines… ${batchElapsed}s`
-                                                    : `Identify ${pending} unrecognized line${pending === 1 ? '' : 's'}`}
-                                            </button>
+
+                                            {batchPickerOpen && (
+                                                <div className="mt-3 border-t-2 border-line pt-3">
+                                                    <div className="flex flex-wrap gap-3 text-xs mb-2">
+                                                        <button onClick={() => setPicked(candidates.map(line => line.rowIndex))} className="text-plteal hover:underline uppercase tracking-wider">Select all</button>
+                                                        <button onClick={() => setPicked([])} className="text-plteal hover:underline uppercase tracking-wider">Select none</button>
+                                                        <button onClick={() => setPicked(worthwhile)} className="text-plteal hover:underline uppercase tracking-wider">
+                                                            Only lines with a manufacturer or part number ({worthwhile.length})
+                                                        </button>
+                                                    </div>
+                                                    <div className="max-h-80 overflow-y-auto border-2 border-line bg-white">
+                                                        <table className="w-full text-xs">
+                                                            <thead className="bg-offwhite text-muted uppercase tracking-wider sticky top-0">
+                                                                <tr>
+                                                                    <th className="w-8 px-2 py-1.5"></th>
+                                                                    <th className="text-left px-2 py-1.5">Mark</th>
+                                                                    <th className="text-right px-2 py-1.5">Qty</th>
+                                                                    <th className="text-left px-2 py-1.5">Manufacturer</th>
+                                                                    <th className="text-left px-2 py-1.5">Catalog #</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {candidates.map(line => {
+                                                                    const on = picked.has(line.rowIndex);
+                                                                    const nothingToRead = !isIdentifiableLine(line);
+                                                                    return (
+                                                                        <tr
+                                                                            key={line.rowIndex}
+                                                                            onClick={() => toggle(line.rowIndex)}
+                                                                            className={`border-t border-line cursor-pointer hover:bg-offwhite ${on ? '' : 'text-muted'}`}
+                                                                        >
+                                                                            <td className="px-2 py-1.5">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={on}
+                                                                                    onChange={() => toggle(line.rowIndex)}
+                                                                                    onClick={e => e.stopPropagation()}
+                                                                                    className="accent-[#176e8d]"
+                                                                                />
+                                                                            </td>
+                                                                            <td className="px-2 py-1.5 font-semibold">{line.mark || '—'}</td>
+                                                                            <td className="px-2 py-1.5 text-right">{line.quantity || '—'}</td>
+                                                                            <td className="px-2 py-1.5">{line.manufacturer || '—'}</td>
+                                                                            <td className="px-2 py-1.5">
+                                                                                <span className="font-mono">{line.catalogNumber || '—'}</span>
+                                                                                {nothingToRead && (
+                                                                                    <span className="ml-2 text-[10px] uppercase tracking-wider border border-line px-1 py-0.5">
+                                                                                        nothing to look up
+                                                                                    </span>
+                                                                                )}
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     {batchBusy && (
                                         <p className="text-xs text-muted mt-2">
-                                            One request covering every unrecognized line; it can take a couple of minutes.
+                                            One request covering the selected lines; it can take a couple of minutes.
                                             Results land line by line when it returns — the rest of the sheet is untouched.
                                         </p>
                                     )}
