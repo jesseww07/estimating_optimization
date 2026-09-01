@@ -15,6 +15,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { defaultSelection } from '@/lib/engine/ranking';
+import { isWordDocument, prepareWordUpload, tooLargeForUpload } from './prepareUpload';
 
 interface IdentifiedSpec {
     manufacturer: string;
@@ -108,8 +109,14 @@ const AS_SPEC = 'AS_SPEC';
  * too; this is the backstop for anything between the browser and the route
  * (gateway timeouts, dropped connections) so the identify strip can never sit
  * on "Identifying…" forever.
+ *
+ * Raised from 180s (2026-09-01): the web lookup's research turn now runs on a
+ * 150s ceiling with a 120s soft deadline (see lib/identify/claude.ts), so the
+ * worst case server-side is 150 + 45 = 195s. This has to sit above that and
+ * below the route's 300s maxDuration — a browser abort at 180s would give up on
+ * a call that was about to answer.
  */
-const IDENTIFY_TIMEOUT_MS = 180_000;
+const IDENTIFY_TIMEOUT_MS = 240_000;
 
 /**
  * Client-side ceiling on the batch pass. Sits inside the route's own budget
@@ -149,10 +156,23 @@ const BATCH_FAILURE_TEXT: Record<string, string> = {
  */
 const DOCUMENT_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.gif,application/pdf,image/png,image/jpeg,image/webp,image/gif';
 
+/**
+ * The schedule picker additionally takes Word documents — the format most
+ * schedules in the Box account are in. A .docx is read in the browser first (see
+ * ./prepareUpload) because its page screenshots have to be recompressed to fit
+ * the platform's request-body limit.
+ */
+const SCHEDULE_ACCEPT = `${DOCUMENT_ACCEPT},.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document`;
+
 function isClaudeReadable(file: File): boolean {
     return file.type === 'application/pdf'
         || file.type.startsWith('image/')
         || /\.(pdf|png|jpe?g|webp|gif)$/i.test(file.name);
+}
+
+/** Anything the upload route reads with Claude rather than the sheet parser. */
+function isReadableSchedule(file: File): boolean {
+    return isClaudeReadable(file) || isWordDocument(file);
 }
 
 function looksLikeUrl(value: string): boolean {
@@ -250,10 +270,23 @@ export default function Home() {
         setBatchError(null);
         setIdentifyError({});
         setFileName(file.name);
-        setPhase(isClaudeReadable(file) ? 'reading-doc' : 'uploading');
+        setPhase(isReadableSchedule(file) ? 'reading-doc' : 'uploading');
         try {
-            const form = new FormData();
-            form.append('file', file);
+            // A Word schedule is read here first: its page images are recompressed
+            // and posted as separate parts, because the raw .docx is usually over
+            // the platform's request-body limit and would never reach the route
+            // (the browser reports that as a bare "Failed to fetch").
+            let form: FormData | null = null;
+            if (isWordDocument(file)) {
+                const prepared = await prepareWordUpload(file);
+                if (prepared) form = prepared.form;
+            }
+            if (!form) {
+                const tooLarge = tooLargeForUpload(file);
+                if (tooLarge) throw new Error(tooLarge);
+                form = new FormData();
+                form.append('file', file);
+            }
             const upRes = await fetch('/api/upload', { method: 'POST', body: form });
             const upJson = await upRes.json();
             if (!upRes.ok) throw new Error(upJson.error || `Upload failed (${upRes.status}).`);
@@ -554,13 +587,13 @@ export default function Home() {
                     <h2 className="text-2xl mb-2">Upload a bid sheet or fixture schedule</h2>
                     <p className="text-muted text-sm mb-6 font-data">
                         CSV / single-sheet Excel with Mark / Qty / Manufacturer / Catalog # columns —
-                        or a fixture schedule as a PDF, photo, or screenshot (read automatically;
-                        takes a minute or two, longer for a schedule read in several passes).
+                        or a fixture schedule as a Word document, PDF, photo, or screenshot (read
+                        automatically; takes a minute or two, longer for a schedule read in several passes).
                     </p>
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept={`.csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,${DOCUMENT_ACCEPT}`}
+                        accept={`.csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,${SCHEDULE_ACCEPT}`}
                         className="hidden"
                         onChange={e => {
                             const f = e.target.files?.[0];
