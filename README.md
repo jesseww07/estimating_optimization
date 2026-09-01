@@ -40,6 +40,7 @@ npm run dev        # http://localhost:3000
 | `AIRTABLE_PAT` | Personal access token for the Premier estimating Airtable base (required for live data) |
 | `AIRTABLE_BASE_ID` | Overrides the default base ID (optional; defaults to the production base) |
 | `ANTHROPIC_API_KEY` | Claude API key for PDF reading and per-line identification |
+| `ANTHROPIC_WORKSPACE_ID` | Required **only** for an identity-linked API key, which cannot make any request without naming its workspace (`400 anthropic-workspace-id is required…`). Leave unset for a workspace-scoped key |
 | `IDENTIFY_MODEL` | Overrides the Claude model used for identification (optional) |
 | `HISTORY_WRITEBACK` | `live` / `dry_run` / `off` kill switch. When unset: production defaults to `live`; previews and local dev default to `dry_run`, so non-production exports never write to History |
 
