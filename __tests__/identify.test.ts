@@ -482,7 +482,7 @@ describe('schedule chunked extraction', async () => {
 });
 
 describe('base-item catalog parsing (what "Look up spec" actually searches)', async () => {
-    const { planCatalogSearch, splitCatalogAlternates, splitCatalogParts } = await import('@/lib/identify/catalogNumber');
+    const { isOptionToken, planCatalogSearch, splitCatalogAlternates, splitCatalogParts } = await import('@/lib/identify/catalogNumber');
 
     it('strips a trailing finish code off an item number', () => {
         // The live failure, 2026-09-01: searching "4430802-112" returns nothing;
@@ -507,6 +507,18 @@ describe('base-item catalog parsing (what "Look up spec" actually searches)', as
         expect(splitCatalogParts('FMVCSL 14 20830 M4').options).toEqual([]);
         expect(splitCatalogParts('LED').base).toBe('LED');
         expect(splitCatalogParts('').base).toBe('');
+    });
+
+    it('treats a slash-delimited option group as one configuration code', () => {
+        // Copilot review, PR #27: `120/277V` matched none of the single-token
+        // regexes, so the voltage stayed in the web query the prompt tells the
+        // model to leave it out of.
+        expect(splitCatalogParts('CSVT-L48-120/277V'))
+            .toEqual({ base: 'CSVT-L48', options: ['120/277V'] });
+        expect(splitCatalogParts('CSVT L48 MVOLT/UNV'))
+            .toEqual({ base: 'CSVT L48', options: ['MVOLT/UNV'] });
+        // ...but a pair of item numbers is not an option group.
+        expect(isOptionToken('4430802/4430804')).toBe(false);
     });
 
     it('splits a cell that lists alternates, but never splits one part number', () => {
@@ -664,6 +676,45 @@ describe('Word (.docx) reading', async () => {
         expect(doc.text).toContain('R3 | 428 | 4430802-112');
     });
 
+    it('refuses a document that inflates past the reader\'s ceiling', async () => {
+        // Copilot review, PR #27: the upload limit bounds COMPRESSED bytes, so a
+        // small entry that expands to hundreds of MB has to be refused, not
+        // buffered. 40 MB of zeros deflates to a few KB.
+        const bomb = makeZip([
+            { name: 'word/document.xml', bytes: new Uint8Array(40 * 1024 * 1024) },
+        ]);
+        expect(bomb.byteLength).toBeLessThan(1024 * 1024);
+        await expect(readDocx(bomb)).rejects.toThrow(/expands to more than/);
+    });
+
+    it('keeps every occurrence of a repeated image, deduping only within a drawing', async () => {
+        // Copilot review, PR #27: an rId names a resource, not one occurrence.
+        // Word writes r:embed AND r:link on a single <a:blip> for a
+        // linked-and-embedded picture (one image); the same rId in a LATER
+        // drawing is a second occurrence with its own caption and page.
+        const xml = `<?xml version="1.0"?><w:document><w:body>
+<w:p><w:r><w:t>PAGE ONE</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><a:blip r:embed="rId1" r:link="rId1"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:t>PAGE TWO</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><a:blip r:embed="rId1"/></w:drawing></w:r></w:p>
+</w:body></w:document>`;
+        const doc = await readDocx(makeZip([
+            { name: 'word/document.xml', bytes: new TextEncoder().encode(xml) },
+            { name: 'word/_rels/document.xml.rels', bytes: new TextEncoder().encode(RELS) },
+            { name: 'word/media/image1.png', bytes: fakePng(1499, 664) },
+        ]));
+        expect(doc.images).toHaveLength(2);
+        expect(imageCaptions(doc)).toEqual(['PAGE ONE', 'PAGE TWO']);
+    });
+
+    it('tags table text so the caller can tell schedule rows from captions', async () => {
+        const doc = await readDocx(makeZip([
+            { name: 'word/document.xml', bytes: new TextEncoder().encode(TABLE_DOC) },
+        ]));
+        const kinds = doc.blocks.map(b => (b.kind === 'text' ? b.fromTable : 'image'));
+        expect(kinds).toEqual([false, true]);
+    });
+
     it('says what to do when the ZIP is not a Word document', async () => {
         const notWord = makeZip([{ name: 'xl/workbook.xml', bytes: new TextEncoder().encode('<workbook/>') }]);
         await expect(readDocx(notWord)).rejects.toThrow(/not a Word document/);
@@ -688,15 +739,59 @@ describe('Word schedule page planning', async () => {
         expect(plan.context).toContain('ALEXAN GATEWAY');
     });
 
-    it('makes text pages for a Word-table schedule, with no context duplicate', async () => {
+    it('makes a text page of a Word table, labelled by the heading above it', async () => {
         const doc = await readDocx(makeZip([
             { name: 'word/document.xml', bytes: new TextEncoder().encode(TABLE_DOC) },
         ]));
         const plan = planDocxPages(doc);
         expect(plan.shape).toBe('text');
         expect(plan.pages).toHaveLength(1);
-        // The rows must not also arrive as "context, not line items".
+        // The rows are the PAGE, and the location heading above them is both the
+        // page's label and context — never the rows themselves, which would
+        // arrive marked "not line items".
+        expect(plan.pages[0]).toMatchObject({ kind: 'text', label: 'LEVEL 2 – CORRIDOR' });
+        expect((plan.pages[0] as { text: string }).text).toContain('R3 | 428 | 4430802-112');
+        expect(plan.context).toBe('LEVEL 2 – CORRIDOR');
+        expect(plan.context).not.toContain('4430802-112');
+    });
+
+    it('falls back to text pages when a schedule is paragraphs, not a table', async () => {
+        // No table, no images: the prose IS the content, so it must not arrive as
+        // "context, not line items".
+        const xml = '<?xml version="1.0"?><w:document><w:body>'
+            + '<w:p><w:r><w:t>R3 428 4430802-112 VISUAL COMFORT</w:t></w:r></w:p>'
+            + '</w:body></w:document>';
+        const plan = planDocxPages(await readDocx(makeZip([
+            { name: 'word/document.xml', bytes: new TextEncoder().encode(xml) },
+        ])));
+        expect(plan.shape).toBe('text');
         expect(plan.context).toBe('');
+        expect((plan.pages[0] as { text: string }).text).toContain('4430802-112');
+    });
+
+    it('never drops a Word table because the document also has a logo', async () => {
+        // Copilot review, PR #27: any retained image used to force the image
+        // path, so a table schedule with a letterhead sent the LOGO as its only
+        // page and passed the real rows down as "context, not line items" —
+        // which suppresses every one of them.
+        const xml = `<?xml version="1.0"?><w:document><w:body>
+<w:p><w:r><w:t>PREMIER LIGHTING</w:t></w:r></w:p>
+<w:p><w:r><w:drawing><a:blip r:embed="rId1"/></w:drawing></w:r></w:p>
+${TABLE_DOC.slice(TABLE_DOC.indexOf('<w:p><w:r><w:t>LEVEL'), TABLE_DOC.indexOf('</w:body>'))}
+</w:body></w:document>`;
+        const doc = await readDocx(makeZip([
+            { name: 'word/document.xml', bytes: new TextEncoder().encode(xml) },
+            { name: 'word/_rels/document.xml.rels', bytes: new TextEncoder().encode(RELS) },
+            { name: 'word/media/image1.png', bytes: fakePng(217, 97) },   // a logo
+        ]));
+        const plan = planDocxPages(doc);
+        expect(plan.shape).toBe('mixed');
+        // The table's rows are a PAGE, not context.
+        const textPages = plan.pages.filter(p => p.kind === 'text');
+        expect(textPages).toHaveLength(1);
+        expect(textPages[0]).toMatchObject({ kind: 'text' });
+        expect((textPages[0] as { text: string }).text).toContain('R3 | 428 | 4430802-112');
+        expect(plan.context).not.toContain('4430802-112');
     });
 
     it('reports an empty document instead of calling the API on nothing', async () => {

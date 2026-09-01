@@ -34,11 +34,39 @@ const DEFLATED = 8;
 /** A .docx never legitimately holds more than this — a guard, not a spec limit. */
 const MAX_ENTRIES = 5000;
 
+/**
+ * Inflation caps. A ZIP's compressed size says nothing about what it expands to:
+ * a few hundred KB of crafted (or simply damaged) `document.xml` can inflate to
+ * hundreds of megabytes, and the upload limit bounds only the compressed bytes.
+ * So every entry is checked against its DECLARED uncompressed size before it is
+ * touched, and the actual output is capped as it streams — the declared size is
+ * a claim in the file, not a fact.
+ *
+ * Both ceilings sit far above any real schedule: images are already compressed
+ * and barely deflate, and the largest document.xml in the samples is 73 KB.
+ */
+const MAX_ENTRY_BYTES = 24 * 1024 * 1024;
+const MAX_TOTAL_INFLATED_BYTES = 64 * 1024 * 1024;
+
 interface ZipEntry {
     name: string;
     method: number;
     compressedSize: number;
+    /** As DECLARED by the central directory — verified against real output. */
+    uncompressedSize: number;
     offset: number;
+}
+
+/** Remaining inflation allowance for one readDocx call. */
+interface InflateBudget {
+    remaining: number;
+}
+
+function tooBig(name: string, bytes: number): Error {
+    return new Error(
+        `That Word file expands to more than this reader will inflate (${name} alone is ${Math.round(bytes / 1024 / 1024)} MB). ` +
+        'If it is a genuine schedule, save it as a PDF and upload that.',
+    );
 }
 
 function readU16(bytes: Uint8Array, at: number): number {
@@ -80,36 +108,71 @@ function readZipIndex(bytes: Uint8Array): Map<string, ZipEntry> {
         if (at + 46 > bytes.length) break;
         const method = readU16(bytes, at + 10);
         const compressedSize = readU32(bytes, at + 20);
+        const uncompressedSize = readU32(bytes, at + 24);
         const nameLength = readU16(bytes, at + 28);
         const extraLength = readU16(bytes, at + 30);
         const commentLength = readU16(bytes, at + 32);
         const offset = readU32(bytes, at + 42);
         const name = new TextDecoder().decode(bytes.subarray(at + 46, at + 46 + nameLength));
-        entries.set(name, { name, method, compressedSize, offset });
+        entries.set(name, { name, method, compressedSize, uncompressedSize, offset });
         at += 46 + nameLength + extraLength + commentLength;
     }
     return entries;
 }
 
-async function inflateRaw(deflated: Uint8Array): Promise<Uint8Array> {
+/**
+ * Inflate one entry, stopping the moment the output passes `limit` rather than
+ * buffering whatever the stream decides to produce.
+ */
+async function inflateRaw(deflated: Uint8Array, limit: number, name: string): Promise<Uint8Array> {
     const stream = new Blob([deflated as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-    return new Uint8Array(await new Response(stream).arrayBuffer());
+    const reader = stream.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > limit) {
+            await reader.cancel();
+            throw tooBig(name, total);
+        }
+        chunks.push(value);
+    }
+    const out = new Uint8Array(total);
+    let at = 0;
+    for (const chunk of chunks) {
+        out.set(chunk, at);
+        at += chunk.byteLength;
+    }
+    return out;
 }
 
-/** The bytes of one ZIP entry, inflated if it was deflated. */
-async function readEntry(bytes: Uint8Array, entry: ZipEntry): Promise<Uint8Array> {
+/** The bytes of one ZIP entry, inflated if it was deflated, within the budget. */
+async function readEntry(bytes: Uint8Array, entry: ZipEntry, budget: InflateBudget): Promise<Uint8Array> {
     const at = entry.offset;
     if (readU32(bytes, at) !== LOCAL_SIGNATURE) {
         throw new Error(`Word file is corrupt (bad local header for ${entry.name}).`);
     }
+    // Cheap rejection first, from what the directory claims.
+    if (entry.uncompressedSize > MAX_ENTRY_BYTES) throw tooBig(entry.name, entry.uncompressedSize);
     const nameLength = readU16(bytes, at + 26);
     const extraLength = readU16(bytes, at + 28);
     // The central directory's compressed size is authoritative; the local
     // header's copy is zero when the entry was written with a data descriptor.
     const start = at + 30 + nameLength + extraLength;
     const raw = bytes.subarray(start, start + entry.compressedSize);
-    if (entry.method === STORED) return raw;
-    if (entry.method === DEFLATED) return inflateRaw(raw);
+    const limit = Math.min(MAX_ENTRY_BYTES, budget.remaining);
+    if (entry.method === STORED) {
+        if (raw.byteLength > limit) throw tooBig(entry.name, raw.byteLength);
+        budget.remaining -= raw.byteLength;
+        return raw;
+    }
+    if (entry.method === DEFLATED) {
+        const inflated = await inflateRaw(raw, limit, entry.name);
+        budget.remaining -= inflated.byteLength;
+        return inflated;
+    }
     throw new Error(`Word file uses an unsupported compression method (${entry.method}).`);
 }
 
@@ -133,7 +196,13 @@ export interface DocxImage {
 }
 
 export type DocxBlock =
-    | { kind: 'text'; text: string }
+    /**
+     * `fromTable` is the difference between a caption and a schedule. A Word
+     * schedule's rows live in a table; the prose around it is labels and index
+     * text. The caller needs to know which is which — passing table rows as
+     * "context, not line items" would suppress every row in them.
+     */
+    | { kind: 'text'; text: string; fromTable: boolean }
     | { kind: 'image'; image: DocxImage };
 
 export interface DocxDocument {
@@ -223,16 +292,28 @@ function readRelationships(relsXml: string): Map<string, string> {
  * relationship id on a drawing). Streaming past nesting is exactly why tables
  * inside tables and images inside cells need no special case.
  */
-function scanDocumentXml(xml: string): Array<{ kind: 'text'; text: string } | { kind: 'image'; relId: string }> {
-    const events: Array<{ kind: 'text'; text: string } | { kind: 'image'; relId: string }> = [];
-    const pattern = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\s*\/>|<w:(?:br|cr)\s*\/?>|<w:tc(?:\s[^>]*)?>|<\/w:tc>|<\/w:tr>|<\/w:p>|\br:(?:embed|link)="([^"]+)"/g;
+type ScanEvent =
+    | { kind: 'text'; text: string; fromTable: boolean }
+    | { kind: 'image'; relId: string };
+
+function scanDocumentXml(xml: string): ScanEvent[] {
+    const events: ScanEvent[] = [];
+    const pattern = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\s*\/>|<w:(?:br|cr)\s*\/?>|<w:tbl(?:\s[^>]*)?>|<\/w:tbl>|<w:tc(?:\s[^>]*)?>|<\/w:tc>|<\/w:tr>|<\/w:p>|<w:(?:drawing|pict)(?:\s[^>]*)?>|\br:(?:embed|link)="([^"]+)"/g;
     let text = '';
     // Cell depth, so a paragraph break INSIDE a cell does not end the row: Word
     // wraps every cell's content in <w:p>, and treating that as a line break put
     // each cell of a schedule row on its own line.
     let cellDepth = 0;
+    // Table depth, so table rows are flushed as their own blocks and tagged.
+    let tableDepth = 0;
+    // Relationship ids already emitted for the CURRENT drawing. Word writes both
+    // r:embed and r:link on one <a:blip> for a linked-and-embedded picture, which
+    // is one image, not two — but the SAME id used by a later drawing is a
+    // genuine second occurrence with its own place in the document, so this
+    // resets per drawing rather than spanning the file.
+    let drawingIds = new Set<string>();
     const flush = (): void => {
-        if (text.trim()) events.push({ kind: 'text', text });
+        if (text.trim()) events.push({ kind: 'text', text, fromTable: tableDepth > 0 });
         text = '';
     };
     for (const match of xml.matchAll(pattern)) {
@@ -240,11 +321,21 @@ function scanDocumentXml(xml: string): Array<{ kind: 'text'; text: string } | { 
         if (runText !== undefined) {
             text += decodeXmlText(runText);
         } else if (relId !== undefined) {
+            if (drawingIds.has(relId)) continue;
+            drawingIds.add(relId);
             // An image ends the text block, so the caption above it stays with it.
             flush();
             events.push({ kind: 'image', relId });
+        } else if (tag.startsWith('<w:drawing') || tag.startsWith('<w:pict')) {
+            drawingIds = new Set();
         } else if (tag.startsWith('<w:tab')) {
             text += '\t';
+        } else if (tag.startsWith('<w:tbl')) {
+            if (tableDepth === 0) flush();  // the prose before the table is not a row
+            tableDepth++;
+        } else if (tag.startsWith('</w:tbl>')) {
+            flush();                        // ...and the table's rows are not prose
+            tableDepth = Math.max(0, tableDepth - 1);
         } else if (tag.startsWith('</w:tc>')) {
             cellDepth = Math.max(0, cellDepth - 1);
             text += ' | ';
@@ -302,35 +393,39 @@ export async function readDocx(bytes: Uint8Array): Promise<DocxDocument> {
     if (!documentEntry) {
         throw new Error('That file is a ZIP but not a Word document (no word/document.xml).');
     }
-    const xml = new TextDecoder().decode(await readEntry(bytes, documentEntry));
+    const budget: InflateBudget = { remaining: MAX_TOTAL_INFLATED_BYTES };
+    const xml = new TextDecoder().decode(await readEntry(bytes, documentEntry, budget));
     const relsEntry = entries.get('word/_rels/document.xml.rels');
     const rels = relsEntry
-        ? readRelationships(new TextDecoder().decode(await readEntry(bytes, relsEntry)))
+        ? readRelationships(new TextDecoder().decode(await readEntry(bytes, relsEntry, budget)))
         : new Map<string, string>();
 
     const blocks: DocxBlock[] = [];
     const images: DocxImage[] = [];
-    const seenRelIds = new Set<string>();
+    // Bytes are cached per media path, so the same picture referenced twice is
+    // inflated once but still occupies both of its places in the document.
+    const decoded = new Map<string, DocxImage>();
     for (const event of scanDocumentXml(xml)) {
         if (event.kind === 'text') {
             const text = tidy(event.text);
-            if (text) blocks.push({ kind: 'text', text });
+            if (text) blocks.push({ kind: 'text', text, fromTable: event.fromTable });
             continue;
         }
         const target = rels.get(event.relId);
         if (!target) continue;
-        // `r:embed` and `r:link` can both name the same drawing; a relationship
-        // already emitted is the same picture, not a second page.
         const path = target.startsWith('/') ? target.slice(1) : `word/${target}`.replace(/\/\.\//g, '/');
         const entry = entries.get(path) ?? entries.get(target);
         if (!entry) continue;
-        const key = `${event.relId}|${entry.name}`;
-        if (seenRelIds.has(key)) continue;
-        seenRelIds.add(key);
+        const cached = decoded.get(entry.name);
+        if (cached) {
+            blocks.push({ kind: 'image', image: cached });
+            images.push(cached);
+            continue;
+        }
         const extension = (entry.name.split('.').pop() ?? '').toLowerCase();
         const mediaType = IMAGE_TYPES[extension];
         if (!mediaType) continue; // EMF/WMF and other vector art Claude cannot read
-        const imageBytes = await readEntry(bytes, entry);
+        const imageBytes = await readEntry(bytes, entry, budget);
         const size = imageSize(imageBytes);
         const image: DocxImage = {
             name: entry.name,
@@ -340,11 +435,13 @@ export async function readDocx(bytes: Uint8Array): Promise<DocxDocument> {
             height: size?.height ?? null,
         };
         if (!keepImage(image)) continue;
+        decoded.set(entry.name, image);
         blocks.push({ kind: 'image', image });
         images.push(image);
     }
 
-    const text = blocks.filter((b): b is { kind: 'text'; text: string } => b.kind === 'text')
+    const text = blocks
+        .filter((b): b is { kind: 'text'; text: string; fromTable: boolean } => b.kind === 'text')
         .map(b => b.text)
         .join('\n');
     return { blocks, text, images };
@@ -353,14 +450,16 @@ export async function readDocx(bytes: Uint8Array): Promise<DocxDocument> {
 /**
  * The text block immediately preceding each image, which is what the document
  * uses as its caption ("FIXTURE SCHEDULE – UNIT – E0.4"). Only the last line of
- * that block is taken: a long index paragraph is not a caption.
+ * that block is taken: a long index paragraph is not a caption. Table rows are
+ * never a caption — a schedule table that happens to sit above a logo describes
+ * itself, not the picture.
  */
 export function imageCaptions(doc: DocxDocument): string[] {
     const captions: string[] = [];
     let previous = '';
     for (const block of doc.blocks) {
         if (block.kind === 'text') {
-            previous = block.text.split('\n').filter(Boolean).pop() ?? '';
+            previous = block.fromTable ? '' : block.text.split('\n').filter(Boolean).pop() ?? '';
             continue;
         }
         captions.push(previous);

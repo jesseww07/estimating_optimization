@@ -68,12 +68,38 @@ function normalized(value: string): string {
     return value.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-/** True when `token` reads as a configuration code rather than product identity. */
+/** True when one indivisible token reads as a configuration code. */
+function isSimpleOptionToken(t: string): boolean {
+    if (OPTION_WORDS.has(t)) return true;
+    return CCT.test(t) || WATTAGE.test(t) || LUMENS.test(t) || CRI.test(t) || VOLTAGE.test(t);
+}
+
+/**
+ * True when `token` reads as a configuration code rather than product identity.
+ *
+ * Slash-delimited GROUPS count: manufacturers print a choice of options as one
+ * token (`120/277V`, `MVOLT/UNV`, `30K/40K`), and `CSVT-L48-120/277V` was
+ * leaving the voltage in the search query — the exact thing the research prompt
+ * tells the model not to do. A group qualifies only when every piece is either
+ * an option code or a bare figure the group's other pieces give a unit to
+ * (`120` in `120/277V`), and at least one piece is a recognized code — so an
+ * alternate item number pair is never mistaken for one.
+ */
 export function isOptionToken(token: string): boolean {
     const t = token.trim().toUpperCase();
     if (!t) return false;
-    if (OPTION_WORDS.has(t)) return true;
-    return CCT.test(t) || WATTAGE.test(t) || LUMENS.test(t) || CRI.test(t) || VOLTAGE.test(t);
+    if (isSimpleOptionToken(t)) return true;
+    if (!t.includes('/')) return false;
+    const pieces = t.split('/').map(p => p.trim()).filter(Boolean);
+    if (pieces.length < 2) return false;
+    let recognized = 0;
+    for (const piece of pieces) {
+        if (isSimpleOptionToken(piece)) { recognized++; continue; }
+        // A bare 2-4 digit figure alongside a real code is the same kind of code
+        // with its unit left off once ("120" in "120/277V").
+        if (!/^\d{2,4}$/.test(piece)) return false;
+    }
+    return recognized > 0;
 }
 
 /**
