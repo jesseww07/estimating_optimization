@@ -88,10 +88,22 @@ export async function POST(request: Request): Promise<NextResponse> {
     // The estimator's selection, when they made one. Filtering HERE rather than
     // in the module keeps `lib/identify/batch.ts` the single authority on which
     // lines are candidates at all — this only ever narrows that set.
-    const rawSelection = (body as { rowIndexes?: unknown })?.rowIndexes;
+    //
+    // A PRESENT but malformed selection is rejected rather than ignored. Omission
+    // means "every candidate", so treating `rowIndexes: null` or a stray string
+    // as omission would turn a client typo into a silent full sweep of a paid
+    // service — the opposite of what asking for a selection is for.
+    const o = (body ?? {}) as Record<string, unknown>;
     let lineItems = allLines;
-    if (Array.isArray(rawSelection)) {
-        const wanted = new Set(rawSelection.filter((n): n is number => typeof n === 'number'));
+    if ('rowIndexes' in o && o.rowIndexes !== undefined) {
+        const rawSelection = o.rowIndexes;
+        if (!Array.isArray(rawSelection)) {
+            return err(400, 'rowIndexes must be an array of row numbers (omit it to identify every candidate line).');
+        }
+        if (!rawSelection.every(n => typeof n === 'number' && Number.isInteger(n))) {
+            return err(400, 'rowIndexes must contain only whole numbers.');
+        }
+        const wanted = new Set(rawSelection);
         if (wanted.size === 0) {
             return err(400, 'rowIndexes was empty — select at least one line to identify.');
         }

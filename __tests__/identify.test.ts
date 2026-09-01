@@ -833,3 +833,57 @@ describe('page-list extraction prompts', async () => {
         expect(MAX_PAGES).toBe(96);
     });
 });
+
+describe('what the identify panel checks by default', async () => {
+    const { hasIdentifiableSignal, hasManufacturer, hasPartNumber, readsAsDescription } = await import('@/lib/identify/lineSignal');
+
+    const bidLine = (manufacturer: string, catalogNumber: string, description = ''): ParsedLineItem => ({
+        rowIndex: 0, section: '', mark: 'M1', quantity: '1', manufacturer, catalogNumber,
+        rawRow: { MAN: manufacturer, 'CATALOG #': catalogNumber, DESCRIPTION: description },
+        ...(description ? { description } : {}),
+    });
+
+    it('sees a real manufacturer, and does not see a placeholder', () => {
+        expect(hasManufacturer('ABOVE ALL')).toBe(true);
+        for (const placeholder of ['TBD', 'tbd', 'N/A', 'NA', 'NONE', 'NO SPEC', '???', '--', '  ']) {
+            expect(hasManufacturer(placeholder)).toBe(false);
+        }
+    });
+
+    it('sees a part number, and does not see a description', () => {
+        expect(hasPartNumber('AKT30401-III')).toBe(true);
+        expect(hasPartNumber('GPX6-SO')).toBe(true);
+        expect(hasPartNumber('12418-062')).toBe(true);
+        expect(hasPartNumber('9" UNDER CABINET')).toBe(false);
+        expect(hasPartNumber('6" ROUND LED DISK')).toBe(false);
+    });
+
+    it('checks a line that carries a manufacturer or a part number', () => {
+        expect(hasIdentifiableSignal(bidLine('ABOVE ALL', 'AKT30401-III'))).toBe(true);
+        expect(hasIdentifiableSignal(bidLine('', 'GPX6-SO'))).toBe(true);
+        expect(hasIdentifiableSignal(bidLine('GLOWBACK', 'LED LVLBY2'))).toBe(true);
+    });
+
+    it('sees a description as two or more real words', () => {
+        expect(readsAsDescription('ELEVATOR PIT LIGHT')).toBe(true);
+        expect(readsAsDescription('CUSTOM RESIN DIFFUSER LUMINAIRE')).toBe(true);
+        expect(readsAsDescription('JBOX')).toBe(false);
+        expect(readsAsDescription('DISC?')).toBe(false);
+        expect(readsAsDescription('')).toBe(false);
+    });
+
+    it('checks a line whose only content is a real description', () => {
+        // The batch path reads prose, so a describable line is worth a call even
+        // with no part number anywhere on it (Copilot review, PR #28).
+        expect(hasIdentifiableSignal(bidLine('TBD', 'ELEVATOR PIT LIGHT'))).toBe(true);
+        expect(hasIdentifiableSignal(bidLine('TBD', "4' LINEAR LED LIGHT WITH DIMMER & EMERGENCY BATTERY"))).toBe(true);
+        expect(hasIdentifiableSignal(bidLine('TBD', '', 'CUSTOM RESIN DIFFUSER LUMINAIRE'))).toBe(true);
+    });
+
+    it('leaves a line with nothing on it unchecked', () => {
+        expect(hasIdentifiableSignal(bidLine('TBD', 'JBOX'))).toBe(false);
+        expect(hasIdentifiableSignal(bidLine('TBD', ''))).toBe(false);
+        // A pasted spec link is not a catalog value.
+        expect(hasIdentifiableSignal(bidLine('TBD', 'https://example.com/spec.pdf'))).toBe(false);
+    });
+});

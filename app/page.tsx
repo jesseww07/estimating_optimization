@@ -15,6 +15,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { defaultSelection } from '@/lib/engine/ranking';
+import { hasIdentifiableSignal } from '@/lib/identify/lineSignal';
 import { isWordDocument, prepareWordUpload, tooLargeForUpload } from './prepareUpload';
 
 interface IdentifiedSpec {
@@ -177,43 +178,6 @@ function isReadableSchedule(file: File): boolean {
 
 function looksLikeUrl(value: string): boolean {
     return /^https?:\/\//i.test(value.trim()) || /^www\./i.test(value.trim());
-}
-
-/** Manufacturer cells that name no manufacturer. */
-const PLACEHOLDER_MANUFACTURER = /^(TBD|TBA|N\/?A|NONE|NO SPEC|\?+|-+)$/i;
-
-/**
- * True when the catalog cell carries something that reads as an orderable part
- * number rather than a description: a token mixing letters and digits
- * ("AKT30401-III", "GPX6-SO"), or a long run of digits ("12418-062").
- */
-function hasPartNumber(catalogNumber: string): boolean {
-    return catalogNumber
-        .toUpperCase()
-        .split(/[\s,;]+/)
-        .some(token => {
-            const bare = token.replace(/[^A-Z0-9]/g, '');
-            if (bare.length < 4) return false;
-            if (/^\d{4,}$/.test(bare)) return true;
-            return /[A-Z]/.test(bare) && /\d/.test(bare);
-        });
-}
-
-/**
- * Whether a line gives identification anything to work with.
- *
- * A batch call reads the line's own text and nothing else, so a line with no
- * manufacturer and no part number — `TBD` + `9" UNDER CABINET`, `TBD` + `DISC?` —
- * has nothing to identify and spends a call to come back with the same nothing.
- * On Aura Santan that was 21 of 33 candidates (2026-09-01). Which lines are
- * worth a call is a judgement about the document, so this only sets the initial
- * checkbox state; the estimator can check any of them.
- */
-function isIdentifiableLine(line: ParsedLineItem): boolean {
-    const manufacturer = line.manufacturer.trim();
-    if (manufacturer && !PLACEHOLDER_MANUFACTURER.test(manufacturer)) return true;
-    const catalog = looksLikeUrl(line.catalogNumber) ? '' : line.catalogNumber;
-    return hasPartNumber(catalog);
 }
 
 /**
@@ -763,10 +727,16 @@ export default function Home() {
                             // it returns the same nothing — but it is unchecked,
                             // not hidden, because the call is the estimator's to
                             // make. Aura Santan: 21 of 33 candidates (2026-09-01).
-                            const worthwhile = candidates.filter(isIdentifiableLine).map(line => line.rowIndex);
+                            const worthwhile = candidates.filter(hasIdentifiableSignal).map(line => line.rowIndex);
                             const picked = batchPicked ?? new Set(worthwhile);
                             const selected = candidates.filter(line => picked.has(line.rowIndex));
-                            const skipped = candidates.length - selected.length;
+                            // Two different counts, and conflating them made the
+                            // copy lie: "Select none" left every line reported as
+                            // having nothing to look up.
+                            const excluded = candidates.length - selected.length;
+                            const unreadableExcluded = candidates.filter(
+                                line => !picked.has(line.rowIndex) && !hasIdentifiableSignal(line),
+                            ).length;
                             const calls = Math.min(Math.ceil(selected.length / BATCH_LINES_PER_CALL), BATCH_MAX_CALLS);
                             const covered = Math.min(selected.length, BATCH_LINES_PER_CALL * BATCH_MAX_CALLS);
                             const setPicked = (rows: number[]): void => setBatchPicked(new Set(rows));
@@ -793,9 +763,12 @@ export default function Home() {
                                                             ? 'No lines are selected — pick the ones worth a lookup below.'
                                                             : <>Reading {selected.length} selected line{selected.length === 1 ? '' : 's'} takes {calls} Claude
                                                                 call{calls === 1 ? '' : 's'}{covered < selected.length ? ` (covering the first ${covered}; run it again for the rest)` : ''}.</>}
-                                                        {skipped > 0 && (
-                                                            <> {skipped} line{skipped === 1 ? ' is' : 's are'} unchecked — nothing on {skipped === 1 ? 'it' : 'them'} to
-                                                                look up (no manufacturer, no part number), so a call would come back with the same nothing.</>
+                                                        {excluded > 0 && (
+                                                            <> {excluded} line{excluded === 1 ? '' : 's'} not included in this run
+                                                                {unreadableExcluded > 0 && (
+                                                                    <> — {unreadableExcluded === excluded ? (excluded === 1 ? 'it has' : 'they have') : `${unreadableExcluded} of them have`} nothing
+                                                                        to look up (no manufacturer, no part number, no description), so a call would come back with the same nothing</>
+                                                                )}.</>
                                                         )}
                                                     </p>
                                                 </div>
@@ -842,7 +815,9 @@ export default function Home() {
                                                             <tbody>
                                                                 {candidates.map(line => {
                                                                     const on = picked.has(line.rowIndex);
-                                                                    const nothingToRead = !isIdentifiableLine(line);
+                                                                    // The row is clickable rather than labelled, so the
+                                                                    // checkbox carries its own accessible name below.
+                                                                    const unreadable = !hasIdentifiableSignal(line);
                                                                     return (
                                                                         <tr
                                                                             key={line.rowIndex}
@@ -855,6 +830,7 @@ export default function Home() {
                                                                                     checked={on}
                                                                                     onChange={() => toggle(line.rowIndex)}
                                                                                     onClick={e => e.stopPropagation()}
+                                                                                    aria-label={`Identify ${line.mark || 'line'}${line.manufacturer ? ` — ${line.manufacturer}` : ''}${line.catalogNumber ? ` ${line.catalogNumber}` : ''}`}
                                                                                     className="accent-[#176e8d]"
                                                                                 />
                                                                             </td>
@@ -863,7 +839,7 @@ export default function Home() {
                                                                             <td className="px-2 py-1.5">{line.manufacturer || '—'}</td>
                                                                             <td className="px-2 py-1.5">
                                                                                 <span className="font-mono">{line.catalogNumber || '—'}</span>
-                                                                                {nothingToRead && (
+                                                                                {unreadable && (
                                                                                     <span className="ml-2 text-[10px] uppercase tracking-wider border border-line px-1 py-0.5">
                                                                                         nothing to look up
                                                                                     </span>
