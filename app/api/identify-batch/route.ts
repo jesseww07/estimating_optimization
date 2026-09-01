@@ -1,7 +1,10 @@
 /**
  * POST /api/identify-batch — sheet-level category identification (Phase 4).
  *
- * Body:     { lineItems: ParsedLineItem[] }   (the whole uploaded document)
+ * Body:     { lineItems: ParsedLineItem[], rowIndexes?: number[] }
+ *            lineItems is the whole uploaded document. `rowIndexes`, when given,
+ *            is the estimator's explicit selection of which lines to spend calls
+ *            on — see the cost note below.
  * Response: {
  *             liveData: boolean,
  *             stats:    BatchStats,
@@ -13,6 +16,13 @@
  * lines actually need a Claude call (`detectFixtureCategory` returns null, and
  * the line isn't an RFI placeholder or LED tape) and chunks them. A sheet the
  * engine already understands costs zero calls and comes back with empty results.
+ *
+ * `rowIndexes` narrows that further, and the reason is the estimator's, not the
+ * engine's: on Aura Santan, 21 of the 33 unrecognized lines were `TBD` +
+ * "9\" UNDER CABINET" — no manufacturer, no part number, nothing for Claude to
+ * identify. Which lines are worth a call is a judgement about the document that
+ * only the person reading it can make, so the UI lists the candidates and this
+ * honours the selection. Omitted = every candidate, as before.
  *
  * Cost guardrail. The Phase 2 rule in lib/identify/claude.ts — "every call is
  * user-triggered per line — routes must never sweep a whole sheet" — is amended,
@@ -68,11 +78,39 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (rawItems.length > MAX_LINE_ITEMS) {
         return err(400, `Too many line items (max ${MAX_LINE_ITEMS} per request).`);
     }
-    const lineItems = rawItems
+    const allLines = rawItems
         .map((raw, i) => coerceLineItem(raw, i))
         .filter((item): item is ParsedLineItem => item !== null);
-    if (lineItems.length === 0) {
+    if (allLines.length === 0) {
         return err(400, 'No valid line items in request.');
+    }
+
+    // The estimator's selection, when they made one. Filtering HERE rather than
+    // in the module keeps `lib/identify/batch.ts` the single authority on which
+    // lines are candidates at all — this only ever narrows that set.
+    //
+    // A PRESENT but malformed selection is rejected rather than ignored. Omission
+    // means "every candidate", so treating `rowIndexes: null` or a stray string
+    // as omission would turn a client typo into a silent full sweep of a paid
+    // service — the opposite of what asking for a selection is for.
+    const o = (body ?? {}) as Record<string, unknown>;
+    let lineItems = allLines;
+    if ('rowIndexes' in o && o.rowIndexes !== undefined) {
+        const rawSelection = o.rowIndexes;
+        if (!Array.isArray(rawSelection)) {
+            return err(400, 'rowIndexes must be an array of row numbers (omit it to identify every candidate line).');
+        }
+        if (!rawSelection.every(n => typeof n === 'number' && Number.isInteger(n))) {
+            return err(400, 'rowIndexes must contain only whole numbers.');
+        }
+        const wanted = new Set(rawSelection);
+        if (wanted.size === 0) {
+            return err(400, 'rowIndexes was empty — select at least one line to identify.');
+        }
+        lineItems = allLines.filter(line => wanted.has(line.rowIndex));
+        if (lineItems.length === 0) {
+            return err(400, 'None of the requested rowIndexes are in the submitted lineItems.');
+        }
     }
 
     // Warm the engine context alongside the Claude calls rather than after them.

@@ -24,15 +24,20 @@ takeoff draft, not a quote; pricing columns are intentionally blank.
    catalogs (Premier Items, 3rd Party Domestic, Fans) and **History** — past
    estimator decisions — and returns up to three ranked substitutions per
    line, pre-checking one only when the auto-select gate is confident.
-4. Lines the sheet alone can't identify can go through **per-line
+4. Lines the engine can't categorize can go through a **batched identify
+   pass** — one Claude call per ~18 lines, never automatic. The estimator picks
+   which lines it covers: lines with no manufacturer and no part number (a `TBD`
+   row whose whole spec is `9" UNDER CABINET`) have nothing to look up and start
+   unchecked, because that call is theirs to spend.
+5. Lines the sheet alone can't identify can go through **per-line
    identification**: Claude reads a pasted spec URL, searches the web, or
    reads an uploaded cut sheet (PDF or image), then the engine re-runs. The web
    lookup searches the **base item number** — `4430802-112` is looked up as
    `4430802`, because the trailing code is a finish the estimator configures and
    including it is what makes the search return nothing
    (`lib/identify/catalogNumber.ts`).
-5. The estimator reviews/overrides selections and **exports** the workbook.
-6. When the export opts into recording (`recordToHistory`) and
+6. The estimator reviews/overrides selections and **exports** the workbook.
+7. When the export opts into recording (`recordToHistory`) and
    `HISTORY_WRITEBACK` allows it, accepted substitutions are **written back
    to History** — the learning loop that makes the next bid's suggestions
    better.

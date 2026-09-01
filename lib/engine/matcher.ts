@@ -407,7 +407,11 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
 
     if (/CEILING\s*FAN|BEDROOM.*FAN/i.test(mark)) return 'Ceiling Fan';
     if (/\b(SGL|DBL|DOUBLE|SINGLE|DUAL)\s*VANITY/i.test(mark)) return 'Vanity';
-    if (/CABINET\s*LED|UNDER\s*CAB/i.test(mark)) return 'Undercabinet';
+    // Checked against the catalog cell as well as the mark, and tolerant of the
+    // space: Aura Santan printed the whole spec as `9" UNDER CABINET` in the
+    // catalog column, and the old mark-only, space-free `UNDERCAB` test left all
+    // 21 of those lines with no category at all (2026-09-01).
+    if (/CABINET\s*LED|UNDER\s*CAB|UNDER\s*COUNTER/i.test(`${mark} ${catalogNumber}`)) return 'Undercabinet';
 
     // ── High-signal words — checked against BOTH mark and catalog ─────────────
     // Bid sheets carry the identifying word wherever the estimator typed it
@@ -468,7 +472,12 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
         /^ALED/.test(c) ||                         // RAB area LED
         /^LNC[-\d]/.test(c) ||                    // Lithonia LNC wall pack (3rd & Flower S1/W1)
         /^SW\d/.test(c) ||                        // SW3-, SW4- (area lights)
-        /SHOEBOX|COBRA|COBRAHEAD|AREA.?LIGHT|STREET.?LIGHT|PARKING/.test(c) ||
+        // WP1/WP2/WP-A are the drawing convention for a wall pack, and the
+        // catalog cell on those lines is usually a bare part number that names
+        // nothing (Aura Santan WP1/WP2: `ABOVE ALL AKT30401-III` categorized as
+        // nothing, so recessed disk lights surfaced for an outdoor wall pack).
+        /^WP[-\s]?\d|^WP[-\s]?[A-Z]\d?$/.test(m) ||
+        /SHOEBOX|COBRA|COBRAHEAD|AREA.?LIGHT|STREET.?LIGHT|PARKING|CAR.?PARK/.test(c) ||
         /WALL.?PACK|FLOOD.?LIGHT/.test(c) ||
         mfr.includes('EELP') || (mfr.includes('SIGNIFY') && /^ECF|^LPW/.test(c)) ||
         mfr.includes('RAB') || mfr.includes('KIM LIGHTING') ||
@@ -533,6 +542,14 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
         /\bR\d+[A-Z]?\b/.test(m) ||             // R6H, R4, R6
         /\bRD\b|\bREC\b/.test(m) ||
         /RECESSED|DOWNLIGHT|CAN.?LIGHT|SLIM.?SURFACE|SLIM.?DISK/.test(c) ||
+        // A DISK (or DISC) light is Premier's own "Disk Light" category, and the
+        // word alone identifies it. Without this, `7" ROUND LED DISK LIGHT, FLUSH
+        // MOUNT` fell through to the Ceiling chain on "FLUSH MOUNT" — which gated
+        // out all 193 Premier Disk Light items (R-SLIM-DISK, used 22-34 times and
+        // exactly what the estimator picked) and left three 3rd-party flush mounts
+        // at 16% (Aura Santan L1/DF-2000/A, 2026-09-01). `\bDISC\b` cannot catch
+        // DISCONNECT, and the R-mark rule above already covers the marked ones.
+        /\bDIS[KC]\b/.test(c) ||
         /^SMD|^SLD/.test(c);                       // Halo/Cooper SMD series
     if (isRecessed) return 'Recessed';
 

@@ -26,6 +26,13 @@ This is Premier Lighting's internal estimating substitution finder. Start with
 - **Data lives in one Airtable base** (`appWj912AEOvtxqJF`): Premier Items,
   3rd Party Domestic Items, Fans, and History. Field IDs are pinned in
   `lib/airtable/` — don't guess field names.
+- **The 3rd Party table is CONTEXT, not a substitution catalog.** It exists so a
+  spec that names a resold product can be recognized as one. A 3rd-party item
+  may be recommended when it IS the answer — an exact resold item ("leave as
+  specified"), a bulb/lamp line, or a History precedent where an estimator chose
+  one — or when it recognizes wording no own-brand item does. It must never
+  displace a Premier item that scores as well or better: increasing private-line
+  usage is as much the point of this tool as finding value.
 - Pushes to `openwiki/update` deliberately skip Vercel deployments
   (`vercel.json` → `git.deploymentEnabled`); don't "fix" that.
 
