@@ -125,7 +125,7 @@ const BATCH_IDENTIFY_TIMEOUT_MS = 270_000;
  * pressing the button will cost before they press it — the server is
  * authoritative, and drift can only make this estimate slightly off.
  */
-const BATCH_LINES_PER_CALL = 25;
+const BATCH_LINES_PER_CALL = 18;
 const BATCH_MAX_CALLS = 12;
 
 const IDENTIFY_SOURCE_LABEL: Record<IdentifiedSpec['source'], string> = {

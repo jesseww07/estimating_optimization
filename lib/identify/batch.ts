@@ -23,7 +23,7 @@
  * COST GUARDRAIL (see the amended block at the top of ./claude.ts)
  * The Phase 2 rule — "every call is user-triggered per line — routes must never
  * sweep a whole sheet" — banned a sweep because a sweep meant N calls. This is
- * a different cost profile: ~25 lines per call, a hard cap of MAX_BATCH_CALLS
+ * a different cost profile: ~18 lines per call, a hard cap of MAX_BATCH_CALLS
  * per request, no web-search turns, and nothing fires automatically — the
  * estimator presses "Identify N unrecognized lines". User-triggered and bounded
  * are both preserved; only "one line per call" is relaxed, deliberately.
@@ -51,11 +51,12 @@ if (typeof window !== 'undefined') {
 // The latency chain, budgeted the same way ./claude.ts budgets the per-line one
 // (worst case must stay under the client abort, which stays under maxDuration):
 //
-//   25 lines/chunk × ~250 output tokens/line ≈ 6.3k output tokens per call,
-//   well inside max_tokens=16000, and streamed so a long chunk can't trip an
-//   HTTP timeout mid-response.
-//   12 calls max × 25 = 300 lines — the "300-line schedule" ceiling. Anything
-//   beyond that is reported as skipped, never silently dropped.
+//   18 lines/chunk × ~380 output tokens/line ≈ 6.8k output tokens per call,
+//   comfortably inside max_tokens=16000, and streamed so a long chunk can't
+//   trip an HTTP timeout mid-response. The per-line figure is MEASURED, not
+//   assumed — see BATCH_CHUNK_SIZE.
+//   12 calls max × 18 = 216 lines in one pass. Anything beyond that is reported
+//   as skipped with a "run it again" note, never silently dropped.
 //   6 concurrent calls ⇒ at most ceil(12/6) = 2 waves.
 //   2 waves × 120s per-call ceiling = 240s worst case
 //     < 270s client abort (app/page.tsx BATCH_IDENTIFY_TIMEOUT_MS)
@@ -65,8 +66,21 @@ if (typeof window !== 'undefined') {
 // retries would turn the 120s ceiling into 360s and blow the whole chain while
 // the estimator has already given up.
 
-/** Lines per Claude call. */
-export const BATCH_CHUNK_SIZE = 25;
+/**
+ * Lines per Claude call.
+ *
+ * Set from measurement, not estimate. The first live run at 25 lines/chunk
+ * produced 8003 / 9748 / 10961 output tokens — ~380 per line against a design
+ * assumption of ~250, so the worst chunk used 69% of max_tokens=16000. That is
+ * thin cover for a sheet with longer catalog strings than the sample.
+ *
+ * 18 restores the headroom (~6.8k expected, ~43% of the cap) for the cost of
+ * ~2 extra calls on a full sheet, and leaves the 12-call cap and the whole
+ * latency chain below untouched. The trade it does make: one pass now covers
+ * 216 lines rather than 300, and the remainder comes back as 'call-budget'
+ * skips telling the estimator to run the pass again.
+ */
+export const BATCH_CHUNK_SIZE = 18;
 /** Hard ceiling on calls per request, so a pathological upload cannot run away. */
 export const MAX_BATCH_CALLS = 12;
 /** Calls in flight at once. */

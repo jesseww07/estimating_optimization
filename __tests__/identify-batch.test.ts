@@ -13,7 +13,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { CATEGORY_GROUPS } from '@/lib/engine/matcher';
 import {
+    BATCH_CHUNK_SIZE,
     BATCH_SYSTEM_PROMPT,
+    MAX_BATCH_CALLS,
     batchSchema,
     batchSkipReason,
     chunkCandidates,
@@ -186,13 +188,34 @@ describe('chunking and the call cap', () => {
         expect(plan.candidateCount).toBe(0);
     });
 
-    it('a 300-line uncategorized schedule fits inside the default budget', () => {
-        const sheet = Array.from({ length: 300 }, (_, i) =>
+    it('fills the call budget exactly at the one-pass ceiling', () => {
+        // 12 calls x 18 lines. One more line would spill into the overflow path.
+        const ceiling = BATCH_CHUNK_SIZE * MAX_BATCH_CALLS;
+        const sheet = Array.from({ length: ceiling }, (_, i) =>
             line({ rowIndex: i, mark: `M${i}`, manufacturer: 'NOVACORP', catalogNumber: `NVX-${8000 + i}-Z` }));
         const plan = planBatchIdentify(sheet);
-        expect(plan.candidateCount).toBe(300);
-        expect(plan.chunks).toHaveLength(12);
+        expect(plan.candidateCount).toBe(ceiling);
+        expect(plan.chunks).toHaveLength(MAX_BATCH_CALLS);
         expect(plan.overBudget).toHaveLength(0);
+    });
+
+    it('reports lines past the ceiling instead of dropping them', () => {
+        // The ceiling dropped from 300 to 216 when BATCH_CHUNK_SIZE went 25 -> 18
+        // on measured token usage, so a long schedule now reaches this path. The
+        // contract that matters is unchanged: every input line comes back
+        // accounted for, and the excess says how to get the rest.
+        const ceiling = BATCH_CHUNK_SIZE * MAX_BATCH_CALLS;
+        const overflow = 84;
+        const sheet = Array.from({ length: ceiling + overflow }, (_, i) =>
+            line({ rowIndex: i, mark: `M${i}`, manufacturer: 'NOVACORP', catalogNumber: `NVX-${8000 + i}-Z` }));
+        const plan = planBatchIdentify(sheet);
+        expect(plan.candidateCount).toBe(ceiling + overflow);
+        expect(plan.chunks).toHaveLength(MAX_BATCH_CALLS);
+        expect(plan.overBudget).toHaveLength(overflow);
+        expect(plan.overBudget.every(o => o.skipped === 'call-budget')).toBe(true);
+        // Accounted for, not lost: planned lines + skipped lines = every input line.
+        const planned = plan.chunks.reduce((n, c) => n + c.length, 0);
+        expect(planned + plan.overBudget.length + plan.ineligible.length).toBe(sheet.length);
     });
 });
 

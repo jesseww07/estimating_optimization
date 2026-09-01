@@ -17,7 +17,7 @@
  * Cost guardrail. The Phase 2 rule in lib/identify/claude.ts — "every call is
  * user-triggered per line — routes must never sweep a whole sheet" — is amended,
  * not ignored: see the block at the top of that file. This IS a sheet sweep, but
- * at ~25 lines per call with a hard 12-call ceiling and no web-search turns, and
+ * at ~18 lines per call with a hard 12-call ceiling and no web-search turns, and
  * it still only ever runs because the estimator pressed "Identify N unrecognized
  * lines". Nothing calls this on upload.
  *

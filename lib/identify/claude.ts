@@ -18,7 +18,7 @@
  *   in this file may ever be called in a loop over a sheet.
  *
  *   Phase 4 amendment: `lib/identify/batch.ts` sweeps a sheet with ONE call per
- *   CHUNK of ~25 lines (a 300-line schedule costs at most 12 calls, hard-capped)
+ *   CHUNK of ~18 lines (at most 12 calls per pass, hard-capped)
  *   and no web-search turns at all. The property the rule was protecting —
  *   the estimator explicitly chooses to spend the call, nothing fires on
  *   upload — is preserved there: the batch route is only reachable from an
