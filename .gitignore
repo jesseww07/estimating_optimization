@@ -51,6 +51,8 @@ secrets*
 *.pem
 *.jsonl
 
+# agent worktrees (transient)
+.claude/worktrees/
 # generated Airtable hygiene worklist — contains bid item text, project names,
 # and catalog Item IDs; this repo is public. Unanchored so an --out= override
 # anywhere in the tree is still covered; the generator itself is exempted.

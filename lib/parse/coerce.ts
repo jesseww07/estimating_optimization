@@ -63,6 +63,7 @@ export function coerceLineItem(raw: unknown, index: number): ParsedLineItem | nu
         manufacturer: str(o.manufacturer),
         catalogNumber: str(o.catalogNumber),
         rawRow,
+        ...(str(o.description).trim() ? { description: str(o.description).trim() } : {}),
         ...(specUrls && specUrls.length > 0 ? { specUrls } : {}),
         ...(o.identified ? { identified: coerceIdentified(o.identified) } : {}),
     };

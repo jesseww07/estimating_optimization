@@ -82,6 +82,10 @@ export function scheduleRowsToLineItems(rows: ScheduleRow[]): ParsedLineItem[] {
             quantity: (row.quantity ?? '').trim(),
             manufacturer: (row.manufacturer ?? '').trim(),
             catalogNumber: catalogNumber || description,
+            // Only when it is genuinely a SEPARATE column — on a description-only
+            // row the same text is already the catalog value above, and carrying
+            // it twice would let one column vote twice.
+            ...(catalogNumber && description ? { description } : {}),
             rawRow: {
                 MARK: mark,
                 QTY: (row.quantity ?? '').trim(),

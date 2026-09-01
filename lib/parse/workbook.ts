@@ -24,8 +24,30 @@ export const COLUMN_ALIASES: Record<string, string[]> = {
     project: ['project', 'project name', 'job', 'job name'],
 };
 
+/**
+ * Headers that name a prose DESCRIPTION column.
+ *
+ * "description" is also a (low-ranked) catalogNumber alias, because a sheet with
+ * no catalog column legitimately matches on its description text. These aliases
+ * are for the other case: a sheet carrying BOTH, where the description is real
+ * evidence the engine was previously throwing away — captured into `rawRow` and
+ * read back only through a 3–20 character whole-string fixture-word match, which
+ * every real description is far too long to pass.
+ */
+export const DESCRIPTION_ALIASES = ['description', 'desc', 'fixture description', 'product description', 'item description'];
+
 export function normalizeColumnName(col: string): string {
     return col.toLowerCase().trim().replace(/[^a-z0-9\s#]/g, '');
+}
+
+/** Index of a description column in a header row, or -1. Exact/prefix match only — never reverse containment. */
+export function findDescriptionColumn(row: string[]): number {
+    for (let colIdx = 0; colIdx < row.length; colIdx++) {
+        const normalized = normalizeColumnName(String(row[colIdx] ?? ''));
+        if (!normalized) continue;
+        if (DESCRIPTION_ALIASES.some(a => normalized === a || normalized.startsWith(a))) return colIdx;
+    }
+    return -1;
 }
 
 export function findColumnIndex(headers: string[], aliases: string[]): number {
@@ -390,6 +412,7 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
                 section: currentIndices.section !== undefined ? currentIndices.section : (currentIndices.location ?? -1),
                 project: currentIndices.project ?? -1,
                 location: currentIndices.location ?? -1,
+                description: findDescriptionColumn(row.map(c => String(c ?? ''))),
             };
 
             if (hasCatalog && hasMark && currentScore >= 25) {
@@ -484,6 +507,7 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
             if (newMarkIdx !== -1 || newCatalogIdx !== -1) {
                 const newSectionIdx = findColumnIndex(row, COLUMN_ALIASES.section ?? []);
                 const newLocationIdx = findColumnIndex(row, ['location', 'area', 'zone', 'group', 'site lighting', 'building', 'unit', 'common', 'amenity', 'garage', 'clubhouse', 'landscape', 'pool']);
+                const newDescriptionIdx = findDescriptionColumn(row.map(c => String(c ?? '')));
                 columnIndices = {
                     mark: newMarkIdx !== -1 ? newMarkIdx : columnIndices.mark ?? -1,
                     quantity: findColumnIndex(row, COLUMN_ALIASES.quantity ?? []),
@@ -492,6 +516,7 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
                     section: newSectionIdx !== -1 ? newSectionIdx : (newLocationIdx !== -1 ? newLocationIdx : columnIndices.section ?? -1),
                     project: findColumnIndex(row, COLUMN_ALIASES.project ?? []),
                     location: newLocationIdx !== -1 ? newLocationIdx : columnIndices.location ?? -1,
+                    description: newDescriptionIdx !== -1 ? newDescriptionIdx : columnIndices.description ?? -1,
                 };
             }
             continue;
@@ -587,6 +612,16 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
 
             const specUrls = extractUrlsFromCells(row.map(c => String(c ?? '')));
 
+            // The description is only separate evidence when it is a separate
+            // COLUMN. When the sheet has no catalog column the description IS
+            // the catalog value (the alias list makes that so on purpose), and
+            // carrying it here as well would let one column vote twice.
+            const descIdx = columnIndices.description;
+            const descValue = (descIdx !== undefined && descIdx !== -1 && descIdx !== columnIndices.catalogNumber && row[descIdx] !== undefined)
+                ? String(row[descIdx]).trim()
+                : '';
+            const description = (descValue && descValue !== finalCatalog && descValue.length <= 300) ? descValue : '';
+
             items.push({
                 rowIndex: i,
                 section: sectionValue || currentSection,
@@ -594,6 +629,7 @@ export function parseUploadedFileFromRows(rows: string[][]): ParsedLineItem[] {
                 quantity: qtyValue,
                 manufacturer: mfgValue,
                 catalogNumber: finalCatalog,
+                ...(description ? { description } : {}),
                 rawRow,
                 ...(specUrls.length > 0 ? { specUrls } : {}),
             });

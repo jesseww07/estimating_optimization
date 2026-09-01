@@ -154,3 +154,42 @@ describe('multi-sheet workbooks', () => {
         expect(items.every(i => !i.catalogNumber.startsWith('rec'))).toBe(true);
     });
 });
+
+describe('description column capture', () => {
+    // Fixture schedules routinely carry BOTH a catalog number and a prose
+    // description. The parser captured the description into rawRow, where the
+    // engine could only read it through a 3–20 character whole-string fixture-word
+    // match — so every real description was dropped on the floor.
+    const rows = (header: string[], ...data: string[][]) => [header, ...data];
+
+    it('captures a description that sits in its own column alongside the catalog #', () => {
+        const items = parseUploadedFileFromRows(rows(
+            ['MARK', 'QTY', 'MAN', 'CATALOG #', 'DESCRIPTION'],
+            ['FB1', '14', 'LITHONIA', 'CLXL48-5000LM-40K', '4FT LED WRAPAROUND, 4000K, 5000 LUMENS'],
+        ));
+        expect(items).toHaveLength(1);
+        expect(items[0]!.catalogNumber).toBe('CLXL48-5000LM-40K');
+        expect(items[0]!.description).toBe('4FT LED WRAPAROUND, 4000K, 5000 LUMENS');
+    });
+
+    it('does not double-count when the description IS the catalog column', () => {
+        // No catalog column: "Description" is the catalogNumber alias that makes
+        // this sheet parse at all. Carrying the same text in both fields would let
+        // one column vote twice in scoring.
+        const items = parseUploadedFileFromRows(rows(
+            ['MARK', 'QTY', 'MAN', 'Description'],
+            ['L2', '1', 'LUMENS', 'DAITH CHANDELIER'],
+        ));
+        expect(items).toHaveLength(1);
+        expect(items[0]!.catalogNumber).toBe('DAITH CHANDELIER');
+        expect(items[0]!.description).toBeUndefined();
+    });
+
+    it('leaves description unset when the sheet has no description column', () => {
+        const items = parseUploadedFileFromRows(rows(
+            ['MARK', 'QTY', 'MAN', 'CATALOG #'],
+            ['FB1', '14', 'LITHONIA', 'CLXL48-5000LM-40K'],
+        ));
+        expect(items[0]!.description).toBeUndefined();
+    });
+});
