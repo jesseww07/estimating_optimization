@@ -8,7 +8,17 @@
  */
 
 export type IdentifyConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
-export type IdentifySource = 'url' | 'web' | 'pdf';
+/**
+ * Where an identification came from.
+ *  url / web / pdf — per-line, one Claude call per click (Phase 2).
+ *  batch           — the sheet-level pass in lib/identify/batch.ts: ONE call per
+ *                    chunk of uncategorized lines, still user-triggered, from
+ *                    the bid line's own text only (no page fetch, no web search,
+ *                    no cut sheet). Kept distinct so the UI and any future
+ *                    scoring can tell a text-only inference from an
+ *                    evidence-backed read of the actual spec sheet.
+ */
+export type IdentifySource = 'url' | 'web' | 'pdf' | 'batch';
 
 export interface IdentifiedSpecAttributes {
     finish?: string;

@@ -23,7 +23,7 @@ interface IdentifiedSpec {
     category: string | null;
     attributes: Record<string, string | undefined>;
     confidence: 'HIGH' | 'MEDIUM' | 'LOW';
-    source: 'url' | 'web' | 'pdf';
+    source: 'url' | 'web' | 'pdf' | 'batch';
     evidence: string;
 }
 
@@ -111,14 +111,55 @@ const AS_SPEC = 'AS_SPEC';
  */
 const IDENTIFY_TIMEOUT_MS = 180_000;
 
+/**
+ * Client-side ceiling on the batch pass. Sits inside the route's own budget
+ * chain (see lib/identify/batch.ts): 240s of Claude calls server-side < 270s
+ * here < the route's 300s maxDuration, so the button always comes back — with
+ * results or with a reason.
+ */
+const BATCH_IDENTIFY_TIMEOUT_MS = 270_000;
+
+/**
+ * Mirrors BATCH_CHUNK_SIZE / MAX_BATCH_CALLS in lib/identify/batch.ts, which is
+ * server-only and cannot be imported here. Used ONLY to tell the estimator what
+ * pressing the button will cost before they press it — the server is
+ * authoritative, and drift can only make this estimate slightly off.
+ */
+const BATCH_LINES_PER_CALL = 18;
+const BATCH_MAX_CALLS = 12;
+
 const IDENTIFY_SOURCE_LABEL: Record<IdentifiedSpec['source'], string> = {
     url: 'spec link',
     web: 'web lookup',
     pdf: 'spec sheet',
+    batch: 'batch identify',
+};
+
+/** Per-line explanation when the batch pass could not resolve one line. */
+const BATCH_FAILURE_TEXT: Record<string, string> = {
+    'call-budget': 'Not covered by this identify pass (call budget) — run it again to include this line.',
+    'no-result': 'The batch pass returned nothing for this line — try Look up spec or a cut-sheet PDF.',
+    error: 'Batch identification failed for this line.',
 };
 
 function looksLikeUrl(value: string): boolean {
     return /^https?:\/\//i.test(value.trim()) || /^www\./i.test(value.trim());
+}
+
+/**
+ * Lines the batch identify pass would actually spend a call on — the client-side
+ * mirror of batchSkipReason() in lib/identify/batch.ts, for the button's count.
+ * A line with no category is the whole problem: the engine's in-category
+ * fallback is gated on one, so those lines are where "nothing came back" comes
+ * from. `infoMessage` covers the two the engine suppresses on purpose (RFI
+ * placeholders and LED tape), which specCategory alone doesn't exclude.
+ */
+function needsBatchIdentify(a: LineItemAnalysis): boolean {
+    if (a.specCategory) return false;
+    if (a.infoMessage) return false;
+    const li = a.lineItem;
+    const catalog = looksLikeUrl(li.catalogNumber) ? '' : li.catalogNumber.trim();
+    return li.manufacturer.trim() !== '' || catalog !== '';
 }
 
 function recItemName(rec: Recommendation): string {
@@ -162,6 +203,10 @@ export default function Home() {
     const [dragOver, setDragOver] = useState(false);
     const [identifyBusy, setIdentifyBusy] = useState<Record<number, string | null>>({});
     const [identifyError, setIdentifyError] = useState<Record<number, string | null>>({});
+    const [batchBusy, setBatchBusy] = useState(false);
+    const [batchElapsed, setBatchElapsed] = useState(0);
+    const [batchNotice, setBatchNotice] = useState<string | null>(null);
+    const [batchError, setBatchError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const identifyFileRef = useRef<HTMLInputElement>(null);
     const identifyTargetRow = useRef<number | null>(null);
@@ -173,11 +218,24 @@ export default function Home() {
             .catch(() => setHealth(null));
     }, []);
 
+    // The batch pass is one long request with no intermediate signal, so the
+    // only honest progress we can show is elapsed time against the known ceiling.
+    useEffect(() => {
+        if (!batchBusy) return;
+        setBatchElapsed(0);
+        const started = Date.now();
+        const id = setInterval(() => setBatchElapsed(Math.round((Date.now() - started) / 1000)), 1000);
+        return () => clearInterval(id);
+    }, [batchBusy]);
+
     async function handleFile(file: File) {
         setError(null);
         setWarning(null);
         setResults(null);
         setSelections({});
+        setBatchNotice(null);
+        setBatchError(null);
+        setIdentifyError({});
         setFileName(file.name);
         setPhase(file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf' ? 'reading-pdf' : 'uploading');
         try {
@@ -276,6 +334,94 @@ export default function Home() {
         } finally {
             clearTimeout(timer);
             setIdentifyBusy(s => ({ ...s, [rowIndex]: null }));
+        }
+    }
+
+    /**
+     * Batch identification (Phase 4): ONE request covering every line the engine
+     * could not categorize. Explicitly user-triggered — nothing here runs on
+     * upload, and the button says up front how many lines and roughly how many
+     * Claude calls it will spend. A line that fails comes back as a per-line
+     * message in that line's identify strip; the rest of the sheet is untouched.
+     */
+    async function handleBatchIdentify() {
+        if (!results || batchBusy) return;
+        const targets = results.filter(needsBatchIdentify);
+        if (targets.length === 0) return;
+        setBatchBusy(true);
+        setBatchError(null);
+        setBatchNotice(null);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), BATCH_IDENTIFY_TIMEOUT_MS);
+        try {
+            const res = await fetch('/api/identify-batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // The whole sheet goes over; the server decides which lines it
+                // actually spends a call on, so its filter is the one that counts.
+                body: JSON.stringify({ lineItems: results.map(a => a.lineItem) }),
+                signal: controller.signal,
+            });
+            // A gateway timeout answers with HTML, not JSON — parsing it blind
+            // turns a readable failure into "Unexpected token <".
+            const raw = await res.text();
+            let json: {
+                error?: string;
+                results?: LineItemAnalysis[];
+                failures?: Array<{ rowIndex: number; reason: string; note?: string }>;
+                stats?: { candidates: number; identified: number; categorized: number; unidentified: number; calls: number; inputTokens: number; outputTokens: number };
+            };
+            try {
+                json = JSON.parse(raw) as typeof json;
+            } catch {
+                throw new Error(res.ok
+                    ? 'Batch identification returned an unreadable response.'
+                    : `Batch identification failed (${res.status} ${res.statusText || 'error'}).`);
+            }
+            if (!res.ok) throw new Error(json.error || `Batch identification failed (${res.status}).`);
+
+            const updated = json.results ?? [];
+            const byRow = new Map(updated.map(r => [r.lineItem.rowIndex, r]));
+            setResults(rs => (rs ? rs.map(a => byRow.get(a.lineItem.rowIndex) ?? a) : rs));
+            setSelections(s => {
+                const next = { ...s };
+                for (const r of updated) {
+                    // Same gate as the per-line flow: a LOW identification never
+                    // pre-selects, and the recommendation must clear the
+                    // auto-select bar on its own merits too.
+                    const pick = r.lineItem.identified?.confidence === 'LOW' ? null : defaultSelection(r.recommendations);
+                    next[r.lineItem.rowIndex] = pick?.id ?? AS_SPEC;
+                }
+                return next;
+            });
+            // Per-line failures render in that line's own identify strip — one
+            // bad line never fails the sheet.
+            const failures = json.failures ?? [];
+            setIdentifyError(s => {
+                const next = { ...s };
+                for (const r of updated) next[r.lineItem.rowIndex] = null;
+                for (const f of failures) {
+                    const base = BATCH_FAILURE_TEXT[f.reason] ?? 'Batch identification did not resolve this line.';
+                    next[f.rowIndex] = f.note ? `${base} (${f.note})` : base;
+                }
+                return next;
+            });
+
+            const st = json.stats;
+            setBatchNotice(st
+                ? `Batch identify: ${st.identified} of ${st.candidates} unrecognized line${st.candidates === 1 ? '' : 's'} identified, ` +
+                `${st.categorized} now carry a fixture category` +
+                `${st.unidentified > 0 ? `, ${st.unidentified} unresolved` : ''}. ` +
+                `${st.calls} Claude call${st.calls === 1 ? '' : 's'} · ${st.inputTokens.toLocaleString()} in / ${st.outputTokens.toLocaleString()} out tokens.`
+                : `Batch identify: ${updated.length} line(s) updated.`);
+        } catch (e) {
+            const aborted = e instanceof DOMException && e.name === 'AbortError';
+            setBatchError(aborted
+                ? `Batch identification timed out after ${Math.round(BATCH_IDENTIFY_TIMEOUT_MS / 1000)}s — nothing was changed. Try again, or identify the worst lines individually.`
+                : e instanceof Error ? e.message : 'Batch identification failed.');
+        } finally {
+            clearTimeout(timer);
+            setBatchBusy(false);
         }
     }
 
@@ -510,6 +656,57 @@ export default function Home() {
                                 </div>
                             </div>
                         </section>
+
+                        {/* Batch identification (Phase 4). Explicitly user-triggered:
+                            it never fires on upload, and it says what it will spend
+                            before the estimator spends it. */}
+                        {(() => {
+                            const pending = results.filter(needsBatchIdentify).length;
+                            if (pending === 0 && !batchNotice && !batchError) return null;
+                            const calls = Math.min(Math.ceil(pending / BATCH_LINES_PER_CALL), BATCH_MAX_CALLS);
+                            const covered = Math.min(pending, BATCH_LINES_PER_CALL * BATCH_MAX_CALLS);
+                            return (
+                                <div className="mt-4 font-data">
+                                    {pending > 0 && (
+                                        <div className="border-2 border-line bg-offwhite px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+                                            <div className="max-w-3xl">
+                                                <div className="text-xs uppercase tracking-wider text-muted">Unrecognized lines</div>
+                                                <p className="text-sm text-body mt-1">
+                                                    The engine could not work out what {pending} line{pending === 1 ? ' is' : 's are'}. Without a
+                                                    fixture category it has no in-category fallback, so those lines usually come back empty.
+                                                    One batched pass reads them all in {calls} Claude call{calls === 1 ? '' : 's'}
+                                                    {covered < pending ? ` (covering the first ${covered}; run it again for the rest)` : ''}.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={handleBatchIdentify}
+                                                disabled={batchBusy}
+                                                className="bg-plteal text-white px-6 py-2 text-sm tracking-widest uppercase hover:bg-steel disabled:opacity-50 whitespace-nowrap"
+                                                title="Sends the unrecognized lines to Claude in one batched request — nothing runs automatically"
+                                            >
+                                                {batchBusy
+                                                    ? `Identifying ${pending} lines… ${batchElapsed}s`
+                                                    : `Identify ${pending} unrecognized line${pending === 1 ? '' : 's'}`}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {batchBusy && (
+                                        <p className="text-xs text-muted mt-2">
+                                            One request covering every unrecognized line; it can take a couple of minutes.
+                                            Results land line by line when it returns — the rest of the sheet is untouched.
+                                        </p>
+                                    )}
+                                    {batchNotice && !batchBusy && (
+                                        <div className="border-2 border-line bg-offwhite text-body px-4 py-3 mt-2 text-sm">
+                                            {batchNotice}
+                                        </div>
+                                    )}
+                                    {batchError && (
+                                        <div className="border-2 border-danger text-danger px-4 py-3 mt-2 text-sm">{batchError}</div>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         {writebackNotice && (
                             <div className="border-2 border-line bg-offwhite text-body px-4 py-3 mt-4 text-sm font-data">

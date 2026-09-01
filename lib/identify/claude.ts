@@ -6,14 +6,35 @@
  * Same credential discipline as the Airtable adapter — ANTHROPIC_API_KEY is
  * read only here, trimmed, never bundled client-side.
  *
- * Cost control (Phase 2 guardrail): every call is user-triggered per line —
- * routes must never sweep a whole sheet. Token usage is logged per call.
+ * Cost control — the Phase 2 guardrail, AMENDED for Phase 4 (2026-08-31; needs
+ * a human sign-off before it ships):
+ *
+ *   Phase 2 rule (as written): "every call is user-triggered per line — routes
+ *   must never sweep a whole sheet."
+ *
+ *   Why it said that: a sheet sweep through THIS module means one Claude call
+ *   per line. 472 uncategorized lines = 472 calls, each with its own research
+ *   turn. That cost profile is what the rule banned, and it still is: nothing
+ *   in this file may ever be called in a loop over a sheet.
+ *
+ *   Phase 4 amendment: `lib/identify/batch.ts` sweeps a sheet with ONE call per
+ *   CHUNK of ~18 lines (at most 12 calls per pass, hard-capped)
+ *   and no web-search turns at all. The property the rule was protecting —
+ *   the estimator explicitly chooses to spend the call, nothing fires on
+ *   upload — is preserved there: the batch route is only reachable from an
+ *   explicit "Identify N unrecognized lines" button.
+ *
+ *   So the contract is now: identification is always USER-TRIGGERED and always
+ *   BOUNDED. Per-line calls (this module) stay one-line-per-request; sheet-wide
+ *   identification goes through the batched module, never through here.
+ *
+ * Token usage is logged per call in both modules.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createAnthropicClient, isIdentifyAvailable } from './anthropic';
-import { CATEGORY_GROUPS } from '../engine/matcher';
 import type { ParsedLineItem } from '../types';
+import { ENGINE_CATEGORY_LABELS, specSchema, toIdentifiedSpec, type RawSpec } from './spec';
 import type { IdentifiedSpec, IdentifySource } from './types';
 
 if (typeof window !== 'undefined') {
@@ -47,47 +68,9 @@ function getModel(): string {
     return (process.env.IDENTIFY_MODEL ?? '').trim() || 'claude-sonnet-5';
 }
 
-// The engine's category vocabulary — identification must map onto these labels
-// so an identified line plugs straight into the existing category gates.
-const ENGINE_CATEGORY_LABELS = Object.keys(CATEGORY_GROUPS);
-
-/** JSON schema for the structured IdentifiedSpec output (strict shape: all keys required, nullables explicit). */
-function specSchema(): Record<string, unknown> {
-    const nullableString = { anyOf: [{ type: 'string' }, { type: 'null' }] };
-    return {
-        type: 'object',
-        additionalProperties: false,
-        required: ['manufacturer', 'catalogNumber', 'productName', 'category', 'attributes', 'confidence', 'evidence'],
-        properties: {
-            manufacturer: { type: 'string', description: 'Brand/manufacturer name, e.g. "LITHONIA LIGHTING". Empty string if unknown.' },
-            catalogNumber: { type: 'string', description: 'The orderable catalog / model number, e.g. "CSVT L48 4000LM". Empty string if unknown.' },
-            productName: { type: 'string', description: 'Human product name / family, e.g. "Contractor Select Vapor Tight".' },
-            category: {
-                anyOf: [
-                    { type: 'string', enum: ENGINE_CATEGORY_LABELS },
-                    { type: 'null' },
-                ],
-                description: 'The fixture category, chosen ONLY from the allowed labels; null if none fits.',
-            },
-            attributes: {
-                type: 'object',
-                additionalProperties: false,
-                required: ['finish', 'colorTemp', 'wattage', 'lumens', 'dimensions', 'voltage', 'mounting'],
-                properties: {
-                    finish: nullableString,
-                    colorTemp: { anyOf: [{ type: 'string' }, { type: 'null' }], description: 'e.g. "3000K" or "3CCT selectable"' },
-                    wattage: nullableString,
-                    lumens: nullableString,
-                    dimensions: nullableString,
-                    voltage: nullableString,
-                    mounting: nullableString,
-                },
-            },
-            confidence: { type: 'string', enum: ['HIGH', 'MEDIUM', 'LOW'] },
-            evidence: { type: 'string', description: 'One or two sentences: what in the source supports this identification. For web lookups, MUST name the page/URL used.' },
-        },
-    };
-}
+// The structured-output schema (and its category enum, built from the engine's
+// own CATEGORY_GROUPS) lives in ./spec.ts so the batch identifier speaks the
+// exact same vocabulary and the two paths cannot drift apart.
 
 const SYSTEM_PROMPT = `You identify lighting-fixture products for Premier Lighting's estimating team.
 Given raw evidence (a product page, search findings, or a manufacturer cut sheet) plus the bid-line
@@ -123,41 +106,6 @@ function logUsage(stage: string, source: IdentifySource, model: string, usage: U
         `input_tokens=${usage.input_tokens} output_tokens=${usage.output_tokens}` +
         (usage.cache_read_input_tokens ? ` cache_read=${usage.cache_read_input_tokens}` : ''),
     );
-}
-
-interface RawSpec {
-    manufacturer: string;
-    catalogNumber: string;
-    productName: string;
-    category: string | null;
-    attributes: Record<string, string | null>;
-    confidence: 'HIGH' | 'MEDIUM' | 'LOW';
-    evidence: string;
-}
-
-function toIdentifiedSpec(raw: RawSpec, source: IdentifySource): IdentifiedSpec {
-    // Defensive re-validation of the category label (schema already constrains it).
-    const category = raw.category && CATEGORY_GROUPS[raw.category] ? raw.category : null;
-    const attrs = raw.attributes ?? {};
-    const s = (v: string | null | undefined): string | undefined => (v && v.trim() ? v.trim() : undefined);
-    return {
-        manufacturer: (raw.manufacturer ?? '').trim(),
-        catalogNumber: (raw.catalogNumber ?? '').trim(),
-        productName: (raw.productName ?? '').trim(),
-        category,
-        attributes: {
-            finish: s(attrs.finish),
-            colorTemp: s(attrs.colorTemp),
-            wattage: s(attrs.wattage),
-            lumens: s(attrs.lumens),
-            dimensions: s(attrs.dimensions),
-            voltage: s(attrs.voltage),
-            mounting: s(attrs.mounting),
-        },
-        confidence: raw.confidence === 'HIGH' || raw.confidence === 'MEDIUM' ? raw.confidence : 'LOW',
-        source,
-        evidence: (raw.evidence ?? '').trim(),
-    };
 }
 
 function firstText(content: Array<{ type: string; text?: string }>): string {
