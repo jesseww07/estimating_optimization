@@ -10,18 +10,27 @@ takeoff draft, not a quote; pricing columns are intentionally blank.
 
 ## How it works
 
-1. **Upload** a bid sheet (CSV/XLSX) or a fixture schedule as a PDF or an image
-   (PNG/JPEG/WebP/GIF — schedules arrive as phone photos and screenshots too).
+1. **Upload** a bid sheet (CSV/XLSX) or a fixture schedule as a Word document
+   (.docx), a PDF, or an image (PNG/JPEG/WebP/GIF — schedules arrive as phone
+   photos and screenshots too).
 2. The app **parses** it into line items (mark, quantity, manufacturer,
-   catalog number). PDFs and images are read by Claude; a long schedule is read
-   in several page-range passes and the rows are joined in document order.
+   catalog number). Word files, PDFs and images are read by Claude; a long
+   schedule is read in several page passes and the rows are joined in document
+   order. A Word schedule is usually pasted-in screenshots of the drawing set's
+   schedule sheets, so the browser reads the .docx, recompresses those page
+   images, and posts them as pages — which is also how a Word file stays under
+   Vercel's 4.5 MB request-body limit (`app/prepareUpload.ts`).
 3. The **recommendation engine** scores each line against Premier's Airtable
    catalogs (Premier Items, 3rd Party Domestic, Fans) and **History** — past
    estimator decisions — and returns up to three ranked substitutions per
    line, pre-checking one only when the auto-select gate is confident.
 4. Lines the sheet alone can't identify can go through **per-line
    identification**: Claude reads a pasted spec URL, searches the web, or
-   reads an uploaded cut sheet (PDF or image), then the engine re-runs.
+   reads an uploaded cut sheet (PDF or image), then the engine re-runs. The web
+   lookup searches the **base item number** — `4430802-112` is looked up as
+   `4430802`, because the trailing code is a finish the estimator configures and
+   including it is what makes the search return nothing
+   (`lib/identify/catalogNumber.ts`).
 5. The estimator reviews/overrides selections and **exports** the workbook.
 6. When the export opts into recording (`recordToHistory`) and
    `HISTORY_WRITEBACK` allows it, accepted substitutions are **written back
@@ -41,7 +50,7 @@ npm run dev        # http://localhost:3000
 |---|---|
 | `AIRTABLE_PAT` | Personal access token for the Premier estimating Airtable base (required for live data) |
 | `AIRTABLE_BASE_ID` | Overrides the default base ID (optional; defaults to the production base) |
-| `ANTHROPIC_API_KEY` | Claude API key for schedule/cut-sheet reading (PDF or image) and per-line identification |
+| `ANTHROPIC_API_KEY` | Claude API key for schedule/cut-sheet reading (Word, PDF or image) and per-line identification |
 | `ANTHROPIC_WORKSPACE_ID` | Required **only** for an identity-linked API key, which cannot make any request without naming its workspace (`400 anthropic-workspace-id is required…`). Leave unset for a workspace-scoped key |
 | `IDENTIFY_MODEL` | Overrides the Claude model used for identification (optional) |
 | `HISTORY_WRITEBACK` | `live` / `dry_run` / `off` kill switch. When unset: production defaults to `live`; previews and local dev default to `dry_run`, so non-production exports never write to History |
@@ -75,7 +84,7 @@ the committed baseline. If you change anything in `lib/engine/`, run
 | `app/page.tsx` | Client UI: upload, review, identify, export |
 | `app/api/{upload,recommendations,identify,export}/route.ts` | Thin API routes; logic lives in `lib/**` |
 | `lib/parse/` | CSV/XLSX parsing and request coercion |
-| `lib/identify/` | Claude-powered identification and schedule extraction (PDF/image, page-range chunked) |
+| `lib/identify/` | Claude-powered identification and schedule extraction (Word/PDF/image, page-chunked) |
 | `lib/engine/` | Matching, ranking, recommendation orchestration (pure TS — no Next.js/React imports) |
 | `lib/airtable/` | Schema/field IDs, fetch, in-memory cache, create-only History write-back |
 | `lib/export/` | Corporate-template workbook builder |

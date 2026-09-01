@@ -19,6 +19,14 @@
  * same document (with a cache breakpoint, so passes 2..n read it from cache) and
  * is scoped to its pages in the prompt.
  *
+ * Word documents (2026-09-01) take the second path in this module:
+ * `extractScheduleFromPages` reads a document that arrives as an ordered LIST of
+ * pages, because a .docx is a ZIP whose schedule grids are usually pasted-in
+ * screenshots rather than anything the API can be handed whole (see
+ * lib/parse/docx.ts). There the page ranges are sliced PHYSICALLY — only the
+ * pass's own pages are attached — which is the same planning code with a
+ * truthful scope sentence.
+ *
  * The planning/joining logic is pure and injected-extractor driven
  * (`extractScheduleRows`) so it is unit-testable without an API key.
  */
@@ -258,6 +266,13 @@ export interface ExtractScheduleOptions {
     pageCount: number | null;
     pagesPerChunk?: number;
     maxChunks?: number;
+    /**
+     * Prompt builder for one pass. Defaults to buildSchedulePrompt, whose page
+     * scope is an INSTRUCTION because the whole document is attached every pass.
+     * The pages path (see extractScheduleFromPages) attaches only its own pages,
+     * so it overrides this with a prompt that says so.
+     */
+    buildPrompt?: (range: PageRange, carrySection: string) => string;
 }
 
 function resolveEnd(range: PageRange, pageCount: number | null): number | null {
@@ -303,7 +318,8 @@ export async function extractScheduleRows(
             );
         }
         passes++;
-        const result = await extract({ range, prompt: buildSchedulePrompt(range, lastSectionOf(rows)) });
+        const buildPrompt = options.buildPrompt ?? buildSchedulePrompt;
+        const result = await extract({ range, prompt: buildPrompt(range, lastSectionOf(rows)) });
         if (result.truncated) {
             // Too many rows for one pass: read this range in halves instead of
             // failing the upload. Rows from a truncated pass are discarded —
@@ -382,6 +398,135 @@ export async function extractScheduleFromDocument(base64: string, media: Support
         const parsed = JSON.parse(text) as { lineItems?: ScheduleRow[] };
         return { rows: parsed.lineItems ?? [], truncated: false };
     }, { pageCount });
+
+    return scheduleRowsToLineItems(rows);
+}
+
+// ── Page-list extraction (Word documents) ────────────────────────────────────
+// A .docx is not one document Claude can read — it is a ZIP whose schedule grids
+// are usually pasted-in screenshots (see lib/parse/docx.ts). So the Word path
+// arrives here as an ordered LIST of pages instead of one file, and each pass
+// attaches only the pages in its own range. That is strictly better than the PDF
+// arrangement above, where page scope can only be an instruction: a page outside
+// the range is not in the request at all, so it cannot be double-read or missed.
+
+/** One page of a document that arrived as a list of parts. */
+export type SchedulePage =
+    | { kind: 'media'; media: SupportedMedia; base64: string; label?: string }
+    | { kind: 'text'; text: string; label?: string };
+
+/** Hard ceiling on pages in one upload — MAX_CHUNKS passes' worth. */
+export const MAX_PAGES = PAGES_PER_CHUNK * MAX_CHUNKS;
+
+/**
+ * Ceiling on the document-context preamble. It is re-sent on EVERY pass, so a
+ * Word file with pages of prose ahead of the schedule would otherwise multiply
+ * its own text by the pass count. A schedule's index/cover is a few hundred
+ * characters; this is far above that and still bounded.
+ */
+export const MAX_CONTEXT_CHARS = 6_000;
+
+/**
+ * The per-pass prompt when the pages themselves are sliced. Same extraction
+ * rules and same section carry-over; the scope sentence tells the truth about
+ * what is attached.
+ */
+export function buildPagesPrompt(range: PageRange, carrySection: string, total: number): string {
+    const end = range.end ?? total;
+    const whole = range.start === 1 && end >= total;
+    const scope = total === 1
+        ? '\n\nThe page above is the whole document.'
+        : whole
+            ? `\n\nATTACHED: all ${total} pages of the document, in order, each one labelled above it.`
+            : `\n\nATTACHED: page${range.start === end ? '' : 's'} ${range.start}${range.start === end ? '' : `-${end}`} of ${total}, in document order, each one labelled above it. ` +
+            'Only these pages are attached — the rest of the document is read in separate passes, so extract every row printed on these pages and nothing else.';
+    const carry = carrySection
+        ? `\n\nCARRIED CONTEXT: the last section/location heading before page ${range.start} was "${carrySection}". ` +
+        'Rows at the top of the first attached page that continue under that heading — with no new heading above them — take that section. ' +
+        'Stop using it as soon as a page shows a new heading.'
+        : '';
+    return `${SCHEDULE_PROMPT}${scope}${carry}`;
+}
+
+function pageHeading(page: SchedulePage, number: number): string {
+    return page.label ? `— Page ${number}: ${page.label} —` : `— Page ${number} —`;
+}
+
+/**
+ * Read a fixture schedule that arrives as an ordered list of pages.
+ *
+ * `context` is the document's own text (a Word schedule's cover/index), sent
+ * with every pass. It is short and it names the sheets the screenshots came
+ * from, which is exactly the section vocabulary the rows need.
+ */
+export async function extractScheduleFromPages(
+    pages: SchedulePage[],
+    options: { context?: string } = {},
+): Promise<ParsedLineItem[]> {
+    if (!getApiKey()) throw new Error('ANTHROPIC_API_KEY is not set — schedule parsing is unavailable.');
+    if (pages.length === 0) return [];
+    if (pages.length > MAX_PAGES) {
+        throw new Error(
+            `That document holds ${pages.length} pages of schedule — more than the ${MAX_PAGES}-page limit for one upload. ` +
+            'Split it into smaller files and upload them one at a time.',
+        );
+    }
+    const client = createAnthropicClient();
+    const model = getModel();
+    const fullContext = (options.context ?? '').trim();
+    const context = fullContext.length > MAX_CONTEXT_CHARS
+        ? `${fullContext.slice(0, MAX_CONTEXT_CHARS)}\n…(document text truncated)`
+        : fullContext;
+
+    const rows = await extractScheduleRows(async ({ range, prompt }) => {
+        const from = range.start - 1;
+        const to = range.end ?? pages.length;
+        const slice = pages.slice(from, to);
+        const content: Anthropic.Messages.ContentBlockParam[] = [];
+        if (context) {
+            content.push({
+                type: 'text',
+                text: `DOCUMENT TEXT (the Word file's own text, for section names and context — not line items):\n${context}`,
+            });
+        }
+        slice.forEach((page, index) => {
+            content.push({ type: 'text', text: pageHeading(page, from + index + 1) });
+            content.push(page.kind === 'media'
+                ? mediaContentBlock(page.media, page.base64)
+                : { type: 'text', text: page.text });
+        });
+        content.push({ type: 'text', text: prompt });
+
+        // Streamed for the same reason as the single-document path: a dense
+        // schedule can produce well past the safe non-streaming output size.
+        const stream = client.messages.stream({
+            model,
+            max_tokens: MAX_OUTPUT_TOKENS,
+            output_config: { format: { type: 'json_schema', schema: SCHEDULE_SCHEMA as unknown as Record<string, unknown> } },
+            messages: [{ role: 'user', content }],
+        });
+        const response = await stream.finalMessage();
+        // Guardrail: every pass's token usage must be visible in the logs.
+        console.log(
+            `[identify] source=schedule-pages stage=extract model=${model} ` +
+            `input_tokens=${response.usage.input_tokens} output_tokens=${response.usage.output_tokens}` +
+            (response.usage.cache_read_input_tokens ? ` cache_read=${response.usage.cache_read_input_tokens}` : '') +
+            ` pages=${range.start}-${to}/${pages.length}`,
+        );
+        if (response.stop_reason === 'refusal') {
+            throw new Error('Schedule extraction declined by the model (refusal).');
+        }
+        if (response.stop_reason === 'max_tokens') {
+            return { rows: [], truncated: true };
+        }
+        const text = response.content.find((b): b is Anthropic.Messages.TextBlock => b.type === 'text')?.text ?? '';
+        if (!text) throw new Error('Schedule extraction returned no output.');
+        const parsed = JSON.parse(text) as { lineItems?: ScheduleRow[] };
+        return { rows: parsed.lineItems ?? [], truncated: false };
+    }, {
+        pageCount: pages.length,
+        buildPrompt: (range, carrySection) => buildPagesPrompt(range, carrySection, pages.length),
+    });
 
     return scheduleRowsToLineItems(rows);
 }
