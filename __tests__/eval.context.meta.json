@@ -1,16 +1,19 @@
 {
-  "fetchedAt": "2026-07-29T19:49:10.000Z",
-  "source": "airtable-mcp",
+  "fetchedAt": "2026-08-31T22:59:32.744Z",
+  "source": "airtable-pat",
   "baseId": "appWj912AEOvtxqJF",
   "counts": {
-    "history": 9479,
+    "history": 9485,
     "premierItems": 2402,
     "thirdPartyItems": 1115,
     "fans": 113
   },
   "notes": [
-    "Initial eval dataset, pulled via the Airtable MCP connector (per-project History slices, verified against per-slice totalRecordCount).",
-    "thirdPartyItems.productCategories carries linked category NAMES per the ThirdPartyItemRow contract; the production REST adapter is suspected to emit record ids here instead (flagged in docs/EVAL-HARNESS.md).",
-    "Rows sorted by record id for deterministic assembly; specManufacturer/bidManufacturer are empty exactly like the production adapter output."
+    "Refreshed via `npm run eval:fetch` (AIRTABLE_PAT), replacing the 2026-07-29 airtable-mcp snapshot, and re-fetched after the Match Type hygiene write below.",
+    "HYGIENE WRITE (2026-08-31): 116 History rows whose Bid Item is unambiguously not a product — SHIPPING (48), SHIPPING LINE (14), ALLOWANCE variants (26), NOT SHOWN ON PLANS (12), FREIGHT, TARIFF CHARGE, NO SPEC — had Match Type set to NON-ITEM (was UNMAPPED on 104, blank on 12). None carried a catalog link. NON-ITEM 184 -> 300; unlinked-and-actionable rows 4073 -> 3957. Headline metrics unmoved (these were never labeled cases), but the engine skips NON-ITEM rows, so cards literally reading \"SHIPPING LINE\" can no longer surface as substitutions — one did, for an exit-sign spec, before this.",
+    "The retired Premier \"Fixture Category\" choices the old snapshot carried — \"Post/Pier Head\" (354 items) and \"Post & Bollard\" (297) — are gone; the live vocabulary is Pole Heads / Poles / Bollards, which lib/engine/categories.ts already encoded. Consequence: the \"Outdoor Pole\" label now reaches 557 Premier items where it reached ZERO, so pole and bollard work is no longer invisible to the eval. It did not move the headline, because almost no labeled rows point at those categories.",
+    "thirdPartyItems.productCategories resolves to category NAMES here, confirming the fetch.ts Product Categories lookup works on the PAT path as well as the MCP path (the old snapshot flagged this as a suspected bug). That item is closed.",
+    "History grew by only 6 rows in the 33 days since the previous snapshot. The learning loop is barely turning — worth checking whether exports are actually recording to History (HISTORY_WRITEBACK / recordToHistory).",
+    "Untouched and still open: bidDate is empty on 80.3% of rows and is perfectly bimodal (47 of 66 projects 100% undated, 19 100% dated, none partial) — an import-pipeline defect. NOT backfilled, because no source for the missing dates exists and inventing them would corrupt recency weighting permanently."
   ]
 }
