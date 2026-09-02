@@ -50,7 +50,7 @@ const CATEGORY_EVIDENCE: Array<[string, RegExp]> = [
     ['Ceiling Fans', /CEILING FAN/],
     ['Undercabinet / Tape Light + Connectors', /UNDER ?CAB/],
     ['Accent', /ACCENT/],
-    ['Trim', /TRIM/],
+    ['Trim', /\bTRIM\b/],
     ['Lamp', /\bLAMP\b|\bBULB\b/],
 ];
 
