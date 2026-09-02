@@ -11,7 +11,12 @@
  *   - Comment after value  = the human label as of the date noted below.
  *                             This is documentation only; future renames update only the comment.
  *
- * Verified against live base appWj912AEOvtxqJF via Airtable MCP on 2026-05-19.
+ * Verified against live base appWj912AEOvtxqJF on 2026-09-01 by
+ * `npx tsx --env-file=.env scripts/schema-audit.ts`, which is the tool to re-run
+ * after ANY schema edit in Airtable. Run it first when matching quality drops
+ * for no reason: a pinned ID that no longer exists is a hard 422 on the whole
+ * table fetch, and a field that changed TYPE (lookup -> linked record) silently
+ * changes what the adapter receives.
  */
 
 export const BASE_ID = process.env.AIRTABLE_BASE_ID || 'appWj912AEOvtxqJF';
@@ -37,13 +42,17 @@ export const HISTORY_FIELDS = {
     BID_MFR_BACKUP: 'fldhuThP8MOFUwrn4',       // "Bid Manufacturer (text)" (singleLineText)
     MATCH_TYPE: 'fldUKD6C2FdMu4Mg8',           // "Match Type" (singleSelect: EXACT / NON-ITEM / UNMAPPED)
     PREMIER_LINK: 'fldo68HE8BddAUrz4',         // "NetSuite ID" — linked record to Premier Items (multipleRecordLinks)
-    PRODUCT_CATEGORY: 'fldqOrLTPQRFAqLI0',     // "Product Category" (multipleLookupValues)
+    PRODUCT_CATEGORY: 'fldqOrLTPQRFAqLI0',     // "Product Category" (multipleRecordLinks)
+                                               //   WAS a lookup (returned names); became a linked record in the
+                                               //   2026-09-01 consolidation, so REST now returns record IDS.
+                                               //   fetch.ts resolves them through the Product Categories table —
+                                               //   without that the value arrives empty, because asString()
+                                               //   deliberately drops bare record ids.
     SPEC_DESCRIPTION: 'fldc6kZHtIl12sBDP',     // "Item Description (from Spec Description)" (multipleLookupValues — read-only)
                                                //   For MAPPED records this pulls from the linked Premier Item.
                                                //   For UNMAPPED records it is empty — fall back to SPEC_DESCRIPTION_ENRICHED.
     SPEC_DESCRIPTION_ENRICHED: 'flddza1FsokZq8fNQ', // "Spec Description (enriched)" (singleLineText, writable)
                                                //   Populated by spec_enrichment_netsuite.py for UNMAPPED records.
-    SPEC_VENDOR: 'fldQ6fGnT2G5dXieo',          // "Spec Vendor" (singleLineText)
     SPEC_MATCH_CONFIDENCE: 'fldeBaFMSzb7q8l05',// "Spec Match Confidence" (singleLineText)
     THIRD_PARTY_LINK: 'fldrk5HtOCs4BdE7Q',     // "3rd Party Items" — linked record to 3rd Party Domestic Items (multipleRecordLinks)
                                                //   Mutually exclusive with PREMIER_LINK per design contract — a History
@@ -55,11 +64,10 @@ export const PREMIER_FIELDS = {
     ITEM_ID: 'fldZXQ1zFp4Zzkq99',              // "Item ID" (singleLineText, primary)
     FIXTURE_CATEGORY: 'fldvrEsaVx6MWg1to',     // "Fixture Category" (singleSelect)
     ITEM_DESCRIPTION: 'fldCbTk7cFKd3Ex3U',     // "Item Description" (singleLineText)
-    STYLE: 'fldQxkvUdLmal6gsx',                // "Style" (singleSelect)
     FINISH: 'fldfSrO7rsC9Erj6H',               // "Finish" (singleSelect)
     COLOR_TEMPERATURE: 'fldy86LucQTddOSMO',    // "Color Temperature" (singleSelect)
     LIGHT_OUTPUT: 'fld85KnxYQnf3grj6',         // "Light Output" (singleSelect)
-    MAX_WATTAGE: 'fldQjPNGYXive6tUS',          // "Max Wattage" (singleSelect)
+    MAX_WATTAGE: 'fldQjPNGYXive6tUS',          // "Wattage" (singleSelect) — relabelled from "Max Wattage" 2026-09-01
     TIMES_USED: 'fldblsmKGuplDzKJO',           // "Times Used" (count)
 } as const;
 
@@ -78,15 +86,21 @@ export const FANS_FIELDS = {
 // fields; only the subset the app actually reads is declared here. Note: many
 // fields here are singleLineText where the Premier table uses singleSelect —
 // the adapter stringifies both identically, do not normalize types.
-// No TIMES_USED here (not tracked for 3rd party).
+// TIMES_USED is derived here rather than stored: the Premier table has a real
+// "Times Used" count field, while this table exposes the History LINK, so the
+// adapter counts the linked rows. Same signal, one hop further.
 export const THIRD_PARTY_FIELDS = {
     ITEM_ID: 'fldWG74OVmhxDLYIH',              // "Item ID" (singleLineText, primary)
     ITEM_DESCRIPTION: 'fldfLg23tvDEZhHB7',     // "Item Description" (multilineText)
-    MANUFACTURER: 'fld9x4NzxcgXFXG8k',         // "Manufacturer" (singleLineText)
-    FINISH: 'fldwNteitRWqPvMc8',               // "Finish" (singleLineText)
+    MANUFACTURER: 'fld9x4NzxcgXFXG8k',         // "Manufacturer" (multilineText)
+    FINISH: 'fldwNteitRWqPvMc8',               // "Finish" (multilineText)
     COLOR_TEMPERATURE: 'fld5opb6i6VoApLIR',    // "Color Temperature" (singleLineText)
     MAX_WATTAGE: 'fldogRWXKSzIXREve',          // "Max Wattage" (singleLineText)
     LIGHT_OUTPUT: 'fld1jB4gYDMZtpKrZ',         // "Light Output" (singleLineText)
+    HISTORY: 'fldxfublGlYwKf1t6',              // "History" (multipleRecordLinks) — reverse link to the bids that used
+                                               //   this item. Its LENGTH is the item's times-used count; the app read
+                                               //   0 for every resold item until 2026-09-01, so a resold item that had
+                                               //   genuinely been bid could never rank on usage the way a Premier one does.
     PRODUCT_CATEGORIES: 'fldVZ4Hoz9UYiSj5F',   // "Product Categories" (multipleRecordLinks → Product Categories)
                                                //   REST returns record IDS here, never names — resolve through
                                                //   PRODUCT_CATEGORY_FIELDS.NAME or the app renders "recVezggjIVgwPmsg"
@@ -95,5 +109,5 @@ export const THIRD_PARTY_FIELDS = {
 
 // Product Categories table — the category vocabulary the 3rd Party catalog links to.
 export const PRODUCT_CATEGORY_FIELDS = {
-    NAME: 'fldRd5i8lylxIteDl',                 // "Name" (singleLineText, primary)
+    NAME: 'fldRd5i8lylxIteDl',                 // "Category Name" (singleLineText, primary)
 } as const;

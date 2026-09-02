@@ -33,6 +33,19 @@ This is Premier Lighting's internal estimating substitution finder. Start with
   one — or when it recognizes wording no own-brand item does. It must never
   displace a Premier item that scores as well or better: increasing private-line
   usage is as much the point of this tool as finding value.
+  - **Exception: house lines.** A manufacturer in
+    `PREFERRED_THIRD_PARTY_MANUFACTURERS` (`lib/engine/ranking.ts`) sits in the
+    3rd Party table only because Premier does not manufacture it — Globalux is
+    Premier's primary undercabinet source. Those items rank WITH own-brand
+    items, collect the own-brand bonus, and are exempt from the earn-your-slot
+    rule. Add a brand there only when Premier genuinely sells it as its own line.
+- **Bind Airtable fields by ID, and re-audit after any schema edit.** Run
+  `npx tsx --env-file=.env scripts/schema-audit.ts`. A pinned field ID that no
+  longer exists is a hard 422 on the WHOLE table fetch — one column deleted in
+  the UI took the entire catalog offline on 2026-09-01 — and a field that
+  changes TYPE (lookup → linked record) silently changes what the adapter
+  receives, because linked records return record IDs where a lookup returned
+  names.
 - Pushes to `openwiki/update` deliberately skip Vercel deployments
   (`vercel.json` → `git.deploymentEnabled`); don't "fix" that.
 

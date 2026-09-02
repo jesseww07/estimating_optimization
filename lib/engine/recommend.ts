@@ -61,7 +61,9 @@ import {
     OWN_BRAND_BONUS,
     compareRecommendations,
     deduplicateRecommendations,
+    isHouseLine,
     isPremierOwnBrand,
+    isPreferredManufacturer,
     recencyWeight,
 } from './ranking';
 
@@ -236,7 +238,7 @@ function bidDateLabel(bidDate: string | undefined): string | null {
  */
 function applyOwnBrandPreference(recommendations: Recommendation[]): void {
     for (const rec of recommendations) {
-        if (rec.isPassthrough || !isPremierOwnBrand(rec)) continue;
+        if (rec.isPassthrough || !isHouseLine(rec)) continue;
         const cap = rec.confidenceCap ?? (
             rec.familyMatch ? FAMILY_CONFIDENCE_CAP
                 : rec.source === 'History' && rec.matchType !== 'exact' ? EXACT_CONFIDENCE_CAP
@@ -244,7 +246,8 @@ function applyOwnBrandPreference(recommendations: Recommendation[]): void {
         const bumped = Math.min(cap, rec.confidence + OWN_BRAND_BONUS);
         if (bumped !== rec.confidence) {
             rec.confidence = bumped;
-            rec.matchDetails = [...(rec.matchDetails ?? []), `Premier own-brand: +${OWN_BRAND_BONUS} ranking preference included`];
+            const line = isPremierOwnBrand(rec) ? 'Premier own-brand' : 'Premier house line';
+            rec.matchDetails = [...(rec.matchDetails ?? []), `${line}: +${OWN_BRAND_BONUS} ranking preference included`];
         }
     }
 }
@@ -466,7 +469,13 @@ function categoryFallbackRecommendations(
         matchedTokens: string[];
         usageBonus: number;
         score: number;
-        tier: 'premier' | 'third_party';   // own-brand catalog first, 3rd-party budget tier second
+        /**
+         * 'preferred' is a 3rd-party row from a house-line manufacturer
+         * (see PREFERRED_THIRD_PARTY_MANUFACTURERS). It competes with 'premier'
+         * on equal footing rather than behind it — Globalux IS Premier's
+         * undercabinet line, whatever table it is filed in.
+         */
+        tier: 'premier' | 'preferred' | 'third_party';
         id: string;
         itemId: string;
         category: string;
@@ -525,16 +534,26 @@ function categoryFallbackRecommendations(
         if (!allowAccessories && isAccessoryItem(item.itemId, item.itemDescription)) continue;
 
         const matchedTokens = tokensMatching(item.itemId, item.itemDescription);
+        // Scored on the same terms as a Premier candidate now that the resold
+        // table's usage is actually readable — a resold item that has been bid
+        // 12 times is better evidence than one that never has.
+        //
+        // Defaulted, not assumed: the field is required by the type but absent
+        // from any EngineContext captured before 2026-09-01 (the frozen eval
+        // snapshot among them), and `undefined / 2` is NaN, which would poison
+        // every score it touched rather than fail loudly.
+        const timesUsed = Number.isFinite(item.timesUsed) ? item.timesUsed : 0;
+        const usageBonus = Math.min(10, Math.floor(timesUsed / 2));
         candidates.push({
             tokenScore: matchedTokens.length,
             matchedTokens,
-            usageBonus: 0,
-            score: matchedTokens.length * 8,
-            tier: 'third_party',
+            usageBonus,
+            score: matchedTokens.length * 8 + usageBonus,
+            tier: isPreferredManufacturer(item.manufacturer) ? 'preferred' : 'third_party',
             id: item.id,
             itemId: item.itemId,
             category: item.productCategories,
-            timesUsed: 0,
+            timesUsed,
             itemAttributes: {
                 category: item.productCategories || undefined,
                 finish: item.finish || undefined,
@@ -571,17 +590,24 @@ function categoryFallbackRecommendations(
     // score as before, with the tier still breaking ties in Premier's favour.
     // When Premier has nothing in the category, every 3rd-party candidate stays
     // eligible — otherwise the estimator would see nothing at all.
-    const premierCandidates = candidates.filter(cand => cand.tier === 'premier');
-    const premierMatchedTokens = new Set(premierCandidates.flatMap(cand => cand.matchedTokens));
+    // House-line candidates (own-brand, or a preferred manufacturer) are never
+    // "displacing" own-brand — they ARE the own-brand answer — so the
+    // earn-your-slot rule below applies only to the ordinary resold tier.
+    const houseCandidates = candidates.filter(cand => cand.tier !== 'third_party');
+    const houseMatchedTokens = new Set(houseCandidates.flatMap(cand => cand.matchedTokens));
     const eligible = candidates.filter(cand => {
-        if (cand.tier === 'premier') return true;
-        if (premierCandidates.length === 0) return true;
-        return cand.matchedTokens.some(token => !premierMatchedTokens.has(token));
+        if (cand.tier !== 'third_party') return true;
+        if (houseCandidates.length === 0) return true;
+        return cand.matchedTokens.some(token => !houseMatchedTokens.has(token));
     });
 
+    /** premier and preferred rank together; the ordinary resold tier ranks last. */
+    const tierRank = (t: FallbackCandidate['tier']): number => (t === 'third_party' ? 1 : 0);
     eligible.sort((a, b) =>
         b.score - a.score ||
-        // Equal signal: own-brand always outranks the 3rd-party tier.
+        // Equal signal: the house line always outranks the 3rd-party tier.
+        tierRank(a.tier) - tierRank(b.tier) ||
+        // ...and between two house-line candidates, the own catalog goes first.
         (a.tier === b.tier ? 0 : a.tier === 'premier' ? -1 : 1) ||
         b.timesUsed - a.timesUsed);
     // Prefer candidates with a real signal (token match or usage history);
@@ -591,7 +617,8 @@ function categoryFallbackRecommendations(
     const chosen = (withSignal.length > 0 ? withSignal : eligible).slice(0, 3);
     for (const cand of chosen) {
         const descriptionBased = cand.tokenScore > 0;
-        const isThirdParty = cand.tier === 'third_party';
+        const isPreferred = cand.tier === 'preferred';
+        const isThirdParty = cand.tier !== 'premier';
         recommendations.push({
             id: cand.id,
             source: isThirdParty ? '3rd Party' : 'Premier Items',
@@ -602,7 +629,7 @@ function categoryFallbackRecommendations(
             premierItem: cand.itemId || undefined,
             recordId: cand.id,
             matchReason: descriptionBased
-                ? `Category match: ${inferredCategory} (description-based${isThirdParty ? ', 3rd-party alternative' : ''})`
+                ? `Category match: ${inferredCategory} (description-based${isPreferred ? ', Premier house line' : isThirdParty ? ', 3rd-party alternative' : ''})`
                 : `Category match: ${inferredCategory} — most-used catalog items (spec not identified at item level)`,
             itemAttributes: cand.itemAttributes,
             matchDetails: [
@@ -611,10 +638,13 @@ function categoryFallbackRecommendations(
                     ? `Spec words found in this item: ${cand.matchedTokens.join(', ')}`
                     : `No text overlap with the spec — offered as an in-category most-used item`,
                 ...(cand.timesUsed > 0 ? [`Used ${cand.timesUsed} time${cand.timesUsed === 1 ? '' : 's'} before`] : []),
-                ...(isThirdParty
-                    ? [premierCandidates.length === 0
+                ...(isPreferred
+                    ? [`${cand.itemAttributes.manufacturer || 'This brand'} is a Premier house line — ranked with own-brand items, not as a 3rd-party alternative`]
+                    : []),
+                ...(isThirdParty && !isPreferred
+                    ? [houseCandidates.length === 0
                         ? `3rd-party alternative — the Premier catalog has nothing in the ${inferredCategory} category for this spec`
-                        : `3rd-party alternative — it matches wording no Premier ${inferredCategory} item does (${cand.matchedTokens.filter(t => !premierMatchedTokens.has(t)).join(', ')})`]
+                        : `3rd-party alternative — it matches wording no Premier ${inferredCategory} item does (${cand.matchedTokens.filter(t => !houseMatchedTokens.has(t)).join(', ')})`]
                     : []),
                 'Exact item not identified from the spec — these are category-level suggestions, never pre-checked',
             ],
@@ -867,7 +897,6 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
                 bidManufacturer: bidMfr,
                 recordId: row.id,
                 specDescription: row.specDescription || undefined,
-                specVendor: row.specVendor || undefined,
                 specEnrichConfidence: row.specEnrichConfidence || undefined,
             };
 
@@ -1212,7 +1241,6 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
             productCategory: bidProductCategory || itemAttributes?.category,
             categoryGroup: groupOfCatalogCategory(bidProductCategory || itemAttributes?.category || '', inferredCategory),
             specDescription: firstMatch?.specDescription,
-            specVendor: firstMatch?.specVendor,
             specEnrichConfidence: firstMatch?.specEnrichConfidence,
             matchedOriginalSpec: firstMatch?.originalSpec,
             catalogSource,

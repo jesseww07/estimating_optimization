@@ -51,7 +51,6 @@ export interface HistoryMatch {
     bidManufacturer?: string;
     recordId?: string;
     specDescription?: string;   // from Spec Description field (NS purchaseDescription)
-    specVendor?: string;        // from Spec Vendor field
     specEnrichConfidence?: string; // HIGH | MEDIUM | LOW from NS matching
 }
 
@@ -103,7 +102,6 @@ export interface Recommendation {
     categoryGroup?: string | null;
     specProductCategory?: string;
     specDescription?: string;      // enriched NS product description for the original spec
-    specVendor?: string;           // enriched NS vendor for the original spec
     specEnrichConfidence?: string; // HIGH | MEDIUM | LOW
     matchedOriginalSpec?: string;  // the actual Original Spec value from history that triggered this match
     catalogSource?: 'premier' | 'third_party'; // which catalog the linked item came from (undefined for non-history-sourced recs)
@@ -171,18 +169,22 @@ export interface HistoryRow {
     matchType: string;            // EXACT / NON-ITEM / UNMAPPED
     productCategory: string;
     specDescription: string;
-    specVendor: string;
     specEnrichConfidence: string; // HIGH | MEDIUM | LOW | ''
     premierLinkIds: string[];     // linked Premier Items record ids (NetSuite ID link)
     thirdPartyLinkIds: string[];  // linked 3rd Party Domestic Items record ids
 }
 
+/**
+ * A Premier catalog row, as the adapter reads it.
+ *
+ * "Style" was dropped in the 2026-09-01 Airtable consolidation. It was fetched
+ * and carried but never read by matching, so nothing downstream lost a signal.
+ */
 export interface PremierItemRow {
     id: string;
     itemId: string;
     fixtureCategory: string;
     itemDescription: string;
-    style: string;
     finish: string;
     colorTemp: string;
     maxWattage: string;
@@ -190,6 +192,11 @@ export interface PremierItemRow {
     timesUsed: number;
 }
 
+/**
+ * A resold-catalog row. `timesUsed` is counted from the History link rather than
+ * stored on the row (the Premier table has a real count field) — see
+ * THIRD_PARTY_FIELDS.HISTORY.
+ */
 export interface ThirdPartyItemRow {
     id: string;
     itemId: string;
@@ -200,6 +207,7 @@ export interface ThirdPartyItemRow {
     maxWattage: string;
     lightOutput: string;
     productCategories: string;    // display string of the linked Product Categories
+    timesUsed: number;            // counted from the History link (see THIRD_PARTY_FIELDS.HISTORY)
 }
 
 export interface FanRow {
