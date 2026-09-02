@@ -26,7 +26,8 @@ export const TABLES = {
     PREMIER_ITEMS: 'tblXfEOWWjDkpt5tw',
     FANS: 'tblII85uQlaASZMF0',
     THIRD_PARTY_DOMESTIC: 'tbl0CaWIugEoo8gwo',  // Non-PREMCOL items Premier resells but does not manufacture.
-    PRODUCT_CATEGORIES: 'tblwHPGnJO6gYUxTL',    // Category names linked from 3rd Party Domestic Items.
+    PRODUCT_CATEGORIES: 'tblwHPGnJO6gYUxTL',    // The ONE category vocabulary — every catalog table links to it.
+    MANUFACTURERS: 'tbleN09zl5u0LNQjI',         // The brand registry — 3rd Party and History link to it.
 } as const;
 
 // History table — bid line items from past projects.
@@ -69,6 +70,12 @@ export const PREMIER_FIELDS = {
     LIGHT_OUTPUT: 'fld85KnxYQnf3grj6',         // "Light Output" (singleSelect)
     MAX_WATTAGE: 'fldQjPNGYXive6tUS',          // "Wattage" (singleSelect) — relabelled from "Max Wattage" 2026-09-01
     TIMES_USED: 'fldblsmKGuplDzKJO',           // "Times Used" (count)
+    PRODUCT_CATEGORIES: 'fldkHsUZIimdcAAI6',   // "Product Categories" (multipleRecordLinks -> Product Categories)
+                                               //   THE category as of the 2026-09-02 consolidation. Premier used to
+                                               //   carry its own 35-choice select while this link sat empty on all
+                                               //   2,402 rows; now every catalog table points at one vocabulary.
+                                               //   FIXTURE_CATEGORY is kept as the fallback so a context captured
+                                               //   before the migration still reads.
 } as const;
 
 // Fans table — Premier ceiling-fan catalog.
@@ -79,6 +86,7 @@ export const FANS_FIELDS = {
     LIGHT: 'fldLs8tGIquBV5Vhr',                // "Light" (singleSelect)
     HOUSING_FINISH: 'fldzFYg2zLpaUzIGM',       // "Housing_Finish" (singleSelect)
     BLADE_FINISH: 'fldmdBn8UPpUyTqSl',         // "Blade_Finish" (singleSelect)
+    PRODUCT_CATEGORIES: 'fld6RoY7Ko0Q9NaOk',   // "Product Categories" (multipleRecordLinks) — populated 2026-09-02
 } as const;
 
 // 3rd Party Domestic Items table — non-PREMCOL items Premier resells but does
@@ -92,7 +100,11 @@ export const FANS_FIELDS = {
 export const THIRD_PARTY_FIELDS = {
     ITEM_ID: 'fldWG74OVmhxDLYIH',              // "Item ID" (singleLineText, primary)
     ITEM_DESCRIPTION: 'fldfLg23tvDEZhHB7',     // "Item Description" (multilineText)
-    MANUFACTURER: 'fld9x4NzxcgXFXG8k',         // "Manufacturer" (multilineText)
+    MANUFACTURER: 'fldHpNAcZSzn1uGCN',         // "Manufacturer" (multipleRecordLinks -> Manufacturers)
+                                               //   Was free text on 83 brands spelled several ways; linked to the
+                                               //   registry 2026-09-02, so this returns RECORD IDS and the adapter
+                                               //   resolves them to the canonical name. Spelling variants live in
+                                               //   Manufacturers.Aliases.
     FINISH: 'fldwNteitRWqPvMc8',               // "Finish" (multilineText)
     COLOR_TEMPERATURE: 'fld5opb6i6VoApLIR',    // "Color Temperature" (singleLineText)
     MAX_WATTAGE: 'fldogRWXKSzIXREve',          // "Max Wattage" (singleLineText)
@@ -107,7 +119,13 @@ export const THIRD_PARTY_FIELDS = {
                                                //   as a category badge (Firecrest Ridge review, 2026-08-10).
 } as const;
 
-// Product Categories table — the category vocabulary the 3rd Party catalog links to.
+// Manufacturers table — the brand registry every catalog and History links to.
+export const MANUFACTURER_FIELDS = {
+    NAME: 'fldwKnfqzqk9LiWim',                 // "Manufacturer Name" (singleLineText, primary)
+    ALIASES: 'fldxkOA1RsOiYcO8w',              // "Aliases" (multilineText) — the other spellings seen in the wild
+} as const;
+
+// Product Categories table — the ONE category vocabulary every catalog links to.
 export const PRODUCT_CATEGORY_FIELDS = {
     NAME: 'fldRd5i8lylxIteDl',                 // "Category Name" (singleLineText, primary)
 } as const;

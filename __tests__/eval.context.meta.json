@@ -1,19 +1,21 @@
 {
-  "fetchedAt": "2026-08-31T22:59:32.744Z",
+  "fetchedAt": "2026-09-02T05:57:48.241Z",
   "source": "airtable-pat",
   "baseId": "appWj912AEOvtxqJF",
   "counts": {
-    "history": 9485,
-    "premierItems": 2402,
+    "history": 9491,
+    "premierItems": 2339,
     "thirdPartyItems": 1115,
     "fans": 113
   },
   "notes": [
-    "Refreshed via `npm run eval:fetch` (AIRTABLE_PAT), replacing the 2026-07-29 airtable-mcp snapshot, and re-fetched after the Match Type hygiene write below.",
-    "HYGIENE WRITE (2026-08-31): 116 History rows whose Bid Item is unambiguously not a product — SHIPPING (48), SHIPPING LINE (14), ALLOWANCE variants (26), NOT SHOWN ON PLANS (12), FREIGHT, TARIFF CHARGE, NO SPEC — had Match Type set to NON-ITEM (was UNMAPPED on 104, blank on 12). None carried a catalog link. NON-ITEM 184 -> 300; unlinked-and-actionable rows 4073 -> 3957. Headline metrics unmoved (these were never labeled cases), but the engine skips NON-ITEM rows, so cards literally reading \"SHIPPING LINE\" can no longer surface as substitutions — one did, for an exit-sign spec, before this.",
-    "The retired Premier \"Fixture Category\" choices the old snapshot carried — \"Post/Pier Head\" (354 items) and \"Post & Bollard\" (297) — are gone; the live vocabulary is Pole Heads / Poles / Bollards, which lib/engine/categories.ts already encoded. Consequence: the \"Outdoor Pole\" label now reaches 557 Premier items where it reached ZERO, so pole and bollard work is no longer invisible to the eval. It did not move the headline, because almost no labeled rows point at those categories.",
-    "thirdPartyItems.productCategories resolves to category NAMES here, confirming the fetch.ts Product Categories lookup works on the PAT path as well as the MCP path (the old snapshot flagged this as a suspected bug). That item is closed.",
-    "History grew by only 6 rows in the 33 days since the previous snapshot. The learning loop is barely turning — worth checking whether exports are actually recording to History (HISTORY_WRITEBACK / recordToHistory).",
-    "Untouched and still open: bidDate is empty on 80.3% of rows and is perfectly bimodal (47 of 66 projects 100% undated, 19 100% dated, none partial) — an import-pipeline defect. NOT backfilled, because no source for the missing dates exists and inventing them would corrupt recency weighting permanently."
+    "Refreshed after the 2026-09-02 base consolidation, which is why the case count moved (971 -> 981) and the dataset fingerprint changed. The comparison against the previous baseline is NOT like-for-like; the numbers below are the new floor.",
+    "Metrics on the refreshed snapshot: top1 13.76%, top3 17.43%, junk 39.65%, silent 42.92%, autoWrong 0.71%. Against the pre-consolidation baseline (top1 13.49, top3 17.20, junk 39.65, silent 43.15, autoWrong 0.72) every metric held or improved, on MORE cases — the extra cases come from duplicate catalog rows being merged and from items that had no category before.",
+    "CONSOLIDATION (2026-09-02). The base had four parallel category systems and the intended hub was the emptiest of them: Premier Items filed a 35-choice 'Fixture Category' select while its 'Product Categories' link sat empty on all 2,402 rows, Fans linked nothing, and 3rd Party carried both a link and a second category vocabulary called 'Product Name'. Every catalog table now links to the one Product Categories table.",
+    "Catalog rows: 3rd Party 1,132 -> 1,115 and Premier 2,402 -> 2,339 after merging duplicate item numbers. 17 of the Premier pairs DISAGREED on category (a 'Bollard Light' filed as both Bollards and Pole Heads), so the duplicates were feeding contradictory categories into matching, not merely wasting rows.",
+    "Manufacturers is now the single brand registry: 23 brands created, 736 3rd-party rows linked, and spelling variants ('Westgate' / 'WESTGATE MANUFACTURING, INC', 'Satco' / 'SATCO') folded into one record each with the old spellings preserved in Aliases. 3rd Party's free-text Manufacturer column is gone.",
+    "Category coverage after the pass: Premier 2,267/2,339, 3rd Party 958/1,115, History 5,085/9,491 (was 3,758). 406 of those were inferred — by the engine's own detector where it could place them, by Claude otherwise — and every inferred value is marked in a new 'Category Source' field so it is never mistaken for one a human set. 229 catalog rows are still uncategorized because their text does not identify a product ('LOT PRICING', bare part numbers); the gapfill script prints them ranked by how often they have actually been bid.",
+    "Superseded fields are renamed 'zz_RETIRED …' rather than deleted — Airtable's API cannot delete a field. They are inert (the app binds by field ID) and safe for a human to remove: Premier 'Fixture Category', 3rd Party 'Product Name', and History 'Catategory' / 'Product Category 3rd Party' / 'Product Name (from 3rd Party Items)'.",
+    "Untouched and still open: bidDate is empty on ~80% of History rows and is perfectly bimodal by project — an import-pipeline defect. NOT backfilled, because no source for the missing dates exists and inventing them would corrupt recency weighting permanently."
   ]
 }

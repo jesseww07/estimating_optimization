@@ -14,7 +14,7 @@
 
 import Airtable from 'airtable';
 import type { EngineContext, FanRow, HistoryRow, PremierItemRow, ThirdPartyItemRow } from '../types';
-import { BASE_ID, FANS_FIELDS, HISTORY_FIELDS, PREMIER_FIELDS, PRODUCT_CATEGORY_FIELDS, TABLES, THIRD_PARTY_FIELDS } from './schema';
+import { BASE_ID, FANS_FIELDS, HISTORY_FIELDS, MANUFACTURER_FIELDS, PREMIER_FIELDS, PRODUCT_CATEGORY_FIELDS, TABLES, THIRD_PARTY_FIELDS } from './schema';
 
 if (typeof window !== 'undefined') {
     throw new Error('lib/airtable/fetch.ts is server-only and must never be bundled for the browser.');
@@ -137,20 +137,42 @@ async function selectAll(
  * every 3rd-party category gate (nothing in the Premier vocabulary is spelled
  * "recVezggjIVgwPmsg"). The table is ~30 rows — one extra request.
  */
-async function fetchProductCategoryNames(base: Airtable.Base): Promise<Map<string, string>> {
+async function fetchLinkedNames(
+    base: Airtable.Base,
+    tableId: string,
+    nameFieldId: string,
+    label: string,
+): Promise<Map<string, string>> {
     const names = new Map<string, string>();
     try {
-        const rows = await selectAll(base, TABLES.PRODUCT_CATEGORIES, [PRODUCT_CATEGORY_FIELDS.NAME]);
+        const rows = await selectAll(base, tableId, [nameFieldId]);
         for (const { id, fields } of rows) {
-            const name = asString(fields[PRODUCT_CATEGORY_FIELDS.NAME]).trim();
+            const name = asString(fields[nameFieldId]).trim();
             if (name) names.set(id, name);
         }
     } catch (err) {
-        // Degrade to "no category" rather than failing the whole context fetch:
-        // an unresolved category is a missed gate, an exception is a dead app.
-        console.error('Product Categories lookup failed — 3rd-party categories will be blank:', err);
+        // Degrade to "no value" rather than failing the whole context fetch:
+        // an unresolved link is a missed gate, an exception is a dead app.
+        console.error(`${label} lookup failed — those values will be blank:`, err);
     }
     return names;
+}
+
+function fetchProductCategoryNames(base: Airtable.Base): Promise<Map<string, string>> {
+    return fetchLinkedNames(base, TABLES.PRODUCT_CATEGORIES, PRODUCT_CATEGORY_FIELDS.NAME, 'Product Categories');
+}
+
+function fetchManufacturerNames(base: Airtable.Base): Promise<Map<string, string>> {
+    return fetchLinkedNames(base, TABLES.MANUFACTURERS, MANUFACTURER_FIELDS.NAME, 'Manufacturers');
+}
+
+/** First linked record's resolved name, or '' — the shape every link field here has. */
+function firstLinkedName(cell: unknown, names: Map<string, string>): string {
+    for (const id of asLinkIds(cell)) {
+        const name = names.get(id);
+        if (name) return name;
+    }
+    return '';
 }
 
 // ── Table fetchers ────────────────────────────────────────────────────────────
@@ -202,11 +224,16 @@ export async function fetchPremierItems(): Promise<PremierItemRow[]> {
     const base = getBase();
     if (!base) return [];
     const F = PREMIER_FIELDS;
+    // The linked vocabulary is authoritative since the 2026-09-02 consolidation;
+    // the old select is the fallback so a base (or a snapshot) captured before
+    // the migration still reads.
+    const categoryNames = await fetchProductCategoryNames(base);
     const rows = await selectAll(base, TABLES.PREMIER_ITEMS, Object.values(F));
     return rows.map(({ id, fields }) => ({
         id,
         itemId: asString(fields[F.ITEM_ID]),
-        fixtureCategory: asString(fields[F.FIXTURE_CATEGORY]),
+        fixtureCategory: firstLinkedName(fields[F.PRODUCT_CATEGORIES], categoryNames)
+            || asString(fields[F.FIXTURE_CATEGORY]),
         itemDescription: asString(fields[F.ITEM_DESCRIPTION]),
         finish: asString(fields[F.FINISH]),
         colorTemp: asString(fields[F.COLOR_TEMPERATURE]),
@@ -220,13 +247,20 @@ export async function fetchThirdPartyItems(): Promise<ThirdPartyItemRow[]> {
     const base = getBase();
     if (!base) return [];
     const F = THIRD_PARTY_FIELDS;
-    const categoryNames = await fetchProductCategoryNames(base);
+    const [categoryNames, manufacturerNames] = await Promise.all([
+        fetchProductCategoryNames(base),
+        fetchManufacturerNames(base),
+    ]);
     const rows = await selectAll(base, TABLES.THIRD_PARTY_DOMESTIC, Object.values(F));
     return rows.map(({ id, fields }) => ({
         id,
         itemId: asString(fields[F.ITEM_ID]),
         itemDescription: asString(fields[F.ITEM_DESCRIPTION]),
-        manufacturer: asString(fields[F.MANUFACTURER]),
+        // Linked to the registry since 2026-09-02; asString on a link yields ''
+        // (record ids are dropped on purpose), so resolve, then fall back for
+        // any context captured while it was still free text.
+        manufacturer: firstLinkedName(fields[F.MANUFACTURER], manufacturerNames)
+            || asString(fields[F.MANUFACTURER]),
         finish: asString(fields[F.FINISH]),
         colorTemp: asString(fields[F.COLOR_TEMPERATURE]),
         maxWattage: asString(fields[F.MAX_WATTAGE]),

@@ -58,3 +58,10 @@ secrets*
 # anywhere in the tree is still covered; the generator itself is exempted.
 hygiene-report.*
 !scripts/hygiene-report.ts
+
+# full Airtable table backups taken before any bulk write — these are the whole
+# customer catalog and bid history, and this repo is PUBLIC. Unanchored so an
+# --out= override anywhere in the tree is still covered.
+base-backup/
+base-backup-*/
+*.base-backup.json
