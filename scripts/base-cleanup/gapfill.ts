@@ -21,10 +21,27 @@
  * ranking is the worklist.
  */
 
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { APPLY, TABLE, allRecords, api, banner, createField, linkIds, sleep, updateRecords, val } from './client';
 import { detectFixtureCategory } from '../../lib/engine/matcher';
 
 const USE_AI = process.argv.includes('--ai');
+
+/**
+ * `--csv` writes the WHOLE worklist out, not just the 25 rows the console shows.
+ * It defaults to the OS temp directory on purpose: the file is a catalog export
+ * (item numbers and descriptions) and this repository is public, so the default
+ * must never land inside the working tree. `--csv=<path>` overrides it.
+ */
+const CSV_PATH: string | null = (() => {
+    const arg = process.argv.find(a => a === '--csv' || a.startsWith('--csv='));
+    if (!arg) return null;
+    const given = arg.startsWith('--csv=') ? arg.slice('--csv='.length).trim() : '';
+    return given || join(tmpdir(), 'category-worklist.csv');
+})();
 const SOURCE_FIELD = 'Category Source';
 const SOURCE_CHOICES = ['Verified', 'Inferred (pattern)', 'Inferred (AI)'];
 
@@ -160,6 +177,17 @@ async function askClaude(items: Target[], vocabulary: string[]): Promise<Map<str
     return out;
 }
 
+/** The full worklist as CSV — every uncategorized row, most-bid first. */
+function writeWorklist(unplaced: Target[]): void {
+    const cell = (v: string): string => `"${v.replace(/"/g, '""')}"`;
+    const csv = [
+        'times_bid,table,item_id,description',
+        ...unplaced.map(t => [t.timesUsed, cell(t.tableLabel), cell(t.itemId), cell(t.text)].join(',')),
+    ].join('\n');
+    writeFileSync(CSV_PATH!, `${csv}\n`, 'utf8');
+    console.log(`\nwrote all ${unplaced.length} rows to ${CSV_PATH}`);
+}
+
 async function main(): Promise<void> {
     banner(`Category gap-fill${USE_AI ? ' (pattern + Claude)' : ' (pattern only)'}`);
 
@@ -218,9 +246,11 @@ async function main(): Promise<void> {
     [...spread.entries()].sort((a, b) => b[1] - a[1]).forEach(([k, v]) => console.log(`   ${String(v).padStart(4)}  ${k}`));
 
     console.log(`\nstill blank, ranked by how often the item has been bid (this is the worklist):`);
-    unplaced.sort((a, b) => b.timesUsed - a.timesUsed).slice(0, 25)
+    unplaced.sort((a, b) => b.timesUsed - a.timesUsed);
+    unplaced.slice(0, 25)
         .forEach(t => console.log(`   used=${String(t.timesUsed).padStart(3)}  ${t.tableLabel.padEnd(10)} ${t.itemId.slice(0, 32).padEnd(34)} ${t.text.slice(0, 44)}`));
-    if (unplaced.length > 25) console.log(`   … and ${unplaced.length - 25} more`);
+    if (unplaced.length > 25) console.log(`   … and ${unplaced.length - 25} more — pass --csv to get all of them`);
+    if (CSV_PATH) writeWorklist(unplaced);
 
     if (!APPLY) { console.log('\nDRY RUN — nothing written.'); return; }
 
