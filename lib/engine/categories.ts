@@ -52,67 +52,61 @@ export interface CategoryGroupDef {
     thirdParty: string[];
 }
 
-export const CATEGORY_TAXONOMY: Record<string, CategoryGroupDef> = {
-    'Ceiling Fan': {
-        premier: ['Ceiling Fan', 'Ceiling Fans'],
-        thirdParty: ['Ceiling Fan', 'Ceiling Fans'],
-    },
-    'Vanity': {
-        premier: ['Vanity'],
-        thirdParty: ['Vanity'],
-    },
-    'Mirror': {
-        premier: ['LED Mirror'],
-        thirdParty: [],
-    },
-    'Pendant': {
-        premier: ['Pendant', 'Chandelier', 'Linear / Island Chandeliers'],
-        thirdParty: ['Pendant', 'Chandelier'],
-    },
-    'Sconce': {
-        premier: ['Sconce', 'Wall Sconce', 'Wall Mount', 'Outdoor Wall Sconce'],
-        thirdParty: ['Wall Sconce', 'Wall Mount', 'Wall Sconce — Outdoor'],
-    },
-    'Outdoor Pole': {
-        premier: ['Pole Heads', 'Poles', 'Bollards'],
-        thirdParty: ['Poles', 'Pole Heads', 'Bollard', 'Bollards', 'Area Light'],
-    },
-    'Outdoor': {
-        premier: ['Pole Heads', 'Poles', 'Bollards', 'Flood Light', 'Outdoor Wall Sconce', 'Wall Mount', 'Step Light'],
-        thirdParty: ['Area Light', 'Bollard', 'Bollards', 'Flood Light', 'Poles', 'Pole Heads', 'Wall Mount', 'Wall Sconce — Outdoor', 'Step / Path Light', 'Column Mount'],
-    },
-    'Exit/Emergency': {
-        premier: ['Exit Sign', 'Exit Sign / EMG'],
-        thirdParty: ['Exit / Emergency', 'Exit Sign'],
-    },
-    'Recessed': {
-        premier: ['Disk Light', 'Downlight'],
-        thirdParty: ['Recessed Light', 'Disk Light'],
-    },
-    'Linear': {
-        premier: ['Linear Surface Mount', 'Surface Mount'],
-        thirdParty: ['Linear Surface Mount'],
-    },
-    'Undercabinet': {
-        premier: ['Undercabinet / Tape Light + Connectors', 'Surface Mount'],
-        // "Undercabinet Lighting" is where the Globalux line lives — Premier's
-        // primary source for undercabinet, and the reason this group has real
-        // catalog depth at all.
-        thirdParty: ['Undercabinet Lighting', 'Tape / Strip / Channel'],
-    },
-    'Ceiling': {
-        premier: ['Ceiling Mount', 'Flush / Surface Mount', 'Surface Mount'],
-        thirdParty: ['Ceiling Mount', 'Flush Mount'],
-    },
-    'LED Tape': {
-        premier: ['Led Tape', 'Undercabinet / Tape Light + Connectors'],
-        thirdParty: ['Tape / Strip / Channel', 'Led Tape'],
-    },
-    'Light Bulb': {
-        premier: ['Lamp'],
-        thirdParty: ['Light Bulb'],
-    },
+/**
+ * The vocabulary of each group, as ONE list.
+ *
+ * Until 2026-09-02 this file had to carry two lists per group, because Premier
+ * Items filed its own 35-choice select while the resold catalog linked to the
+ * Product Categories table — two vocabularies for the same concepts, which is
+ * what `premier` and `thirdParty` below existed to reconcile. The base has since
+ * been consolidated: every catalog table links to Product Categories, so there
+ * is one vocabulary and one list.
+ *
+ * Both old and new names are kept. The retired Premier choices ("Downlight",
+ * "Sconce", "Flush / Surface Mount", "Undercabinet / Tape Light + Connectors")
+ * still appear in any EngineContext captured before the migration — the frozen
+ * eval snapshot among them — and a name that costs nothing to keep should not be
+ * dropped just because the live base moved on.
+ *
+ * Accessory-ish categories stay OUT of every group, unchanged: "Accessories",
+ * "Trim", "Recessed Accessory", "Pole Accessories", "Fan Controls",
+ * "Switch / Control", "Driver / Power Supply", "Connector / Hardware",
+ * "Ceiling Fan Accessory", "Glass / Shade", "Transformer", "Specialty Item",
+ * "Track Light", "Accent" and "Other / Uncategorized". They must never be
+ * offered as a substitution for a fixture, which is the same posture as the
+ * accessory gate in matcher.ts.
+ */
+const GROUP_VOCABULARY: Record<string, string[]> = {
+    'Ceiling Fan': ['Ceiling Fan', 'Ceiling Fans'],
+    'Vanity': ['Vanity'],
+    'Mirror': ['LED Mirror'],
+    'Pendant': ['Pendant', 'Chandelier', 'Linear / Island Chandeliers'],
+    'Sconce': ['Sconce', 'Wall Sconce', 'Wall Mount', 'Outdoor Wall Sconce', 'Wall Sconce — Outdoor'],
+    'Outdoor Pole': ['Pole Heads', 'Poles', 'Bollards', 'Bollard', 'Area Light'],
+    'Outdoor': [
+        'Pole Heads', 'Poles', 'Bollards', 'Bollard', 'Flood Light', 'Area Light',
+        'Outdoor Wall Sconce', 'Wall Sconce — Outdoor', 'Wall Mount',
+        'Step Light', 'Step / Path Light', 'Column Mount',
+    ],
+    'Exit/Emergency': ['Exit Sign', 'Exit Sign / EMG', 'Exit / Emergency'],
+    'Recessed': ['Disk Light', 'Downlight', 'Recessed Light'],
+    'Linear': ['Linear Surface Mount', 'Surface Mount'],
+    // "Undercabinet Lighting" is where the Globalux line lives — Premier's
+    // primary source for undercabinet, and the reason this group has real
+    // catalog depth at all.
+    'Undercabinet': ['Undercabinet / Tape Light + Connectors', 'Undercabinet Lighting', 'Surface Mount', 'Tape / Strip / Channel'],
+    'Ceiling': ['Ceiling Mount', 'Flush / Surface Mount', 'Flush Mount', 'Surface Mount'],
+    'LED Tape': ['Led Tape', 'Undercabinet / Tape Light + Connectors', 'Tape / Strip / Channel'],
+    'Light Bulb': ['Lamp', 'Light Bulb'],
 };
+
+/**
+ * `premier` and `thirdParty` now hold the SAME list — kept as separate keys only
+ * so the gate functions and their tests keep reading the way they always have.
+ */
+export const CATEGORY_TAXONOMY: Record<string, CategoryGroupDef> = Object.fromEntries(
+    Object.entries(GROUP_VOCABULARY).map(([group, names]) => [group, { premier: names, thirdParty: names }]),
+);
 
 /** Every group label, in the order the taxonomy declares them. */
 export const CATEGORY_GROUP_LABELS = Object.keys(CATEGORY_TAXONOMY);
