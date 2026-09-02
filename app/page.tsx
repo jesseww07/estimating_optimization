@@ -83,7 +83,6 @@ interface Recommendation {
     /** Shared display group for productCategory — same vocabulary as specCategory. */
     categoryGroup?: string | null;
     specDescription?: string;
-    specVendor?: string;
     specEnrichConfidence?: string;
     matchedOriginalSpec?: string;
 }
@@ -1028,7 +1027,6 @@ export default function Home() {
                                                 {top.specDescription && (
                                                     <span className="text-muted">
                                                         NS: {top.specDescription}
-                                                        {top.specVendor ? ` — ${top.specVendor}` : ''}
                                                         {top.specEnrichConfidence ? ` (${top.specEnrichConfidence})` : ''}
                                                     </span>
                                                 )}

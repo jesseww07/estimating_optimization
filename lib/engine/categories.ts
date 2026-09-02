@@ -25,8 +25,18 @@
  * catalog category as the detail line.
  *
  * Vocabularies below are verified against live base appWj912AEOvtxqJF
- * (2026-08-10): Premier Items "Fixture Category" (35 choices) and the Product
- * Categories table tblwHPGnJO6gYUxTL (29 records).
+ * (2026-09-01): Premier Items "Fixture Category" (35 choices) and the Product
+ * Categories table tblwHPGnJO6gYUxTL (40 records). Re-verify with
+ * `npx tsx --env-file=.env scripts/schema-audit.ts` after any schema edit — a
+ * name here that no longer exists live is a gate that silently passes nothing.
+ *
+ * The 3rd-party vocabulary grew in the 2026-09-01 consolidation, and several of
+ * the new names are the SAME concept the Premier side already had ("Disk Light",
+ * "Exit Sign", "Led Tape", "Linear Surface Mount", "Pole Heads"). They are mapped
+ * to the group that concept already belongs to. "Undercabinet Lighting" is the
+ * one that mattered most: it is what the Globalux undercabinet line is filed
+ * under, and until it was mapped, every one of those items failed the category
+ * gate for an undercabinet spec.
  *
  * Deliberately fixtures only. Accessory-ish choices ("Trim", "Accessories",
  * "Recessed Accessory", "Fan Controls", "Pole Accessories", "Driver / Power
@@ -45,7 +55,7 @@ export interface CategoryGroupDef {
 export const CATEGORY_TAXONOMY: Record<string, CategoryGroupDef> = {
     'Ceiling Fan': {
         premier: ['Ceiling Fan', 'Ceiling Fans'],
-        thirdParty: ['Ceiling Fan'],
+        thirdParty: ['Ceiling Fan', 'Ceiling Fans'],
     },
     'Vanity': {
         premier: ['Vanity'],
@@ -65,27 +75,30 @@ export const CATEGORY_TAXONOMY: Record<string, CategoryGroupDef> = {
     },
     'Outdoor Pole': {
         premier: ['Pole Heads', 'Poles', 'Bollards'],
-        thirdParty: ['Poles', 'Bollard', 'Bollards', 'Area Light'],
+        thirdParty: ['Poles', 'Pole Heads', 'Bollard', 'Bollards', 'Area Light'],
     },
     'Outdoor': {
         premier: ['Pole Heads', 'Poles', 'Bollards', 'Flood Light', 'Outdoor Wall Sconce', 'Wall Mount', 'Step Light'],
-        thirdParty: ['Area Light', 'Bollard', 'Bollards', 'Flood Light', 'Poles', 'Wall Mount', 'Wall Sconce — Outdoor', 'Step / Path Light', 'Column Mount'],
+        thirdParty: ['Area Light', 'Bollard', 'Bollards', 'Flood Light', 'Poles', 'Pole Heads', 'Wall Mount', 'Wall Sconce — Outdoor', 'Step / Path Light', 'Column Mount'],
     },
     'Exit/Emergency': {
         premier: ['Exit Sign', 'Exit Sign / EMG'],
-        thirdParty: ['Exit / Emergency'],
+        thirdParty: ['Exit / Emergency', 'Exit Sign'],
     },
     'Recessed': {
         premier: ['Disk Light', 'Downlight'],
-        thirdParty: ['Recessed Light'],
+        thirdParty: ['Recessed Light', 'Disk Light'],
     },
     'Linear': {
         premier: ['Linear Surface Mount', 'Surface Mount'],
-        thirdParty: [],
+        thirdParty: ['Linear Surface Mount'],
     },
     'Undercabinet': {
         premier: ['Undercabinet / Tape Light + Connectors', 'Surface Mount'],
-        thirdParty: ['Tape / Strip / Channel'],
+        // "Undercabinet Lighting" is where the Globalux line lives — Premier's
+        // primary source for undercabinet, and the reason this group has real
+        // catalog depth at all.
+        thirdParty: ['Undercabinet Lighting', 'Tape / Strip / Channel'],
     },
     'Ceiling': {
         premier: ['Ceiling Mount', 'Flush / Surface Mount', 'Surface Mount'],
@@ -93,7 +106,7 @@ export const CATEGORY_TAXONOMY: Record<string, CategoryGroupDef> = {
     },
     'LED Tape': {
         premier: ['Led Tape', 'Undercabinet / Tape Light + Connectors'],
-        thirdParty: ['Tape / Strip / Channel'],
+        thirdParty: ['Tape / Strip / Channel', 'Led Tape'],
     },
     'Light Bulb': {
         premier: ['Lamp'],

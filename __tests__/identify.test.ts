@@ -21,7 +21,6 @@ import { countPdfPages } from '@/lib/identify/pdfPages';
 
 const premier = (o: Partial<PremierItemRow> & Pick<PremierItemRow, 'id' | 'itemId' | 'fixtureCategory'>): PremierItemRow => ({
     itemDescription: '',
-    style: '',
     finish: '',
     colorTemp: '',
     maxWattage: '',

@@ -57,6 +57,40 @@ export function isPremierOwnBrand(rec: Pick<Recommendation, 'premierItem' | 'bid
     );
 }
 
+/**
+ * Manufacturers in the 3rd Party table that Premier treats as a HOUSE LINE.
+ *
+ * The 3rd Party table is normally context, not a substitution catalog (see
+ * AGENTS.md). Globalux is the deliberate exception: Premier does not
+ * manufacture it, but it is their primary source for undercabinet lighting, so
+ * an estimator wants it offered the way an own-brand item is offered rather
+ * than as a budget alternative to one.
+ *
+ * Matched on a normalized prefix because the same brand is spelled several ways
+ * in the catalog — "Globalux" and "GLOBALUX LIGHTING, LLC" are both live on the
+ * same 17 items today.
+ */
+export const PREFERRED_THIRD_PARTY_MANUFACTURERS = ['GLOBALUX'] as const;
+
+/** True when a manufacturer name is one Premier treats as its own line. */
+export function isPreferredManufacturer(manufacturer: string): boolean {
+    const name = (manufacturer || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!name) return false;
+    return PREFERRED_THIRD_PARTY_MANUFACTURERS.some(brand => name.startsWith(brand));
+}
+
+/**
+ * True when a recommendation should get own-brand treatment — either because
+ * the item number is a Premier private-label series, or because it comes from a
+ * house-line manufacturer in the resold catalog.
+ */
+export function isHouseLine(
+    rec: Pick<Recommendation, 'premierItem' | 'bidItem'> & { itemAttributes?: { manufacturer?: string } },
+): boolean {
+    if (isPremierOwnBrand(rec)) return true;
+    return isPreferredManufacturer(rec.itemAttributes?.manufacturer ?? '');
+}
+
 /** Confidence bonus applied to own-brand recommendations before ranking. */
 export const OWN_BRAND_BONUS = 15;
 

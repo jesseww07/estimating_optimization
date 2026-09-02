@@ -23,11 +23,11 @@ import {
     isRfiPlaceholder,
     seriesCategory,
 } from '@/lib/engine/matcher';
-import { compareRecommendations, shouldAutoSelect } from '@/lib/engine/ranking';
+import { compareRecommendations, isHouseLine, isPreferredManufacturer, shouldAutoSelect } from '@/lib/engine/ranking';
+import { thirdPartyCategoriesCompatible as thirdPartyCompatible } from '@/lib/engine/matcher';
 
 const premier = (o: Partial<PremierItemRow> & Pick<PremierItemRow, 'id' | 'itemId' | 'fixtureCategory'>): PremierItemRow => ({
     itemDescription: '',
-    style: '',
     finish: '',
     colorTemp: '',
     maxWattage: '',
@@ -170,7 +170,7 @@ describe('RFI / TBD placeholder guard', () => {
 describe('3rd-party items in the in-category fallback (Phase 2 backlog)', () => {
     const third = (id: string, itemId: string, productCategories: string, itemDescription: string, manufacturer = 'SATCO') => ({
         id, itemId, itemDescription, manufacturer,
-        finish: '', colorTemp: '', maxWattage: '', lightOutput: '',
+        finish: '', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0,
         productCategories,
     });
 
@@ -234,7 +234,7 @@ describe('Candlewood tuning', () => {
     const lamp = (id: string, itemId: string, itemDescription: string, colorTemp = '3000', maxWattage = '') => ({
         id, itemId, itemDescription,
         manufacturer: 'Satco',
-        finish: '', lightOutput: '',
+        finish: '', lightOutput: '', timesUsed: 0,
         colorTemp, maxWattage,
         productCategories: 'Light Bulb',
     });
@@ -243,8 +243,7 @@ describe('Candlewood tuning', () => {
         id: `h-${bidItem}-${Math.random().toString(36).slice(2, 6)}`,
         mark: 'X', bidItem, originalSpec, project: 'Old Hotel', bidDate: '',
         specManufacturer: '', bidManufacturer: '', specMfrBackup: '', bidMfrBackup: 'SATCO',
-        matchType: 'EXACT', productCategory: '', specDescription: '', specVendor: '',
-        specEnrichConfidence: '', premierLinkIds: [], thirdPartyLinkIds: [],
+        matchType: 'EXACT', productCategory: '', specDescription: '',        specEnrichConfidence: '', premierLinkIds: [], thirdPartyLinkIds: [],
     });
 
     const ctx: EngineContext = {
@@ -503,12 +502,12 @@ describe('3rd & Flower: 3rd-party direct matching tier', () => {
         thirdPartyItems: [
             {
                 id: 't-f896', itemId: 'F896-65-WHF', itemDescription: 'MINKA AIRE 65" XTREME H2O FLAT WHITE',
-                manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '',
+                manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0,
                 productCategories: 'Ceiling Fan',
             },
             {
                 id: 't-rod', itemId: 'DR524-CL', itemDescription: 'MOUNTING DOWNROD 24" FOR CEILING FAN',
-                manufacturer: 'MINKA AIRE', finish: '', colorTemp: '', maxWattage: '', lightOutput: '',
+                manufacturer: 'MINKA AIRE', finish: '', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0,
                 productCategories: 'Ceiling Fan Accessory',
             },
         ],
@@ -549,7 +548,7 @@ describe('3rd & Flower: fan-span and accessory-history gates', () => {
                 id: 'h-rod', mark: 'D16', bidItem: 'DR524-CL', originalSpec: 'F896-65-CL',
                 project: 'Old Job', bidDate: '', specManufacturer: '', bidManufacturer: '',
                 specMfrBackup: 'MINKA AIRE', bidMfrBackup: 'MINKA AIRE', matchType: 'EXACT',
-                productCategory: '', specDescription: '', specVendor: '', specEnrichConfidence: '',
+                productCategory: '', specDescription: '', specEnrichConfidence: '',
                 premierLinkIds: [], thirdPartyLinkIds: ['t-rod'],
             },
         ],
@@ -558,12 +557,12 @@ describe('3rd & Flower: fan-span and accessory-history gates', () => {
         thirdPartyItems: [
             {
                 id: 't-f896', itemId: 'F896-65-WHF', itemDescription: 'MINKA AIRE 65" XTREME H2O FLAT WHITE',
-                manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '',
+                manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0,
                 productCategories: 'Ceiling Fan',
             },
             {
                 id: 't-rod', itemId: 'DR524-CL', itemDescription: 'MOUNTING DOWNROD 24" FOR CEILING FAN',
-                manufacturer: 'MINKA AIRE', finish: '', colorTemp: '', maxWattage: '', lightOutput: '',
+                manufacturer: 'MINKA AIRE', finish: '', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0,
                 productCategories: 'Ceiling Fan Accessory',
             },
         ],
@@ -599,7 +598,7 @@ describe('3rd & Flower: resold-as-spec and as-spec history echoes', () => {
                 id: 'h-self', mark: 'LT-1', bidItem: 'F896-65-CL', originalSpec: 'F896-65-CL',
                 project: 'Old Job', bidDate: '', specManufacturer: '', bidManufacturer: '',
                 specMfrBackup: 'MINKA AIRE', bidMfrBackup: 'MINKA AIRE', matchType: 'EXACT',
-                productCategory: '', specDescription: '', specVendor: '', specEnrichConfidence: '',
+                productCategory: '', specDescription: '', specEnrichConfidence: '',
                 premierLinkIds: [], thirdPartyLinkIds: ['t-cl'],
             },
         ],
@@ -608,12 +607,12 @@ describe('3rd & Flower: resold-as-spec and as-spec history echoes', () => {
         thirdPartyItems: [
             {
                 id: 't-cl', itemId: 'F896-65-CL', itemDescription: 'MINKA AIRE 65" XTREME H2O COAL',
-                manufacturer: 'MINKA AIRE', finish: 'COAL', colorTemp: '', maxWattage: '', lightOutput: '',
+                manufacturer: 'MINKA AIRE', finish: 'COAL', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0,
                 productCategories: 'Ceiling Fan',
             },
             {
                 id: 't-whf', itemId: 'F896-65-WHF', itemDescription: 'MINKA AIRE 65" XTREME H2O FLAT WHITE',
-                manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '',
+                manufacturer: 'MINKA AIRE', finish: 'FLAT WHITE', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0,
                 productCategories: 'Ceiling Fan',
             },
         ],
@@ -709,8 +708,7 @@ describe('Largo Station: end-to-end exemplars', () => {
     ): HistoryRow => ({
         id, mark: 'X', bidItem, originalSpec, project, bidDate,
         specManufacturer: '', bidManufacturer: '', specMfrBackup: '', bidMfrBackup: '',
-        matchType: 'EXACT', productCategory: '', specDescription: '', specVendor: '',
-        specEnrichConfidence: '', premierLinkIds, thirdPartyLinkIds: [],
+        matchType: 'EXACT', productCategory: '', specDescription: '',        specEnrichConfidence: '', premierLinkIds, thirdPartyLinkIds: [],
     });
 
     // Mirrors the real snapshot rows (verified 2026-08-03) + the pole-head
@@ -874,7 +872,7 @@ describe('exact-history confidence rework', () => {
         id, mark: 'SC', bidItem, originalSpec, project,
         bidDate: '2026-03-01', specManufacturer: '', bidManufacturer: '',
         specMfrBackup: 'LITHONIA', bidMfrBackup: '', matchType: 'EXACT',
-        productCategory: '', specDescription: '', specVendor: '', specEnrichConfidence: '',
+        productCategory: '', specDescription: '', specEnrichConfidence: '',
         premierLinkIds: [], thirdPartyLinkIds: [],
         ...o,
     });
@@ -1055,7 +1053,7 @@ describe('Aura Santan category detection', () => {
 
 describe('own-brand preference in the in-category tier', () => {
     const thirdParty = (o: { id: string; itemId: string; productCategories: string; itemDescription?: string; manufacturer?: string }) => ({
-        itemDescription: '', manufacturer: '', finish: '', colorTemp: '', maxWattage: '', lightOutput: '', ...o,
+        itemDescription: '', manufacturer: '', finish: '', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0, ...o,
     });
     const disks: EngineContext = {
         history: [],
@@ -1131,7 +1129,7 @@ describe('a thin line is topped up from its own category', () => {
             premierItems: [premier({ id: 'w1', itemId: 'GC-WM-100-30K', fixtureCategory: 'Wall Sconce', itemDescription: 'LED WALL SCONCE', timesUsed: 30 })],
             thirdPartyItems: [{
                 id: 't1', itemId: 'MTZ955390', itemDescription: 'BELINDA WALL SCONCE AGED BRASS', manufacturer: 'Maxim',
-                finish: '', colorTemp: '', maxWattage: '', lightOutput: '', productCategories: 'Wall Sconce',
+                finish: '', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0, productCategories: 'Wall Sconce',
             }],
         };
         const r = analyzeLineItem(line('WS1', 'MAXIM', 'MTZ955390'), resold);
@@ -1139,5 +1137,99 @@ describe('a thin line is topped up from its own category', () => {
         expect(r.recommendations[0]!.isPassthrough).toBe(true);
         // ...and the in-category Premier sconce was NOT added behind it.
         expect(r.recommendations.map(rec => rec.premierItem)).not.toContain('GC-WM-100-30K');
+    });
+});
+
+// ── Globalux as a Premier house line (Jesse, 2026-09-01) ────────────────────
+// Globalux sits in the 3rd Party table because Premier does not manufacture it,
+// but it is Premier's primary source for undercabinet lighting, so an estimator
+// wants it offered the way an own-brand item is — not as a budget alternative
+// to one. Everything below is the machinery that makes that true.
+
+describe('house-line manufacturers', () => {
+    it('recognizes every spelling the catalog actually uses', () => {
+        // Both are live on the same 17 items today.
+        expect(isPreferredManufacturer('Globalux')).toBe(true);
+        expect(isPreferredManufacturer('GLOBALUX LIGHTING, LLC')).toBe(true);
+        expect(isPreferredManufacturer('globalux lighting')).toBe(true);
+    });
+
+    it('does not promote an ordinary resold brand', () => {
+        for (const brand of ['Satco', 'Westgate', 'Minka Aire', 'W.A.C. Lighting', '']) {
+            expect(isPreferredManufacturer(brand)).toBe(false);
+        }
+    });
+
+    it('treats a house-line item as own-brand for ranking', () => {
+        // An item number that no Premier prefix rule would ever match.
+        const rec = { premierItem: 'UCL-18-9-120D-MCT-WH', bidItem: '', itemAttributes: { manufacturer: 'Globalux' } };
+        expect(isHouseLine(rec)).toBe(true);
+        const resold = { premierItem: 'S12407', bidItem: '', itemAttributes: { manufacturer: 'Satco' } };
+        expect(isHouseLine(resold)).toBe(false);
+    });
+});
+
+describe('undercabinet category vocabulary', () => {
+    it('accepts the live 3rd-party category the Globalux line is filed under', () => {
+        // Until "Undercabinet Lighting" was mapped, every Globalux item failed
+        // the category gate for an undercabinet spec.
+        expect(thirdPartyCompatible('Undercabinet', 'Undercabinet Lighting')).toBe(true);
+        expect(thirdPartyCompatible('Undercabinet', 'Tape / Strip / Channel')).toBe(true);
+        expect(thirdPartyCompatible('Undercabinet', 'Pendant')).toBe(false);
+    });
+});
+
+describe('a house line is offered alongside own-brand, not behind it', () => {
+    const third = (o: { id: string; itemId: string; productCategories: string; itemDescription?: string; manufacturer?: string; timesUsed?: number }) => ({
+        itemDescription: '', manufacturer: '', finish: '', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0, ...o,
+    });
+    const ctx: EngineContext = {
+        history: [],
+        fans: [],
+        premierItems: [
+            premier({ id: 'p1', itemId: 'LNT-ST-7W*2', fixtureCategory: 'Undercabinet / Tape Light + Connectors', itemDescription: 'UNDER CABINET TAPE CONNECTOR', timesUsed: 4 }),
+        ],
+        thirdPartyItems: [
+            third({ id: 'g1', itemId: 'UCL-18-9-120D-MCT-WH', productCategories: 'Undercabinet Lighting', itemDescription: '18 in Thinline Undercabinet Fixture', manufacturer: 'Globalux' }),
+            third({ id: 's1', itemId: 'WG-UC-18', productCategories: 'Undercabinet Lighting', itemDescription: 'UNDER CABINET FIXTURE 18', manufacturer: 'Westgate' }),
+        ],
+    };
+
+    it('offers the house-line item even though a Premier item matched the same words', () => {
+        // The earn-your-slot rule (a resold card must match wording no own-brand
+        // card does) is what keeps a budget clone from taking a slot. A house
+        // line is not a clone of the own brand — it IS the own brand's answer.
+        const r = analyzeLineItem(line('UCL18', 'TBD', 'UNDER CABINET'), ctx);
+        expect(itemIds(r)).toContain('UCL-18-9-120D-MCT-WH');
+        const globalux = r.recommendations.find(x => x.premierItem === 'UCL-18-9-120D-MCT-WH')!;
+        expect(globalux.matchDetails?.some(d => /house line/i.test(d))).toBe(true);
+        // ...and the ordinary resold brand still has to earn its slot.
+        expect(itemIds(r)).not.toContain('WG-UC-18');
+    });
+
+    it('counts resold usage, which the app read as zero until the History link was pinned', () => {
+        const used: EngineContext = {
+            ...ctx,
+            premierItems: [],
+            thirdPartyItems: [
+                third({ id: 'a', itemId: 'WG-UC-A', productCategories: 'Undercabinet Lighting', itemDescription: 'UNDER CABINET FIXTURE', manufacturer: 'Westgate', timesUsed: 0 }),
+                third({ id: 'b', itemId: 'WG-UC-B', productCategories: 'Undercabinet Lighting', itemDescription: 'UNDER CABINET FIXTURE', manufacturer: 'Westgate', timesUsed: 20 }),
+            ],
+        };
+        const r = analyzeLineItem(line('UCL18', 'TBD', 'UNDER CABINET'), used);
+        // Identical text on both; the one that has actually been bid ranks first.
+        expect(itemIds(r)[0]).toBe('WG-UC-B');
+    });
+
+    it('survives a context captured before timesUsed existed', () => {
+        // The frozen eval snapshot has no timesUsed on resold rows, and
+        // `undefined / 2` is NaN — which would poison every score it touched.
+        const legacy = {
+            ...ctx,
+            premierItems: [],
+            thirdPartyItems: [{ ...third({ id: 'x', itemId: 'WG-UC-X', productCategories: 'Undercabinet Lighting', itemDescription: 'UNDER CABINET FIXTURE', manufacturer: 'Westgate' }), timesUsed: undefined } as unknown as EngineContext['thirdPartyItems'][number]],
+        };
+        const r = analyzeLineItem(line('UCL18', 'TBD', 'UNDER CABINET'), legacy);
+        for (const rec of r.recommendations) expect(Number.isFinite(rec.confidence)).toBe(true);
     });
 });

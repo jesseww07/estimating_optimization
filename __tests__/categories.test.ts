@@ -28,7 +28,7 @@ import { applyIdentifiedSpec } from '@/lib/identify/apply';
 import type { IdentifiedSpec } from '@/lib/identify/types';
 
 const premier = (o: Partial<PremierItemRow> & Pick<PremierItemRow, 'id' | 'itemId' | 'fixtureCategory'>): PremierItemRow => ({
-    itemDescription: '', style: '', finish: '', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0, ...o,
+    itemDescription: '', finish: '', colorTemp: '', maxWattage: '', lightOutput: '', timesUsed: 0, ...o,
 });
 
 const line = (mark: string, manufacturer: string, catalogNumber: string): ParsedLineItem => ({
@@ -167,7 +167,7 @@ describe('identifiable spec keys', () => {
                     id: 'h1', mark: 'R1', bidItem: 'R-SLIM-DISK-12W-5CCT-MULTIDIM-WH', originalSpec: 'LUMENPAD',
                     project: 'Firecrest Ridge', bidDate: '2026-06-01', specManufacturer: '', bidManufacturer: '',
                     specMfrBackup: 'LITON', bidMfrBackup: 'GLOBAL CONCEPTS', matchType: 'EXACT',
-                    productCategory: 'Disk Light', specDescription: '', specVendor: '', specEnrichConfidence: '',
+                    productCategory: 'Disk Light', specDescription: '', specEnrichConfidence: '',
                     premierLinkIds: ['p-disk'], thirdPartyLinkIds: [],
                 },
             ],
@@ -263,7 +263,7 @@ describe('identify keeps the typed spec as the history key', () => {
                     id: 'h1', mark: 'R13', bidItem: 'WS-W230301-30-XX', originalSpec: 'LUMIERE 1003',
                     project: 'Firecrest Ridge', bidDate: '2026-06-01', specManufacturer: '', bidManufacturer: '',
                     specMfrBackup: 'LUMIERE', bidMfrBackup: 'WAC', matchType: 'EXACT',
-                    productCategory: '', specDescription: '', specVendor: '', specEnrichConfidence: '',
+                    productCategory: '', specDescription: '', specEnrichConfidence: '',
                     premierLinkIds: [], thirdPartyLinkIds: [],
                 },
             ],

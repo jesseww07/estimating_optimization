@@ -74,7 +74,10 @@ function asLinkIds(v: CellValue): string[] {
         .filter(id => id.startsWith('rec'));
 }
 
-async function selectAll(
+/** Airtable's 422 when a requested field id is not on the table any more. */
+const UNKNOWN_FIELD_RE = /Unknown field name(?: or id)?: \"?(fld[A-Za-z0-9]{14})\"?/;
+
+async function selectPage(
     base: Airtable.Base,
     tableId: string,
     fieldIds: string[],
@@ -91,59 +94,40 @@ async function selectAll(
     return rows;
 }
 
-// ── Table fetchers ────────────────────────────────────────────────────────────
-
-export async function fetchHistory(): Promise<HistoryRow[]> {
-    const base = getBase();
-    if (!base) return [];
-    const F = HISTORY_FIELDS;
-    const rows = await selectAll(base, TABLES.HISTORY, Object.values(F));
-    return rows.map(({ id, fields }) => {
-        // For MAPPED records the lookup pulls from the linked Premier Item; for
-        // UNMAPPED records it is empty — fall back to the enriched text field.
-        const specDescription = asString(fields[F.SPEC_DESCRIPTION]) || asString(fields[F.SPEC_DESCRIPTION_ENRICHED]);
-        return {
-            id,
-            mark: asString(fields[F.MARK]),
-            bidItem: asString(fields[F.BID_ITEM]),
-            originalSpec: asString(fields[F.ORIGINAL_SPEC]),
-            project: asString(fields[F.PROJECT]),
-            bidDate: asString(fields[F.BID_DATE]),
-            // Linked manufacturer fields come back as record ids over REST — display
-            // resolution is deferred; the text backup fields below carry the value the
-            // engine actually uses (specManufacturer || specMfrBackup).
-            specManufacturer: '',
-            bidManufacturer: '',
-            specMfrBackup: asString(fields[F.SPEC_MFR_BACKUP]),
-            bidMfrBackup: asString(fields[F.BID_MFR_BACKUP]),
-            matchType: asString(fields[F.MATCH_TYPE]),
-            productCategory: asString(fields[F.PRODUCT_CATEGORY]),
-            specDescription,
-            specVendor: asString(fields[F.SPEC_VENDOR]),
-            specEnrichConfidence: asString(fields[F.SPEC_MATCH_CONFIDENCE]),
-            premierLinkIds: asLinkIds(fields[F.PREMIER_LINK]),
-            thirdPartyLinkIds: asLinkIds(fields[F.THIRD_PARTY_LINK]),
-        };
-    });
-}
-
-export async function fetchPremierItems(): Promise<PremierItemRow[]> {
-    const base = getBase();
-    if (!base) return [];
-    const F = PREMIER_FIELDS;
-    const rows = await selectAll(base, TABLES.PREMIER_ITEMS, Object.values(F));
-    return rows.map(({ id, fields }) => ({
-        id,
-        itemId: asString(fields[F.ITEM_ID]),
-        fixtureCategory: asString(fields[F.FIXTURE_CATEGORY]),
-        itemDescription: asString(fields[F.ITEM_DESCRIPTION]),
-        style: asString(fields[F.STYLE]),
-        finish: asString(fields[F.FINISH]),
-        colorTemp: asString(fields[F.COLOR_TEMPERATURE]),
-        maxWattage: asString(fields[F.MAX_WATTAGE]),
-        lightOutput: asString(fields[F.LIGHT_OUTPUT]),
-        timesUsed: asNumber(fields[F.TIMES_USED]),
-    }));
+/**
+ * Fetch a table by pinned field IDs, dropping any field the base no longer has.
+ *
+ * Requesting a deleted field id is a hard 422 on the WHOLE table, so one column
+ * removed in the Airtable UI took the entire catalog and history offline — the
+ * app showed "Catalog offline" with nothing to explain it (2026-09-01: a schema
+ * consolidation removed Premier "Style" and History "Spec Vendor" and did
+ * exactly that). A missing field should cost that field, not the app.
+ *
+ * The drop is logged loudly rather than silently tolerated, because a field the
+ * code binds to going missing is a real defect — it just shouldn't be an
+ * outage. `scripts/schema-audit.ts` is the deliberate way to find them.
+ */
+async function selectAll(
+    base: Airtable.Base,
+    tableId: string,
+    fieldIds: string[],
+): Promise<Array<{ id: string; fields: FieldsById }>> {
+    let requested = [...fieldIds];
+    // Bounded: each retry removes one field, so it cannot loop.
+    for (let attempt = 0; attempt <= fieldIds.length; attempt++) {
+        try {
+            return await selectPage(base, tableId, requested);
+        } catch (err) {
+            const missing = UNKNOWN_FIELD_RE.exec(err instanceof Error ? err.message : String(err))?.[1];
+            if (!missing || !requested.includes(missing)) throw err;
+            console.error(
+                `[airtable] table ${tableId}: field ${missing} no longer exists — continuing without it. ` +
+                'Run `npx tsx --env-file=.env scripts/schema-audit.ts` and update lib/airtable/schema.ts.',
+            );
+            requested = requested.filter(id => id !== missing);
+        }
+    }
+    return selectPage(base, tableId, requested);
 }
 
 /**
@@ -169,6 +153,69 @@ async function fetchProductCategoryNames(base: Airtable.Base): Promise<Map<strin
     return names;
 }
 
+// ── Table fetchers ────────────────────────────────────────────────────────────
+
+export async function fetchHistory(): Promise<HistoryRow[]> {
+    const base = getBase();
+    if (!base) return [];
+    const F = HISTORY_FIELDS;
+    // History's "Product Category" became a LINKED RECORD in the 2026-09-01
+    // consolidation (it was a lookup, which returned names). Linked records come
+    // back as record ids, and asString drops those on purpose — so without this
+    // resolution every history row's category silently reads empty.
+    const categoryNames = await fetchProductCategoryNames(base);
+    const rows = await selectAll(base, TABLES.HISTORY, Object.values(F));
+    return rows.map(({ id, fields }) => {
+        // For MAPPED records the lookup pulls from the linked Premier Item; for
+        // UNMAPPED records it is empty — fall back to the enriched text field.
+        const specDescription = asString(fields[F.SPEC_DESCRIPTION]) || asString(fields[F.SPEC_DESCRIPTION_ENRICHED]);
+        return {
+            id,
+            mark: asString(fields[F.MARK]),
+            bidItem: asString(fields[F.BID_ITEM]),
+            originalSpec: asString(fields[F.ORIGINAL_SPEC]),
+            project: asString(fields[F.PROJECT]),
+            bidDate: asString(fields[F.BID_DATE]),
+            // Linked manufacturer fields come back as record ids over REST — display
+            // resolution is deferred; the text backup fields below carry the value the
+            // engine actually uses (specManufacturer || specMfrBackup).
+            specManufacturer: '',
+            bidManufacturer: '',
+            specMfrBackup: asString(fields[F.SPEC_MFR_BACKUP]),
+            bidMfrBackup: asString(fields[F.BID_MFR_BACKUP]),
+            matchType: asString(fields[F.MATCH_TYPE]),
+            // Linked ids first, then the plain-value path — the field has been
+            // both shapes, and a snapshot taken before the change still holds names.
+            productCategory: asLinkIds(fields[F.PRODUCT_CATEGORY])
+                .map(linkId => categoryNames.get(linkId) ?? '')
+                .filter(Boolean)
+                .join(', ') || asString(fields[F.PRODUCT_CATEGORY]),
+            specDescription,
+            specEnrichConfidence: asString(fields[F.SPEC_MATCH_CONFIDENCE]),
+            premierLinkIds: asLinkIds(fields[F.PREMIER_LINK]),
+            thirdPartyLinkIds: asLinkIds(fields[F.THIRD_PARTY_LINK]),
+        };
+    });
+}
+
+export async function fetchPremierItems(): Promise<PremierItemRow[]> {
+    const base = getBase();
+    if (!base) return [];
+    const F = PREMIER_FIELDS;
+    const rows = await selectAll(base, TABLES.PREMIER_ITEMS, Object.values(F));
+    return rows.map(({ id, fields }) => ({
+        id,
+        itemId: asString(fields[F.ITEM_ID]),
+        fixtureCategory: asString(fields[F.FIXTURE_CATEGORY]),
+        itemDescription: asString(fields[F.ITEM_DESCRIPTION]),
+        finish: asString(fields[F.FINISH]),
+        colorTemp: asString(fields[F.COLOR_TEMPERATURE]),
+        maxWattage: asString(fields[F.MAX_WATTAGE]),
+        lightOutput: asString(fields[F.LIGHT_OUTPUT]),
+        timesUsed: asNumber(fields[F.TIMES_USED]),
+    }));
+}
+
 export async function fetchThirdPartyItems(): Promise<ThirdPartyItemRow[]> {
     const base = getBase();
     if (!base) return [];
@@ -188,6 +235,10 @@ export async function fetchThirdPartyItems(): Promise<ThirdPartyItemRow[]> {
             .map(linkId => categoryNames.get(linkId) ?? '')
             .filter(Boolean)
             .join(', '),
+        // The Premier table stores a count; this table stores the links, so the
+        // count is their length. Same meaning either way: how many past bids
+        // used this item.
+        timesUsed: asLinkIds(fields[F.HISTORY]).length,
     }));
 }
 

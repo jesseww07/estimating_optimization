@@ -41,7 +41,6 @@ const hist = (o: Partial<HistoryRow>): HistoryRow => ({
     matchType: 'EXACT',
     productCategory: '',
     specDescription: '',
-    specVendor: '',
     specEnrichConfidence: '',
     premierLinkIds: [],
     thirdPartyLinkIds: [],
