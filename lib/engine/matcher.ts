@@ -559,7 +559,8 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
         /LINEAR|STRIP|TROFFER|LED.?STRIP|UNDERCAB/.test(c) ||
         /^LBL|^WL4|^ZL2/.test(c) ||               // Lithonia linear products
         /^CSVT|^BLWP|^BLW\d/.test(c) ||           // Lithonia vapor-tight / wall-bracket linear (building lights → EFS/EFV family)
-        /VAPOR.?TIGHT|STAIRWELL|STAIRCASE/.test(c);
+        /^EF[SV][-\s]?\d/.test(c) ||              // …and Premier's own EFS/EFV housings, the line those replace
+        /VAPOR.?TIGHT|STAIRWELL|STAIRCASE|\bWRAP\b/.test(c);
     if (isLinear) return 'Linear';
 
     // ── Ceiling / Flush Mount ──────────────────────────────────────────────────
@@ -758,6 +759,21 @@ export function isUrlLike(value: string): boolean {
 const TAPE_BRANDS = ['DIODE LED', 'DIODELED', 'AMERICAN LIGHTING', 'ELEMENTAL LED', 'ENVIRONMENTAL LIGHTS', 'Q-TRAN', 'QTRAN', 'LUMINII', 'GM LIGHTING', 'TIVOLI', 'FEELUX'];
 
 /**
+ * A manufactured strip FIXTURE, not flexible tape.
+ *
+ * Premier's EFS/EFV housings are 4ft and 8ft garage and shop fixtures, usually
+ * bid as Lithonia replacements. The light source inside is an LED strip, so an
+ * estimator writes them up as "LED strip" — the same words a tape line uses.
+ * They are the opposite of a tape line: a discrete Premier-built fixture, and
+ * one of the lines this tool most wants to win (2026-09-02).
+ */
+function isFixtureStrip(mark: string, catalogNumber: string): boolean {
+    const both = `${mark} ${catalogNumber}`;
+    return /\bEFS\b|\bEFV\b|^EFS|^EFV/.test(catalogNumber)
+        || /GARAGE|SHOP\s*LIGHT|VAPOR.?TIGHT|\bWRAP\b/.test(both);
+}
+
+/**
  * LED tape / flexible strip is suppressed with an informational message — it is
  * bid as-spec (channel, driver, and footage are project-specific), never swapped.
  *
@@ -787,7 +803,13 @@ export function isLedTape(mark: string, catalogNumber: string, manufacturer: str
 
     // Handrail / cove strip runs measured in feet ("HR-STRIP - 14'0"").
     if (/\bHR-?STRIP\b|HAND\s*RAIL/.test(`${m} ${c}`)) return true;
-    if (/LED\s*STRIP\s*LIGHT/.test(c) && (/HANDRAIL|COVE/.test(c) || /\d+\s*'\s*\d*\s*"?/.test(m))) return true;
+    if (/LED\s*STRIP\s*LIGHT/.test(c)) {
+        if (/HANDRAIL|COVE/.test(c)) return true;
+        // A length in the mark usually means a continuous custom run, which is
+        // tape — but a strip HOUSING is ordered by length too, and suppressing
+        // one hands away the exact line Premier manufactures.
+        if (/\d+\s*'\s*\d*\s*"?/.test(m) && !isFixtureStrip(m, c)) return true;
+    }
 
     // Known tape product families / low-voltage strip signatures from tape brands
     const fromTapeBrand = TAPE_BRANDS.some(b => mfr.includes(b));

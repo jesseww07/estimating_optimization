@@ -90,10 +90,19 @@ const GROUP_VOCABULARY: Record<string, string[]> = {
     ],
     'Exit/Emergency': ['Exit Sign', 'Exit Sign / EMG', 'Exit / Emergency'],
     'Recessed': ['Disk Light', 'Downlight', 'Recessed Light'],
+    // 'Surface Mount' is here for PRE-MIGRATION snapshots only. In the live base
+    // the split is clean — all 74 EFS/EFV housings are 'Linear Surface Mount',
+    // and 'Flush Mount' holds ceiling lamps — but the older frozen fixtures filed
+    // the EFS/EFV family under the generic name, so dropping it here silently
+    // empties this group for them (four tuning exemplars caught it, 2026-09-02).
     'Linear': ['Linear Surface Mount', 'Surface Mount'],
     // "Undercabinet Lighting" is where the Globalux line lives — Premier's
     // primary source for undercabinet, and the reason this group has real
     // catalog depth at all.
+    // 'Tape / Strip / Channel' belongs here: the undercabinet runs that are not
+    // UCL fixtures are tape LOTs (CLX- families, sold with their connectors and
+    // accessories) — which is a different thing from the EFS strip HOUSING that
+    // shares the word "strip"; see isFixtureStrip in matcher.ts.
     'Undercabinet': ['Undercabinet / Tape Light + Connectors', 'Undercabinet Lighting', 'Surface Mount', 'Tape / Strip / Channel'],
     'Ceiling': ['Ceiling Mount', 'Flush / Surface Mount', 'Flush Mount', 'Surface Mount'],
     'LED Tape': ['Led Tape', 'Undercabinet / Tape Light + Connectors', 'Tape / Strip / Channel'],
