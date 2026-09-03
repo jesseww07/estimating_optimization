@@ -140,6 +140,31 @@ describe('tape suppression refinement', () => {
         const r = analyzeLineItem(line('SL8E (Stairs)', 'A LIGHT', 'G3-4FT-LVH-40-80-U-HE-F-B-D-OF; STAIRCASE'), CTX);
         expect(r.infoMessage ?? '').not.toContain('LED tape');
     });
+
+    it('does NOT suppress manufactured strip fixtures that carry footage plus fixture signals', () => {
+        const fixtureRows: Array<[string, string]> = [
+            ['4\'0" STRIP', 'EFS-001 LED STRIP LIGHT'],
+            ['4\'0" STRIP', 'EFV-002 LED STRIP LIGHT'],
+            ['4\'0" STRIP', 'LED STRIP LIGHT; GARAGE'],
+            ['4\'0" STRIP', 'LED STRIP LIGHT; SHOP LIGHT'],
+            ['4\'0" STRIP', 'LED STRIP LIGHT; VAPOR-TIGHT'],
+            ['4\'0" STRIP', 'LED STRIP LIGHT; WRAP'],
+        ];
+        for (const [mark, cat] of fixtureRows) {
+            expect(isLedTape(mark, cat, 'LITHONIA'), `${cat} should stay a fixture`).toBe(false);
+        }
+
+        const r = analyzeLineItem(line('4\'0" STRIP', 'LITHONIA', 'EFS-001 LED STRIP LIGHT'), CTX);
+        expect(r.infoMessage ?? '').not.toContain('LED tape');
+        expect(itemIds(r)).toContain('EFS-001-LED40-30K-WH-MV-DIM');
+    });
+
+    it('still suppresses ambiguous bare LED strip runs with footage', () => {
+        expect(isLedTape('4\'0" STRIP', 'LED STRIP LIGHT', 'TBD')).toBe(true);
+        const r = analyzeLineItem(line('4\'0" STRIP', 'TBD', 'LED STRIP LIGHT'), CTX);
+        expect(r.recommendations).toHaveLength(0);
+        expect(r.infoMessage ?? '').toContain('LED tape');
+    });
 });
 
 describe('RFI / TBD placeholder guard', () => {
