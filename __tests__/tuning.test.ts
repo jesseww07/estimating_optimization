@@ -140,7 +140,6 @@ describe('tape suppression refinement', () => {
         const r = analyzeLineItem(line('SL8E (Stairs)', 'A LIGHT', 'G3-4FT-LVH-40-80-U-HE-F-B-D-OF; STAIRCASE'), CTX);
         expect(r.infoMessage ?? '').not.toContain('LED tape');
     });
-
     it('does NOT suppress manufactured strip fixtures that carry footage plus fixture signals', () => {
         const fixtureRows: Array<[string, string]> = [
             ['4\'0" STRIP', 'EFS-001 LED STRIP LIGHT'],
@@ -157,6 +156,10 @@ describe('tape suppression refinement', () => {
         const r = analyzeLineItem(line('4\'0" STRIP', 'LITHONIA', 'EFS-001 LED STRIP LIGHT'), CTX);
         expect(r.infoMessage ?? '').not.toContain('LED tape');
         expect(itemIds(r)).toContain('EFS-001-LED40-30K-WH-MV-DIM');
+
+        const garage = analyzeLineItem(line('4\'0" STRIP', 'LITHONIA', 'LED STRIP LIGHT; GARAGE'), CTX);
+        expect(garage.infoMessage ?? '').not.toContain('LED tape');
+        expect(garage.recommendations.length).toBeGreaterThan(0);
     });
 
     it('still suppresses ambiguous bare LED strip runs with footage', () => {

@@ -57,6 +57,7 @@ const GROUP_TO_CATEGORY: Record<string, string> = {
     'Mirror': 'LED Mirror',
     'Pendant': 'Pendant',
     'Sconce': 'Wall Sconce',
+    'Outdoor Pole': 'Pole Heads',
     'Exit/Emergency': 'Exit / Emergency',
     'Recessed': 'Recessed Light',
     'Linear': 'Linear Surface Mount',
