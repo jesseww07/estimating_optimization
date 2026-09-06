@@ -80,10 +80,19 @@ async function main(): Promise<void> {
     })).filter(m => m.name);
     console.log(`Manufacturers table: ${canon.length} named records`);
 
-    const items = await allRecords(TABLE.THIRD_PARTY, ['Item ID', MFR_TEXT_FIELD]);
+    const tables = await api<{ tables: Array<{ id: string; fields: Array<{ id: string; name: string; type: string }> }> }>(
+        `meta/bases/appWj912AEOvtxqJF/tables`);
+    const third = tables.tables.find(t => t.id === TABLE.THIRD_PARTY)!;
+    const textField = third.fields.find(f => f.name === MFR_TEXT_FIELD && f.type !== 'multipleRecordLinks');
+    if (!textField) {
+        console.log('3rd Party manufacturer field is already linked — nothing to migrate.');
+        return;
+    }
+
+    const items = await allRecords(TABLE.THIRD_PARTY, ['Item ID', textField.name]);
     const spellings = new Map<string, string[]>();   // exact spelling -> item ids
     for (const r of items) {
-        const brand = val(r.fields[MFR_TEXT_FIELD]).trim();
+        const brand = val(r.fields[textField.name]).trim();
         if (!brand) continue;
         spellings.set(brand, [...(spellings.get(brand) ?? []), r.id]);
     }
@@ -144,10 +153,9 @@ async function main(): Promise<void> {
     await updateRecords(TABLE.MANUFACTURERS, aliasUpdates);
 
     // 3. Create the link field if it isn't there yet, then point every row at its brand.
-    const tables = await api<{ tables: Array<{ id: string; fields: Array<{ id: string; name: string }> }> }>(
-        `meta/bases/appWj912AEOvtxqJF/tables`);
-    const third = tables.tables.find(t => t.id === TABLE.THIRD_PARTY)!;
-    let linkField = third.fields.find(f => f.name === LINK_FIELD || f.name === MFR_TEXT_FIELD)?.name;
+    let linkField = third.fields.find(f =>
+        f.type === 'multipleRecordLinks' && (f.name === LINK_FIELD || f.name === MFR_TEXT_FIELD),
+    )?.name;
     if (!linkField) {
         console.log(`creating link field "${LINK_FIELD}"…`);
         await createField(TABLE.THIRD_PARTY, {
@@ -167,8 +175,7 @@ async function main(): Promise<void> {
 
     // 4. Retire the text column by renaming it. Deleting a field is not
     //    something Airtable's API can do — the rename makes it unmistakable.
-    const textField = third.fields.find(f => f.name === MFR_TEXT_FIELD);
-    if (textField && linkField !== MFR_TEXT_FIELD) {
+    if (linkField !== MFR_TEXT_FIELD) {
         console.log(`renaming "${MFR_TEXT_FIELD}" -> "${RETIRED_NAME}"…`);
         await updateField(TABLE.THIRD_PARTY, textField.id, {
             name: RETIRED_NAME,
