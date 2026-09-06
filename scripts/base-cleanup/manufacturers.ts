@@ -147,7 +147,7 @@ async function main(): Promise<void> {
     const tables = await api<{ tables: Array<{ id: string; fields: Array<{ id: string; name: string }> }> }>(
         `meta/bases/appWj912AEOvtxqJF/tables`);
     const third = tables.tables.find(t => t.id === TABLE.THIRD_PARTY)!;
-    let linkField = third.fields.find(f => f.name === LINK_FIELD || f.name === MFR_TEXT_FIELD && false)?.name;
+    let linkField = third.fields.find(f => f.name === LINK_FIELD || f.name === MFR_TEXT_FIELD)?.name;
     if (!linkField) {
         console.log(`creating link field "${LINK_FIELD}"…`);
         await createField(TABLE.THIRD_PARTY, {
@@ -161,14 +161,14 @@ async function main(): Promise<void> {
 
     const rowToMfr = new Map<string, string>();
     for (const m of matched.values()) for (const row of m.rows) rowToMfr.set(row, m.canon.id);
-    const linkUpdates = [...rowToMfr.entries()].map(([id, mfrId]) => ({ id, fields: { [LINK_FIELD]: [mfrId] } }));
+    const linkUpdates = [...rowToMfr.entries()].map(([id, mfrId]) => ({ id, fields: { [linkField]: [mfrId] } }));
     console.log(`linking ${linkUpdates.length} 3rd-party rows…`);
     await updateRecords(TABLE.THIRD_PARTY, linkUpdates);
 
     // 4. Retire the text column by renaming it. Deleting a field is not
     //    something Airtable's API can do — the rename makes it unmistakable.
     const textField = third.fields.find(f => f.name === MFR_TEXT_FIELD);
-    if (textField) {
+    if (textField && linkField !== MFR_TEXT_FIELD) {
         console.log(`renaming "${MFR_TEXT_FIELD}" -> "${RETIRED_NAME}"…`);
         await updateField(TABLE.THIRD_PARTY, textField.id, {
             name: RETIRED_NAME,
