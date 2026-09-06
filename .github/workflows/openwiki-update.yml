@@ -28,6 +28,10 @@ on:
     # Daily backstop in case push-triggered runs are skipped.
     - cron: "0 8 * * *"
 
+concurrency:
+  group: openwiki-update
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write
