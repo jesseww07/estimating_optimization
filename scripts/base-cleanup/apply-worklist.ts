@@ -33,9 +33,10 @@ const FILE = process.argv.slice(2).find(a => !a.startsWith('--'));
  * `old -> new` so the move is reviewable before it happens.
  */
 const RECATEGORIZE = process.argv.includes('--recategorize');
+const norm = (s: string): string => s.trim().toUpperCase().replace(/\s+/g, ' ');
 
 /** Hand-written name -> Product Categories record. `null` = ambiguous, report only. */
-const SYNONYM: Record<string, string | null> = {
+const SYNONYM = new Map<string, string | null>(Object.entries({
     'Linear Fixture': 'Linear Surface Mount',
     'Bollard': 'Bollards',
     'Pole Head': 'Pole Heads',
@@ -69,16 +70,13 @@ const SYNONYM: Record<string, string | null> = {
     // No equivalent exists yet; needs a decision about a Landscape category.
     'Landscape lighting': null,
     'Landscape lighring': null, // compatibility alias for an already-exported typo
-
-};
+}).map(([name, value]) => [norm(name), value]));
 
 /** Categories to create if they are not there yet. */
 const CREATE = ['Non-Item / Accounting'];
 
 const SOURCE_FIELD = 'Category Source';
 const KEY_SEPARATOR = '\0';
-
-const norm = (s: string): string => s.trim().toUpperCase().replace(/\s+/g, ' ');
 
 interface Row { table: string; itemId: string; category: string }
 
@@ -142,7 +140,8 @@ async function main(): Promise<void> {
         if (!hit) { notFound.push(row); continue; }
         if (hit.current && !RECATEGORIZE) { alreadySet.push(hit.itemId); continue; }
 
-        const mapped = row.category in SYNONYM ? SYNONYM[row.category] : row.category;
+        const rowCategory = norm(row.category);
+        const mapped = SYNONYM.has(rowCategory) ? SYNONYM.get(rowCategory)! : row.category;
         if (mapped === null) {
             const e = hold.get(row.category) ?? [];
             e.push({ itemId: hit.itemId, desc: hit.desc });
@@ -189,6 +188,7 @@ async function main(): Promise<void> {
     if (!APPLY) { console.log('\nDRY RUN — nothing written.'); return; }
     if (unknownName.size) throw new Error('Refusing to apply with unmapped category names.');
     if (hold.size) throw new Error('Refusing to apply while ambiguous category names are still on hold.');
+    if (notFound.length) throw new Error('Refusing to apply while worklist rows still fail to match catalog items.');
 
     for (const name of CREATE) {
         if (catByName.has(norm(name))) continue;
