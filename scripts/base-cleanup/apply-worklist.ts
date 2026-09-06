@@ -152,7 +152,7 @@ async function main(): Promise<void> {
             unknownName.set(row.category, [...(unknownName.get(row.category) ?? []), hit.itemId]);
             continue;
         }
-        if (hit.current === mapped) { alreadySet.push(hit.itemId); continue; }
+        if (norm(hit.current) === norm(mapped)) { alreadySet.push(hit.itemId); continue; }
         if (hit.current) moves.push({ itemId: hit.itemId, from: hit.current, to: mapped });
         writes.push({ table: hit.table, id: hit.id, itemId: hit.itemId, category: mapped });
     }
