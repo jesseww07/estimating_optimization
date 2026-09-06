@@ -759,18 +759,6 @@ export function isUrlLike(value: string): boolean {
 const TAPE_BRANDS = ['DIODE LED', 'DIODELED', 'AMERICAN LIGHTING', 'ELEMENTAL LED', 'ENVIRONMENTAL LIGHTS', 'Q-TRAN', 'QTRAN', 'LUMINII', 'GM LIGHTING', 'TIVOLI', 'FEELUX'];
 
 /**
- * LED tape / flexible strip is suppressed with an informational message — it is
- * bid as-spec (channel, driver, and footage are project-specific), never swapped.
- *
- * Detected forms (Camino Del Rio review, 2026-07-20):
- *  - explicit TAPE / flexible-strip wording
- *  - tape-in-channel component specs: the catalog cell lists CHANNEL: plus a
- *    DRIVER:/XMFR: breakdown (CORE LNE/LSM, TIVOLI, FEELUX systems)
- *  - handrail / footage-run LED strip lines ("HR-STRIP - 14'0"", "LED STRIP LIGHT; HANDRAILS")
- * Architectural linear fixtures (A-Light G3, Lithonia CSVT) carry none of these
- * signatures and must NOT be suppressed.
- */
-/**
  * A manufactured strip FIXTURE, not flexible tape.
  *
  * Premier's EFS/EFV housings are 4ft and 8ft garage and shop fixtures, usually
@@ -785,6 +773,18 @@ function isFixtureStrip(mark: string, catalogNumber: string): boolean {
         || /GARAGE|SHOP\s*LIGHT|VAPOR.?TIGHT|\bWRAP\b/.test(both);
 }
 
+/**
+ * LED tape / flexible strip is suppressed with an informational message — it is
+ * bid as-spec (channel, driver, and footage are project-specific), never swapped.
+ *
+ * Detected forms (Camino Del Rio review, 2026-07-20):
+ *  - explicit TAPE / flexible-strip wording
+ *  - tape-in-channel component specs: the catalog cell lists CHANNEL: plus a
+ *    DRIVER:/XMFR: breakdown (CORE LNE/LSM, TIVOLI, FEELUX systems)
+ *  - handrail / footage-run LED strip lines ("HR-STRIP - 14'0"", "LED STRIP LIGHT; HANDRAILS")
+ * Architectural linear fixtures (A-Light G3, Lithonia CSVT) carry none of these
+ * signatures and must NOT be suppressed.
+ */
 export function isLedTape(mark: string, catalogNumber: string, manufacturer: string): boolean {
     const m = mark.toUpperCase();
     const c = catalogNumber.toUpperCase();

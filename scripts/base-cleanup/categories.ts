@@ -224,7 +224,7 @@ async function main(): Promise<void> {
         console.log(`  linking ${fanUpdates.length} Fans rows…`);
         await updateRecords(TABLE.FANS, fanUpdates);
     }
-    console.log('\ndone. The select is left in place until the gap-fill has run; retire.ts renames it.');
+    console.log('\ndone. The select is left in place until the gap-fill has run; finalize.ts renames it.');
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
