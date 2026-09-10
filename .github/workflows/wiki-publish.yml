@@ -1,0 +1,68 @@
+# Publishes the generated openwiki/ pages to this repository's GitHub Wiki tab,
+# so the docs are readable at /wiki instead of only by browsing the repo tree.
+#
+# This is deliberately a SEPARATE workflow from openwiki-update.yml rather than
+# a step in it. That workflow's push trigger carries `paths-ignore: openwiki/**`,
+# so merging a docs-only PR does not trigger it — a publish step living there
+# would never fire on exactly the merges it needs to react to. Splitting it also
+# keeps publishing cheap (seconds, no model calls) and independent of whether
+# the ~20-minute agent run succeeded.
+#
+# The wiki is its own git repo (<repo>.wiki.git, default branch master). It must
+# have been initialized with at least one page via the UI before this can push;
+# that already happened on 2026-09-06.
+
+name: Publish Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "openwiki/**"
+      - "scripts/publish-wiki.mjs"
+      - ".github/workflows/wiki-publish.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: wiki-publish
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Render openwiki/ to the Wiki tab
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # No `npm ci`: scripts/publish-wiki.mjs is dependency-free precisely so
+      # this stays a few seconds rather than a full install.
+      - name: Check out the wiki
+        run: |
+          git clone --depth 1 \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" \
+            "$RUNNER_TEMP/wiki"
+
+      - name: Render pages
+        run: node scripts/publish-wiki.mjs "$RUNNER_TEMP/wiki"
+
+      - name: Commit and push
+        working-directory: ${{ runner.temp }}/wiki
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          # A push with no diff is the normal case when a merge touched openwiki
+          # state files but not rendered content.
+          if git diff --cached --quiet; then
+            echo "Wiki already matches openwiki/; nothing to publish."
+            exit 0
+          fi
+          git commit -m "Publish OpenWiki pages from ${GITHUB_SHA::7}"
+          git push

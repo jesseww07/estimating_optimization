@@ -25,8 +25,13 @@ on:
       - "openwiki/**"
   schedule:
     # GitHub schedules use UTC; 08:00 UTC is midnight PST.
-    # Daily backstop in case push-triggered runs are skipped.
-    - cron: "0 8 * * *"
+    # Weekly backstop in case push-triggered runs are skipped. Deliberately NOT
+    # daily: a run costs ~20 minutes of agent time, and until the docs PR is
+    # merged `.last-update.json` on main still points at the old head, so every
+    # run before that merge regenerates the same pages from scratch. Daily runs
+    # made the cost scale with how long the PR sat unreviewed, not with how much
+    # the code actually changed.
+    - cron: "0 8 * * 1"
 
 concurrency:
   group: openwiki-update
@@ -40,18 +45,20 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: true
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
       # mermaid + jsdom are optional; they add high-fidelity validation of
       # the Mermaid diagrams OpenWiki generates.
+      # Pinned: an unpinned global install silently changes the tool between
+      # runs, so the wiki's content depended on release timing.
       - name: Install OpenWiki
-        run: npm install --global openwiki mermaid@11.16.0 jsdom@29.1.1
+        run: npm install --global openwiki@0.5.1 mermaid@11.16.0 jsdom@29.1.1
 
       # --update also handles the first run (full generation) when the
       # openwiki/ directory doesn't exist yet.
