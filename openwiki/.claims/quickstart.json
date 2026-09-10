@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:612a15323cf4f9eebca2b90a4a16c7b1985ae642ad4739da5ad2e2f091caf64f",
+  "claims": [
+    {
+      "id": "claim_685bd3ea5c5c412e8a4a6089d7a63878",
+      "statement": "The app exposes five Next.js API routes under app/api/ — upload, recommendations, identify, identify-batch, and export — with identify-batch added to support a sheet-wide, estimator-triggered batched category identification pass distinct from the one-line-per-click /api/identify route.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L1-L54",
+          "version": "repo-lines-v1:sha256:c92a30e078c5b41acc9e07903a4ef53cc52bc17d3d35312501b51d73463a5cf0:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0Njc0NjUwNDY3MTc4OTQwYTQ3MzZhYTZjNTVlOTFlMzQ4NDY1NGZhMGVlY2UzMjk4MTc3NTliZDQ5ZmI2YTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2NGQ4N2JhNTdmODMwN2UzMDdlZTAwYmY4YmQzNjZmMzdhZWY3ZDAwMzJiYWVlYjg4MmUxODA1ZTdiZTJlMzcifQ"
+        },
+        {
+          "resource": "repo://lib/identify/batch.ts#L1-L36",
+          "version": "repo-lines-v1:sha256:d73b422aa47c494455e5920e0f8a7f2eb164212c6b8b1bafedcd32734a3676cf:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJhZmFjZWQ0YzBjNzI1Y2ZmMjdlNTYxZjUxZGQ3YzQzOWIyN2Q2ODE3OWU4OGMyODUxZmFiYjk4MTNjMmMxYmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5591890aee2942d69c1a669cc340331a",
+      "statement": "Upload-time schedule extraction accepts pre-converted CSV/XLSX via a known-column parser, or Claude-read PDF, image (PNG/JPEG/WebP/GIF), or Word (.docx) documents, with file type sniffed from magic bytes rather than filename or browser-reported MIME.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/docxPages.ts#L1-L25",
+          "version": "repo-lines-v1:sha256:94a1427b9a41357238426a804c7b0908f170d5c36b578bd00555208e519520ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliYWUyZjdlYTIwNTM4ZTEzYWQyYzg0ZWRmZjk2YWZkYTA2MWIyYTYwMzBkZTlmYWY3Y2U1NDlkZDY2ODFkMGUifQ"
+        },
+        {
+          "resource": "repo://lib/identify/media.ts#L1-L54",
+          "version": "repo-lines-v1:sha256:a1df373b1aeb398eba318ffc2bf956b8c82b3354d823162d1d0550fd9a304db2:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjMTFjZjkzM2I4MzA4YTZlYTY4ZThiMmUzMzQyZTllYzQ4MjBlMzUyYmQwZjVmYzI2OTc2YmQzZDdiNjVhODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1YjI4NjVhZThiMGE3Y2NjNTM1ZmJmMzdmMDllZGVhZTIxNzlmODY0YzBmMjUwNGE3OWNmMjkzNTIwYmIxYzMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_59e3a216efd3423b98bc0762a900ca40",
+      "statement": "Per-line identification (base-item catalog-number extraction) strips trailing finish/option codes such as '-112' from a printed catalog string like '4430802-112' before using it in web searches, because searching the full ordering string returns little while the base item number returns the manufacturer's product page.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L34-L38",
+          "version": "repo-lines-v1:sha256:789610010bf84d96450254d5bac2eaa63c0ffd9e1c399dca88dd90c87564030f:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMThjYWNkMTg0OThlYjU3Nzg0ZDFhNTdlOTdhN2ZhZWYzMWQ1N2IzMmFjNDJjNzg1YzRhNmNiYzI4NTA3ZjgyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTE2OTc3N2M1YjY3ODQ0NGVjMDMwZDgyODI5YzQyMTdlNTgyMTI4ZDQzYjkyNzk3MjAxNDU5MTJlOWQzNTkwMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWM0NzZmYTdiNjNlZGVkZDFiNzI3NGEyY2JiNDY0YjVjZjg2YmIzMmQxYWM1Mjc2MWM2NmZkYjVlZDNjYTk2ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2MyZTJlYThhMDU1ZDRhYmExMDExMTE1YzdkOWZiMmU3MzFiYWFhZjNjM2M0MTljOWU3NDU4YzBjZDkxZWVmNCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3722aecf2ff54dadb1db52064cd31760",
+      "statement": "The repository is public: test fixtures must be synthetic (invented brands/part numbers) or frozen already-committed snapshots (e.g. __tests__/eval.context.json.gz, __tests__/parity.context.json), and customer bid workbooks, pricing data, or raw Airtable exports must never be committed.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L12-L14",
+          "version": "repo-lines-v1:sha256:f6ffbe75a4c1c5a9b694a6e532ad3036f9ee439bd1dc14932bdf2f05adf59786:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTJjY2NkOGZhMTFjNjMzMWU1NDJiMjI4MmEyNTUxZjIwOWE2YjhkN2ZmNDdkY2ZkNGMyNWFlNzMxOTdiMGFlZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWY3MWEwZGYxYzYxMGUwZDg3Njk5MGY4MDY3NGM2NDZhNWY1YTk1NDM5ZDQyZWY4NTEyYWQwNzk1YjMxMzI5YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjA0ZGRjZWZjNzc4Y2I5YzFmZmUwYTZiNGRlZWZiNzYzN2YzNmM1NTIzNTQ5YWZiOGY2M2MwOTI5ZmUyYmZkNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWZiMDA4YjlhYzYzYmJkYTcxZmVkYmJlOWY1MmE0MGRlZmI0YWQ5MWVlNmNkZDExMjJkMjRkNTIxZTczODMyYyJ9"
+        },
+        {
+          "resource": "repo://README.md#L108-L110",
+          "version": "repo-lines-v1:sha256:d3a6d5a1e458c3fea87a81d512fe607a071016a556c2bc020dc8de7e2e64944f:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDI5MzIxMzdkOTBkMDU5MjkyZjE5ODgxOGZmNTc3MzI2MWQ5MzIyYzA3NzMxM2Y0OTljZjNmZDE5MzM3MWJjYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTY3M2FiYzNiNWRmNmQ2Y2UyZDJkOTIyMmI4MjA0YTA4Y2I5YTliNWRkNTI2NzMzM2FkNTY0MzA3OTVjZmJkYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTViZDYyNzMzYWJjMWM3ZmIwOTcwZmViODgzM2FlNjZlOTc5ZDY1ZTE5NWU4MjAxN2E1MTU4YjY3NjBkODQyOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_acae1e2a1088446d9b58ca49c7285698",
+      "statement": "__tests__/identify-batch.test.ts and __tests__/categories.test.ts are the focused Vitest suites for the batch category-identification pure functions and the engine category-compatibility gates respectively, and are part of the regression net vitest run/npm test executes alongside tuning.test.ts and parity.test.ts.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/categories.test.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:ee6e2f2b5763ff76926a0314ffc61d3b244d73edb764c1650ba7868765fec97a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlZjZlYWQ3NzZlNGU1ZGNjZGQ0MDUwNjJlNTlmNjRmZmRmMmVjNmRmNzQ5OTAyOWUxNDUxZjhiYjdmODZjMWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEyYjY5MTgxYjQxNDljYzI2NzAyYmIwMjVmN2YwZWMzMTNiMTVlN2QwMmI1OGVhNGM1NWY3OGQzNTM3MzBhNWIifQ"
+        },
+        {
+          "resource": "repo://__tests__/identify-batch.test.ts#L1-L32",
+          "version": "repo-lines-v1:sha256:0773cd7d66d334559ad44fa788f68f62bb1347c1e4c8e15e2b20b9352dd1ca66:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwYWY2ZWRkYjU1YTM2NmQ0ZDRmNzExMjFjNmQwOWFkMjJkOWZhNjY0M2Q1MmRiZWEwNTE3OTE2ODhkZWJlMzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4Mzk2NTVjNDRjNjk4NDk2MDE0MjU0NjRhMDkwMTkzZTQyOWRmMDU4MDc5MjRkMzhhYWZhOThiNzg1MTUxZGUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T12:24:50.371Z"
+  }
+}

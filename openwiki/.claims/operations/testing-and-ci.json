@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:48c9110bd8f9091ff57dc7e18266557cc362f33848894db759002bfdf0daf537",
+  "claims": [
+    {
+      "id": "claim_22e57b70f3fd473dafc858769daa658b",
+      "statement": "Vitest is configured via vitest.config.ts to alias '@' to the repo root and run all files matching __tests__/**/*.test.ts in the 'node' environment.",
+      "evidence": [
+        {
+          "resource": "repo://vitest.config.ts",
+          "version": "repo-file-v1:sha256:9197282edccfa58d8e25a4a8b5659052ecb49d145185dafcf984e24e3fda6d11"
+        }
+      ]
+    },
+    {
+      "id": "claim_4b88fa7030ed41f29df6d35a76c881ad",
+      "statement": "The npm scripts test, eval, eval:update, and eval:fetch map to `vitest run`, `tsx scripts/eval/run.ts`, `tsx scripts/eval/run.ts --update-baseline`, and `tsx scripts/eval/fetch-context.ts` respectively.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L9-L14",
+          "version": "repo-lines-v1:sha256:4b692796fd821db5017df1c21bd370b8e22c5438af26d908420e745aeb1abbb8:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTUxYjE4YzA3NWE2NDg3NTJkYTc4NjI3NzY4NjdiMmQ2YTI1MjQ1NWVlNzY5NDQ2MzNmZDUwMDkyM2IyMTBiMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWQxZjY2OTI1MjQzZTIzODUxNjYyOWI4NzVkMzIwYTFiYmRhNjI3OWI0NjNjNzBjMGE3ZDY4ZGE5ODZkM2FiMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzhmNDM3OGQ4NWNjZjdkNjk4YmFmNTcxNmFkMWU5M2ZmYWU2OTQyYmE1ZmIzY2I4ZDhlOGE2YjRiN2FjYTkyMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjRlYTRhZDY0YjJlODkxMGQ3N2RhNWFlMTFiYjA0ZmQ4YzA1M2RhYzliN2VlNTA2NmMzNDc2Y2Y4ODdmNTFhNyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_d7b038d6c5154b64a57fb4ea1d858ba7",
+      "statement": "__tests__/identify-batch.test.ts is a pure-logic suite for lib/identify/batch.ts covering batchSkipReason, selectBatchCandidates, chunkCandidates/planBatchIdentify (including the MAX_BATCH_CALLS overflow path), batchSchema/BATCH_SYSTEM_PROMPT (category enum kept in sync with CATEGORY_GROUPS), renderBatchLines, mergeBatchRows, and summarizeOutcomes, using only synthetic brand/part-number fixtures and no live API calls.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/identify-batch.test.ts#L1-L31",
+          "version": "repo-lines-v1:sha256:80c3a815da7422ad3bd03157ebb1e63129406187e40359719566ca17e13e8194:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlZmUzNjhiYzI1ZGFkNGJmZTM5NzFkNDA2ODA5NmZiZWMzNmRjZDc1MDU5NGZmZGU3YmQzNmNjZjMxZTA1MGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyMTdkOGQ1Mjc3MmJlN2Y1MzVjYjI4NzM1OWM5YWY4ZTVmN2VmYmE4ODc5MTNjYTYwNTVjZTMyMjA2OTlkODYifQ"
+        },
+        {
+          "resource": "repo://__tests__/identify-batch.test.ts#L222-L273",
+          "version": "repo-lines-v1:sha256:7cbd23dcd5bd237ba4a9362b6555feac7325deeec885a8296419ecc28a8cd494:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjM2OTkzOTZjNzIyYzAyMDk0N2E0MDYyODExYzZkZTA4MzI1NTNkZTUyZWE4M2ZkYzZkZTc2NTA1Yzc4YWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ1MDEwMDdjNzFjMzk1NTMwMjI1MGNiMTI5MTdmYWQ3NThkNDMzZTIyMGVjYWQxMDQ1M2YxNjg5ZTBiM2ZiODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEwOWNlOTI1ZDkzNjE5MDUxZWFjYTkwZTA4ZWQ4Mzc1NzZkNGQ4MGEwZjgxOWVkYjFmM2M2YWE1NzhhNTlmNjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_95fb4074560c40e79e1b4db8975d5e16",
+      "statement": "mergeBatchRows in the batch-identify test suite matches model output rows back to candidate lines by lineId rather than by array position, and reports unmatched, missing, or duplicate lineIds instead of guessing.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/identify-batch.test.ts#L275-L319",
+          "version": "repo-lines-v1:sha256:e8219f1e7849e4d1be60d9f79ec299c8bc2ccad18484fd943b41f6afd50b108c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyMTdjZTczZjM2YjRjMWI2N2I0M2NhYWRkZGU5NmMxNGFjZDNiNTU0MWY0YjY4NDNmYjZkNGJlMmUwYjBiOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ1MDEwMDdjNzFjMzk1NTMwMjI1MGNiMTI5MTdmYWQ3NThkNDMzZTIyMGVjYWQxMDQ1M2YxNjg5ZTBiM2ZiODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgxZDE3YzBhZDhiNjk3ZjM3Yjg1YzIxMGNlZDI1ODZjYTA4OGE1Y2YxNzZjOTQxM2FhMmY4YzRkMzBiOTIzZjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8c24c8e57ae8417dbd659f5351c85d48",
+      "statement": "identifyCategoriesInBatch is tested only for two behaviors directly: it makes zero calls and returns a full outcome list when every input line is already handled by the engine (zero candidates), and it rejects/throws when ANTHROPIC_API_KEY is not set.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/identify-batch.test.ts#L378-L404",
+          "version": "repo-lines-v1:sha256:7c7d45bcbba0abf322567d8307fbd19953b32c72e83d68ca7e84e82f5f060c3a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwMDYxMmMyMzVmMDUzMzk1Y2NiMjJhM2IyNjc1Mjk2Y2VmZDNmNTNmMjc2MzVlYjhjZDI3OGI0YmUzNWE0ODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ1MDEwMDdjNzFjMzk1NTMwMjI1MGNiMTI5MTdmYWQ3NThkNDMzZTIyMGVjYWQxMDQ1M2YxNjg5ZTBiM2ZiODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_715fd626073e4c0ba2cbaf2abbd3e5b9",
+      "statement": "planBatchIdentify enforces a bounded call budget (BATCH_CHUNK_SIZE x MAX_BATCH_CALLS); lines beyond that ceiling are reported in an overBudget list with skipped:'call-budget' rather than being silently dropped, and every input line is accounted for across chunks, overBudget, and ineligible.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/identify-batch.test.ts#L191-L219",
+          "version": "repo-lines-v1:sha256:187d7fecb3d97e1db7257325285ec923cbcd6e32aa200d5f4ce9a3d944a5f268:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwYmVkZjMyMjk5ZTM3MDM2OGQ1YjcyOTVlNTJjYjBkMTE0ZTg2MTY2Nzc3M2E3NDc1NThmMjZhMmM5MWNmNDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2ZjFlZjZjM2U2Y2M2Y2ZhZDk3ZDZlZWY4ODM5YWZjYTc2NTNiOTE3ZjA1ODU3NjMzODc5OWM2ZmI2ZGRlOGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI4ZjZhMjQyZDdiNjM2NTRjZjBhMDA5ZjljM2EzNGFlMTQ4MzQ4Mzc0ZWYwOTk2MmY0MGRjZjlhMzVhOGRhMzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0c54d569a48a471a8736e06b3d3628a5",
+      "statement": "__tests__/categories.test.ts pins lib/engine/categories.ts (CATEGORY_TAXONOMY, groupOfCatalogCategory) and the category-compatibility gates in lib/engine/matcher.ts (categoriesCompatible, thirdPartyCategoriesCompatible), verifying every taxonomy group is reachable from both the Premier and 3rd-party vocabularies and that 3rd-party categories are matched against 3rd-party labels rather than Premier's.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/categories.test.ts#L1-L54",
+          "version": "repo-lines-v1:sha256:ceb5a5af0eaa27d4e3985d822a4b39149fb7c9848c0791ba11338b8be8fa30b9:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMDU5YzhjZmI1YTA3MmM2ZjY0ZGQzZDFiZmRiYzM1NmZiZWM5M2FlZWM4ODc5MWRhN2VkYmE4OWMwODg1ZGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzNThiMTY1OGE4NzZlOTA3Yjk3NmJlMWJmNmU2MTBmY2QwOTU3MTFlMTRhZWY1ZDBhYTU0MWUxYWQ2Y2U2OGYifQ"
+        },
+        {
+          "resource": "repo://__tests__/categories.test.ts#L61-L71",
+          "version": "repo-lines-v1:sha256:63acd3d6e65746755174ac2e477005d1ddb034a40e10f7979908cdcdfcc1bf49:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjcwMjU3NTkzZGEwNmY2ODJhM2RkZGE1NGE5ZDI2MGQ0ZmM1MTRmNjQ1MjM3ZjVjYTc0YjA4ZjhkYTYxYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMDU5YzhjZmI1YTA3MmM2ZjY0ZGQzZDFiZmRiYzM1NmZiZWM5M2FlZWM4ODc5MWRhN2VkYmE4OWMwODg1ZGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0ZmM0YWJmM2ZiMDBlYmQ5NDU5YTgxNjk4OWYwYTY2YjMwZGQwODVlNzVhMmUxMmEwODJlZWZhYzA2Y2FjYTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQwMDlmZmQzM2UzNzYzMTQxZTcwNjc3ZTgyMGZlOWUxZGIwYzI4ZjhiZjljYjQwY2EwYzkyZDAyMDQyMGVhZmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f09a16afc54241bdae744530fd8ecdb7",
+      "statement": "parity.test.ts skips any case marked ready:false (so an unfilled suite reports skips rather than false passes) and separately fails a case marked ready that still contains a leftover placeholder value in its input or expectations.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/parity.test.ts#L86-L98",
+          "version": "repo-lines-v1:sha256:ac76771734b8712a8dee608f9942dabfa39e808ef4d20fb9ab03470c6de1751c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MjZiZTU4NGVjNmE5YjBhZmNlMDhhMTZkYjUwMWNhYjYwZmRjNDgwNTE3Mjc4MjE5NDY2MGM3ODE1NjViODQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5YzEzNTkwNjY1NjMyM2QxYzVlYTQxNjU0ZWU2NmFmYjU4NWFjZGNmYWVhY2ExMjFkNWUzMGJmMTkzZWVkZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxZDQyZWQyYjczZTYwZTU1ZjU1MThlMWRhZDZhNWZlNDQ4ZWVkOGY5ZWIwYzA0MThlNzExOTkxNjVhNGM4ODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4NWVhN2EyZGI1ZWMzYTJkOTEzYTZiZTc0YTg2ODRiZWU3ZmY4NmFhY2Y1ZWNjZmM3Mjk3MGY0ZGFkYzRlMmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_488776d4a166406a99a8f551a66e49f5",
+      "statement": "The CI workflow (.github/workflows/ci.yml) runs on pull_request and on push to main, cancels superseded in-flight runs per branch via a concurrency group, and executes npm ci, npx tsc --noEmit, npm run lint, and npx vitest run in sequence, deliberately omitting `next build` because Vercel's own integration already builds and checks every PR.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/ci.yml",
+          "version": "repo-file-v1:sha256:104ca77d22ec3c8298988ae495ade43873b411b512cd5d414651935b5f932f19"
+        }
+      ]
+    },
+    {
+      "id": "claim_3fe130ca19624f5681965d81b3eede17",
+      "statement": "CI needs no Airtable or live API credentials because the eval regression guard replays the committed frozen snapshot __tests__/eval.context.json.gz against __tests__/eval.baseline.json, and the parity/tuning/categories suites run against frozen, synthetic, or committed fixtures.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/ci.yml#L48-L52",
+          "version": "repo-lines-v1:sha256:e9174c5ce0752a68a712622a4fdcc97436f66d31ebc49ed32ebc1fe266d778da:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjJkMDE5YTZhZmJlNjFmNWRkNzJhZjRjMGNmOWRjM2Y4MzA0ZTYyYzg1ZjI0OTdjZmQ0MTdjZmJlZjczODhkZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODNmMjUyZDlmODkyMWQ3OWNjN2UyMWYyMTYyMTY4MDBmMTg2NzIxZTEwMTNhOWFlOGQxNGE4MzQ2YTU4ZTJkMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWFhYTFmMjQ3YzVmNjFjMmI0NDRkYzQ2MDc2ZDVmNjdkZmY2ZDA5NjJlNGQ0NmE5N2U0MDg4NzhhYzc1MzljNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGNkMDE3MjNjN2MwZDZhM2NiZjk2MWYzMjQzMDg2YTYwZWIwN2Q0YzExNzI0MzkzYzk4YzA3YzQ5MjAyZTJmNyJ9"
+        },
+        {
+          "resource": "repo://__tests__/eval.test.ts#L1-L15",
+          "version": "repo-lines-v1:sha256:c06cc04041a3a3c93f3de735e057e76a7d4e8b526e3a0ff036b37002541efdb5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYjU0NGE1ODg2MzQzNTBjMTkxNjlhODI0M2I1MzFiZjMwOTVlYjU3YzhmYjAzZTQ0ODM2OTQzZjA4MTY4ODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFhMGJjM2EwNmQ1ODMyM2VhZjRhOTA5OGU3OWYwMTUyODRlN2I3OWY2Y2I3YjA1MDdiYjJkYmQ2YjBjOTZmODAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0174fc4a66504fd68d2fc7d9f2de8f0f",
+      "statement": "The engine-change workflow for lib/engine/** (or SERIES_CATEGORY_MAP regeneration via scripts/build-series-map.ts) is: make the change, run `npm run eval` and review the case-flip diff, run `npm run eval:update` only for a deliberate reviewed trade-off to rewrite __tests__/eval.baseline.json, then commit code and baseline together so the baseline diff serves as the accuracy review.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/eval.test.ts#L11-L15",
+          "version": "repo-lines-v1:sha256:c13b4065db5cc941046f202e172eb73ba43935779db30e34374948785be97dba:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTIwYmVhODNjYjVhN2ViZDgwNjMyZjNhMGRiMTQxMjE0M2RjODBmOWUxNzIwMWU2YTY4M2UzZjg1ODg2MWUzZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRiNTQ0YTU4ODYzNDM1MGMxOTE2OWE4MjQzYjUzMWJmMzA5NWViNTdjOGZiMDNlNDQ4MzY5NDNmMDgxNjg4MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjBlMGNkOGQ3ZTIxN2RiZTUxOTlmY2M3NjkzMjkwMTg1NTEyMThhYjg4OTMxMzU5YjYzZTU0ZjdlNTZkYjEwZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWEwYmMzYTA2ZDU4MzIzZWFmNGE5MDk4ZTc5ZjAxNTI4NGU3Yjc5ZjZjYjdiMDUwN2JiMmRiZDZiMGM5NmY4MCJ9"
+        },
+        {
+          "resource": "repo://package.json#L11-L12",
+          "version": "repo-lines-v1:sha256:2c0b87d8c73fbb6e6e7446f4e66cb3eb5da5bb1bd5df8fd6230865223b5b0ce2:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2FlMWM3MmJjYzliZGI4YzQ0NjQ4ZTIxMmRjOTE1ZTRmOTVkNzIzZTE1MjEwNDNhYzFkYzQ1NWJmNTliNGFmMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODE5YTA1NTMyYThlMDg2YWU3Mjc4YTZhMTU4MDRjOGVkNWQyODg1MjYzN2ZjOTA1ODBkNzNiNGE0Y2U4MmQxYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWIyMTdhZWNiMTQ0Y2NhZDU0MjNlYWNhZmQ1OTRhZTQ3ZWU5YTEyMDlhMjRjZDc2NzY1ZjhmNGQ1MDE1NGEwZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDA5YjA1NTA5ZGI1OTc4ZjNiYTZhNTc3NThhOGMwMjcxMGM1NmM3YWVhY2RjODM2YTY3YmQwYjI2ZWEwYWQ3YSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3d68f724940849e985391bf9c0a23738",
+      "statement": "The openwiki-update.yml workflow runs `openwiki code --update --print` on a daily 08:00 UTC schedule, on manual dispatch, and on pushes to main outside the openwiki/** path, pushing changes to and opening/updating a PR against the openwiki/update branch, independent of the accuracy/typecheck/lint CI gate.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/openwiki-update.yml",
+          "version": "repo-file-v1:sha256:4a3578003a7a2b13912546449f4656451c8f002fc3449eb576ac780097e54507"
+        }
+      ]
+    },
+    {
+      "id": "claim_92ac21b91fc44a2ea0e4b5174895e158",
+      "statement": "vercel.json disables Vercel deployments for the openwiki/update branch (git.deploymentEnabled[\"openwiki/update\"] = false), an intentional configuration so docs-only automation pushes do not trigger a deploy.",
+      "evidence": [
+        {
+          "resource": "repo://vercel.json",
+          "version": "repo-file-v1:sha256:c1679c721d67f419cb0abc2e898220ea9fb73d55ba9644b076b14ad5fb9fd691"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T12:24:50.371Z"
+  }
+}

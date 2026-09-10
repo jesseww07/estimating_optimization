@@ -1,8 +1,27 @@
 ---
 type: Engine
 title: Recommendation Engine
-description: How analyzeLineItem scores, ranks, and gates VE substitution recommendations against Premier's catalogs and estimator History, including the Phase 4 family/series matching, the null-category junk gate, and the exact-history confidence/auto-select-eligibility rework (agreement + recency-saturation display, autoSelectSafe veto, generic-spec confidence cap).
+description: How analyzeLineItem scores, ranks, and gates VE substitution recommendations against Premier's catalogs and estimator History, including the Phase 4 family/series matching, the null-category junk gate, the learned series→category map, the 3rd-party earn-your-slot rule, and the exact-history confidence/auto-select-eligibility rework.
 tags: [engine, matching, ranking, history, learning-loop]
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-10T12:24:50.371Z
+sources:
+  - id: openwiki-source-a566094572771b4f57097809
+    resource: repo://__tests__/tuning.test.ts
+  - id: openwiki-source-95d577784a5965fc7bbbfd90
+    resource: repo://lib/engine/matcher.ts
+  - id: openwiki-source-3e99fdf568a8b03f8d778688
+    resource: repo://lib/engine/ranking.ts
+  - id: openwiki-source-c22a00e69b49f8253cc88b9f
+    resource: repo://lib/engine/recommend.ts
+  - id: openwiki-source-792702eed9afc0d58670dee6
+    resource: repo://lib/engine/series-categories.ts
+  - id: openwiki-source-45cd7e3b3c6b750574a41056
+    resource: repo://lib/engine/series-learning.ts
+  - id: openwiki-source-6abb52803bfff10f0ab94465
+    resource: repo://scripts/build-series-map.ts
+generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
 ---
 
 # Recommendation Engine
@@ -10,10 +29,14 @@ tags: [engine, matching, ranking, history, learning-loop]
 The engine is the core intellectual property of this app: given one parsed
 bid line, decide what Premier Lighting substitution(s) to suggest, at what
 confidence, and whether the UI should pre-check one by default. It lives
-entirely in `lib/engine/` (`matcher.ts`, `ranking.ts`, `recommend.ts`, and the
-generated `series-categories.ts`) and is pure TypeScript — no React, no
-Next.js, no Airtable SDK — so it can run identically inside API routes, unit
-tests, and the [accuracy eval harness](eval-harness.md).
+entirely in `lib/engine/` (`matcher.ts`, `ranking.ts`, `recommend.ts`,
+`categories.ts`, `series-learning.ts`, and the generated
+`series-categories.ts`) and **must remain pure TypeScript — no React, no
+Next.js, no Airtable SDK** — so it can run identically inside API routes,
+unit tests, and the [accuracy eval harness](eval-harness.md). This is an
+invariant, not a style preference: the eval harness imports these modules
+directly against a frozen JSON snapshot, and any accidental framework or SDK
+import would break that.
 
 Entry points (`lib/engine/recommend.ts`):
 - `analyzeLineItem(lineItem, ctx)` — the full pipeline for one line, returning
@@ -52,7 +75,7 @@ flowchart TD
     H --> I["3rd Party direct match"]
     I --> J["Fans matching (Ceiling Fan category only)"]
     J --> K["Already-a-Premier-item passthrough"]
-    K --> L["Category fallback (token overlap + Times Used, capped 60/45)"]
+    K --> L["Category fallback (token overlap + Times Used, capped 60/45,\nthe 3rd-party earn-your-slot rule)"]
     L --> M["Decorative passthrough badge for recognized brands"]
     M --> N["Own-brand bonus, sort, dedupe, post-dedupe fallback retry, slice(0,3)"]
 ```
@@ -96,7 +119,11 @@ flowchart TD
    "already carried" passthrough: when the spec's catalog number IS a resold
    3rd-party Item ID, the card is "carry as spec" (confidence 99, source
    `'3rd Party'`) rather than a sibling variant — a fuzzy-confidence sibling
-   pre-checked here would write a phantom swap to History on export.
+   pre-checked here would write a phantom swap to History on export. This
+   direct-match tier is an item-# identity check, not a ranking contest
+   against Premier, so it is not subject to the category-fallback
+   earn-your-slot rule described below — if the spec's catalog number really
+   is a resold item, it IS the answer.
 9. **Fans matching** — only evaluated when the inferred category is
    `'Ceiling Fan'`; uses `fanSpansCompatible` for blade-span dimension gating.
    Skipped when History already produced 2+ non-family matches
@@ -107,7 +134,10 @@ flowchart TD
     "already a Premier / Global Concepts item," not a swap.
 11. **Category fallback** (`categoryFallbackRecommendations`) — token-overlap
     + Times Used across Premier and 3rd-party, always `matchType: 'partial'`,
-    capped at 60 (description-based) / 45 (usage-based).
+    capped at 60 (description-based) / 45 (usage-based). This is where the
+    **3rd-party earn-your-slot rule** applies — see
+    [The 3rd Party table is context, not a catalog](#the-3rd-party-table-is-context-not-a-catalog)
+    below.
 12. **Decorative passthrough badge** — recognized high-end brands
     (`PASSTHROUGH_DECORATIVE_BRANDS` in `recommend.ts`: Hubbardton Forge,
     Visual Comfort, Circa Lighting, Arteriors, Currey, Fine Art, Tech
@@ -202,43 +232,141 @@ behind it.
 `lib/engine/series-categories.ts` is a **generated file** — do not hand-edit
 it; regenerate with `npx tsx scripts/build-series-map.ts`. It exports
 `SERIES_CATEGORY_MAP: Record<string, string>`, a series-prefix → detector
-category label map (e.g. `"s7r": "Recessed"`, `"bs100led": "Linear"`)
-derived from the frozen eval snapshot
-(`__tests__/eval.context.json.gz`): every History row that links to a
-Premier Items record is a real estimator decision whose linked item carries
-an authoritative Fixture Category, and the row's Original Spec's first
-normalized token is the series key. A series is considered "known" when it
-has at least `MIN_SUPPORT` (3) linked rows and at least `MIN_AGREEMENT` (80%)
-of them agree on one category label (`scripts/build-series-map.ts`).
+category label map (e.g. `"s7r": "Recessed"`, `"bs100led": "Linear"`).
 `detectFixtureCategory` (`matcher.ts`) and `isFamilySpecMatch`'s series-key
 signal both consult this map ahead of the regex-heuristic chains, so a spec
 whose series is already well-attested in History gets categorized even when
-no keyword branch would catch it. Regenerate the map after every
-`npm run eval:fetch` snapshot refresh, and review the diff like any other
-code change — the [eval ratchet](eval-harness.md) is the
-review mechanism for whether it helped or hurt.
+no keyword branch would catch it.
+
+The learning logic itself is a **pure function**, `learnSeriesCategories`
+(`lib/engine/series-learning.ts`), deliberately separated from the CLI that
+writes the committed map. It has two callers that need the same rules over
+different corpora:
+
+- `scripts/build-series-map.ts` — a thin CLI wrapper: it loads the whole
+  frozen eval snapshot (`__tests__/eval.context.json.gz`), calls
+  `learnSeriesCategories`, and writes the result to the committed
+  `lib/engine/series-categories.ts` that production runs on.
+- `lib/eval/harness.ts` — calls the same function per
+  leave-one-project-out fold, over that fold's history only (see below).
+
+`learnSeriesCategories` walks every History row that links to a resolvable
+catalog record — **either** Premier (via its `Fixture Category`) **or** 3rd
+Party Domestic Items (via its linked `Product Categories`, resolved through
+the shared taxonomy in `categories.ts`); Premier wins when a row somehow
+resolves to both. A row's Original Spec's first normalized token
+(`seriesKeyOf`) is the series key, screened against a stoplist of vocabulary
+tokens ("led", "wall", "recessed", etc. — not product identity) and against
+prose-looking specs (`looksLikeProse`). A series is "known" when it has at
+least `MIN_SUPPORT` (**2**) linked rows and at least `MIN_AGREEMENT` (**80%**)
+of them agree on one of the 12 fixture-detector labels (`LABEL_PRIORITY`;
+"LED Tape" and "Light Bulb" are deliberately excluded — those lines are
+already routed by `isLedTape`/`isBulbLampLine` upstream, and learning them
+here would let the fixture path hand out a category whose gate admits only
+tape or only lamps). Learning from **both** catalogs matters materially: the
+committed production map is learned from 663 usable linked rows (487
+Premier-linked, 176 3rd-party-linked) — Premier-only learning silently
+discarded the ~40% of History rows whose ground truth is a resold item.
+
+Regenerate the map after every `npm run eval:fetch` snapshot refresh, and
+review the diff like any other code change — the
+[eval ratchet](eval-harness.md) is the review mechanism for whether it
+helped or hurt.
+
+### Why the eval harness relearns the map per fold instead of reusing the committed one
+
+The committed `series-categories.ts` is built from the *whole* History
+corpus. If the eval harness consulted that committed map while replaying a
+leave-one-project-out fold for project P, a series whose only supporting
+evidence came from P's own rows would still be available when scoring P —
+the label leaking back into the input through a side channel instead of
+being genuinely held out. This was measured, not theoretical: on the frozen
+snapshot (2026-08-31), 77 of the 129 keys in a widened map had support from
+only one project, and hits resting on those single-project keys accounted
+for 3.93 of a reported 16.87% top-1 — the apparent +2.27pp accuracy gain from
+widening the map was ~95% measurement artifact. The fix is not to refuse to
+learn single-project series (that would throw away real knowledge that is
+perfectly legitimate for the *next* bid, just not for scoring the job it came
+from) — it is to rebuild the map per fold from `foldHistory` (that fold's
+history minus the case's own project), via the same
+`learnSeriesCategories`/`setActiveSeriesCategoryMap` mechanism the harness
+uses for everything else project-scoped. See
+[Accuracy Eval Harness § Why the series map is relearned per fold](eval-harness.md#why-the-series-map-is-relearned-per-fold-not-just-the-history-rows)
+for the fold loop and code path.
+
+## The 3rd Party table is context, not a catalog
+
+The 3rd Party Domestic Items table exists so the engine can **read** a spec
+that names a resold product — it is not a general substitution catalog to
+pick the best-scoring row from. A 3rd-party item may be recommended only
+when:
+
+- it **is the answer**: the spec's catalog number IS that resold Item ID
+  (the "already carried" passthrough in step 8), it is the correct bulb/lamp
+  line for a bulb spec (step 4), or it is backed by a real History precedent
+  (authoritative or family evidence, [above](#history-matching-tiers)); or
+- it **recognizes wording no own-brand item does** — the spec names a
+  distinctive product feature (e.g. "ADA COMPLIANT") that only the 3rd-party
+  candidate's text matches, so it is the only candidate actually reading the
+  spec correctly.
+
+It must **never displace an equally-good Premier item** just because a
+resold row happened to score the same on generic category words. This is
+enforced in `categoryFallbackRecommendations` (`recommend.ts`, the earn-your-
+slot rule, 2026-09-01): every candidate (Premier and 3rd-party) is scored by
+token overlap first, then a 3rd-party candidate is **eligible** only if it
+matched at least one spec token that no Premier (or preferred-manufacturer)
+candidate also matched — a card whose every matched word ("WALL", "SCONCE",
+"VANITY", "22") a Premier candidate matched too is a scoring accident, not
+evidence, and there is by construction a Premier item just as good behind it.
+When Premier has nothing at all in the category, every 3rd-party candidate
+stays eligible, so the estimator is never shown nothing. This measurably
+matters both ways: a blanket "Premier only" would have cost 8 cases in the
+eval corpus whose labeled answer *was* a resold decorative item (Belinda,
+Calypso, Dawson — brands Premier resells precisely because it doesn't make
+them), while the un-gated ordering it replaced let a resold budget clone that
+matched one more generic word take the slot from an equivalent own-brand
+item.
+
+**Exception — preferred third-party manufacturers.** `PREFERRED_THIRD_PARTY_
+MANUFACTURERS` (`lib/engine/ranking.ts`, currently just `['GLOBALUX']`) are
+manufacturers Premier does not itself manufacture but treats as a **house
+line** — Globalux is Premier's primary source for undercabinet lighting.
+`isPreferredManufacturer` matches a normalized prefix (so "Globalux" and
+"GLOBALUX LIGHTING, LLC" both qualify), and `isHouseLine` (used by
+`applyOwnBrandPreference`, see below) treats a preferred-manufacturer item
+exactly like a Premier own-brand item for the `OWN_BRAND_BONUS`. Inside
+`categoryFallbackRecommendations`, candidates from a preferred manufacturer
+carry the `'preferred'` tier, which — like `'premier'` — is **exempt from the
+earn-your-slot rule**: a Globalux item ranks *with* own-brand candidates
+because it IS Premier's answer for that category, not a budget alternative
+competing for a slot against one. Only the ordinary resold tier
+(`'third_party'`, e.g. SATCO, Westgate) has to earn its slot.
 
 ## Ranking, dedupe, and the auto-select gate
 
 - **Own-brand ranking bonus** — `isPremierOwnBrand` (`lib/engine/ranking.ts`)
   recognizes Premier's private-label series (GC/CUSTGC, LUC/LUCIUS, PL-,
   GCL-/MIR-/MDL-/PKL-/FRIS-/HW-, and the recessed/disk-light systems
-  R-/REC-/COM-/TJ). `applyOwnBrandPreference` (`recommend.ts`, called once at
-  the end of the main pipeline, the RFI branch, and the post-dedupe retry)
-  adds `OWN_BRAND_BONUS = 15` to every own-brand, non-passthrough
-  recommendation — but never past the tier's confidence ceiling: `rec.
-  confidenceCap` if the tier set one (e.g. the generic-spec 45% cap), else
-  the family cap (75) or the sub-authoritative exact-history cap (92), else
-  100. This is a **ranking preference, not extra evidence** — it must not let
-  a bonus undo a cap that exists because the underlying evidence is weak.
-  Third-party brands (SATCO, Westgate, etc.) never receive it.
+  R-/REC-/COM-/TJ); `isHouseLine` extends that to preferred-manufacturer
+  3rd-party items (see above). `applyOwnBrandPreference` (`recommend.ts`,
+  called once at the end of the main pipeline, the RFI branch, and the
+  post-dedupe retry) adds `OWN_BRAND_BONUS = 15` to every house-line,
+  non-passthrough recommendation — but never past the tier's confidence
+  ceiling: `rec.confidenceCap` if the tier set one (e.g. the generic-spec 45%
+  cap), else the family cap (75) or the sub-authoritative exact-history cap
+  (92), else 100. This is a **ranking preference, not extra evidence** — it
+  must not let a bonus undo a cap that exists because the underlying
+  evidence is weak. Ordinary third-party brands (SATCO, Westgate, etc.)
+  never receive it.
 - **`shouldAutoSelect(rec)`** (`lib/engine/ranking.ts`) — the UI pre-check
-  gate: not `isPassthrough`, not `familyMatch`, `rec.autoSelectSafe !==
-  false`, and `confidence >= MIN_AUTOSELECT_CONFIDENCE (50)`.
-  `autoSelectSafe` is an explicit veto set by tiers whose *displayed*
-  confidence is calibrated to real-world precision rather than to this
-  50-point bar (currently: sub-authoritative exact-history matches, via the
-  legacy evidence-mass formula described in
+  gate: not `isPassthrough`, not `matchType: 'partial'` (category fallbacks
+  are hard-coded `'partial'` and never pre-check, whatever their score), not
+  `familyMatch`, `rec.autoSelectSafe !== false`, and `confidence >=
+  MIN_AUTOSELECT_CONFIDENCE (50)`. `autoSelectSafe` is an explicit veto set
+  by tiers whose *displayed* confidence is calibrated to real-world
+  precision rather than to this 50-point bar (currently: sub-authoritative
+  exact-history matches, via the legacy evidence-mass formula described in
   [History matching tiers](#history-matching-tiers) above) — `false` blocks
   the pre-check outright regardless of confidence; `undefined` defers to the
   confidence/matchType check alone. Family matches are excluded
@@ -276,13 +404,24 @@ authoritative confidence numbers for History matches are historical
 narrative, not current behavior — trust this page and `recommend.ts` over
 the primers for that tier.
 
+**Every change to `lib/engine/**` must clear the eval ratchet.** Run `npm run
+eval` and read the per-case flip diff before shipping — a change that
+flips cases from correct to wrong is a regression even if the aggregate
+top-1/top-3 numbers look flat or better on net, and `npm run eval:update` is
+the tool for accepting an *intentional* baseline shift after review, never a
+shortcut for making a regression pass. See the
+[eval harness](eval-harness.md) for the full mechanics of the ratchet and
+the flip diff.
+
 **Focused tests for this area:** `__tests__/tuning.test.ts`'s `'exact-history
 confidence rework'` describe block (generic-spec cap, 3-vs-3 split guard, the
 `autoSelectSafe` veto, minority-pick eligibility, space-separated part
 numbers as identifiable keys) is the narrowest regression net for the
-scoring/eligibility model in this section; the `'Largo Station'` and
-`'3rd & Flower'`-prefixed describe blocks cover family matching and the
-direct-match/passthrough tiers respectively. Run
-`npx vitest run __tests__/tuning.test.ts` for a quiet pass/fail signal, then
-`npm run eval` to see the corpus-wide effect before committing a scoring
+scoring/eligibility model in that section; `'3rd-party items in the
+in-category fallback'` and `'a house line is offered alongside own-brand, not
+behind it'` cover the earn-your-slot rule and the preferred-manufacturer
+exemption respectively; the `'Largo Station'` and `'3rd & Flower'`-prefixed
+describe blocks cover family matching and the direct-match/passthrough tiers.
+Run `npx vitest run __tests__/tuning.test.ts` for a quiet pass/fail signal,
+then `npm run eval` to see the corpus-wide effect before committing a scoring
 change (see [Accuracy Eval Harness](eval-harness.md)).

@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:5d56c5abc06f486696d19245ca3a56b079d8ca908a9e2c31f0d21d04c7ad4d17",
+  "claims": [
+    {
+      "id": "claim_ff1ea2aa93d141d987b8c42335cf5f65",
+      "statement": "The app has five server API routes under app/api/: upload, recommendations, identify, identify-batch, and export.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/export/route.ts",
+          "version": "repo-file-v1:sha256:bce9b0c77205d374048a7f4de2a8e95cfa2f8f9078bd642930c094a71584edd4"
+        },
+        {
+          "resource": "repo://app/api/identify-batch/route.ts",
+          "version": "repo-file-v1:sha256:3f27bf1b36237ba14583c0d79f80497d6c670796d7901bcb80f2934e941e2919"
+        },
+        {
+          "resource": "repo://app/api/identify/route.ts",
+          "version": "repo-file-v1:sha256:6ff9fd89127ef03ae60887c80405978beb9a654f8c3b1ec7f9c20df82f56c92b"
+        },
+        {
+          "resource": "repo://app/api/recommendations/route.ts",
+          "version": "repo-file-v1:sha256:047fd9fef882b80c91aba571be798485cc4b4fb70d94e174084440e745be1f5f"
+        },
+        {
+          "resource": "repo://app/api/upload/route.ts",
+          "version": "repo-file-v1:sha256:b5a40d79a11719f6ee42f116b427d85d7a1b4d7e8048bddb0919dc1e58de1b99"
+        }
+      ]
+    },
+    {
+      "id": "claim_8510a21c6b3d4009b12babf88c8b0dce",
+      "statement": "app/prepareUpload.ts is a deliberate exception to the lib/** framework-agnostic rule: it is browser-only (uses canvas/createImageBitmap) and therefore lives under app/, while the .docx reader it depends on (lib/parse/docx.ts) is isomorphic and shared with the API route.",
+      "evidence": [
+        {
+          "resource": "repo://app/prepareUpload.ts#L1-L27",
+          "version": "repo-lines-v1:sha256:80faea7aadd75d5fcc0fc7eacbb9792c6467066c01cc64114358c81387d39f84:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2NjFkZGU3ZjhkOWViMDNhMDQ5MGNiYmUzZmJkYTJkYTFmNDdhNjAzYmJkZDQwYzlkZjBjOTc4MTliMWI2MmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM2YjA2NzcyNGY5NzA0ODMxNzhhNjcxZGY0MzMxYWIyZjVmNWRmMzc5ZWIwYTY3YTI3YjZiZmRhZTVlMGIzNzgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a032921a5f894c098d42ae3457b8835b",
+      "statement": "POST /api/upload accepts either a single multipart 'file' field or a browser-prepared multi-page document sent as repeated 'page' fields with parallel 'pageLabel' fields plus optional 'docText' and 'fileName'.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/upload/route.ts#L1-L30",
+          "version": "repo-lines-v1:sha256:cd6b24356cc67795f33e620c3d416a1c6fb12279e9582de0f512228f784d8667:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNlNDk3MjJiZjZmY2JmNTRmYTEzMmUwMTcwOGU0NTMwOGQ3NTI0Zjg3YTE1ZTExYmVmYTU0OGYwMzBkYTNjY2MifQ"
+        },
+        {
+          "resource": "repo://app/api/upload/route.ts#L157-L168",
+          "version": "repo-lines-v1:sha256:06ed72b94733dab5d594df56f5f0e29a5c1ab0f78e03b72bb5a06db54c4c0609:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiYTgzNzQ3NmNmMDZhMGM2OWRjZDU5ODlmZmQ5ZmRiYzE2ZmE0N2EwZDE2MzQ0Mzc2YmI1OGRkOTYwNDIzMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzMjkxODkyNDQ0MDhkNGQyMmE5Yjc1NDExYzAzYWZjOGZlMDljZjkzZjkzMmY1YmMxNWRkZGFmNWRkZDRkYzMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a5f8a5d8e4ab48e0b09d8eb9d0319bbf",
+      "statement": "POST /api/upload's Claude-read document path accepts PDFs, PNG/JPEG/WebP/GIF images, and Word (.docx) schedules up to 15 MB, detecting the type by sniffing file bytes (magic numbers / ZIP-directory inspection) rather than filename or browser-supplied MIME type, and is gated by isIdentifyAvailable() returning 503 when ANTHROPIC_API_KEY is unset.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/upload/route.ts#L184-L224",
+          "version": "repo-lines-v1:sha256:ee1b2282132cbb0c4a16aa43443e9e9b517fa66243badea14b714c4d35c1e14c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwMjZiMTJiNjc5NmM2MjIyNGJmMDY0M2E0OTlkODAyOTQ0NjIzMjgyNzIxMmI4ZDY3NWQ1NTYxYWY3YjU5NzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYyZDgyOGEwMzdhYzFjODE1MzViMWQ1NTAwODMyMzIzYmZiYjg2NmEzYTNmODdlN2E2OGMxM2EyYmFlNTZmZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMzNiZDMzYWI3M2ZjY2ZkOTA1YWYzMjNhMjk4OGE3MTk0OGI2NzBiZDQ2YWY2MDRjNjMwOTAzODEzYWIyNmYifQ"
+        },
+        {
+          "resource": "repo://app/api/upload/route.ts#L44-L57",
+          "version": "repo-lines-v1:sha256:bdd388216e93cf79e5dc906f5feb2e01ee90de448770013c67043e81bfed31fb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlYzczZWI3Y2M5OTkwODE1NWM5Y2VhYmMwNjk3ZTNhYzZmOTA5ZGI3MWM1N2ZlOTkxYzMxM2E1ZGI3MWEyYjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzZjExM2I5ODA3NTZmYzRiNDU4ZTgzY2VkM2UwYmE5NmQ5YTYxMzMzZjQwMTQxZTNkZmY2MGM5ZmMyZWVhMzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2NWYzMmIxZjE4MzAwYWIzNWQ0MjFiZjc2NTc2YzVkZGUyZDg4NTMzODg5NjA4MGFjNTVmOGY5ZjUxYWM0NGUifQ"
+        },
+        {
+          "resource": "repo://lib/identify/media.ts#L50-L70",
+          "version": "repo-lines-v1:sha256:d29af943ca0f9cdf3645dac16a4fcd25c66d5e45d5be28175ebd771a375ef689:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3MmY3ZWQ1YmVkNzA0ZjM4NWU0ZDM3M2NmNmNiYjgyYWM1M2U2ZDczNjAyNDZmOGEwZDk1ZmI3MWVmMGY3NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5NWU5MDhiYmNlMmJjOTRkMGJiNzMyMDhkYjllMWQ1ODBlNTgxODQyNTJhZDYzNDFmODU2MDk4ZWY5NWY4YzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_53a81aee1231436a9e96ab7aa4dfede8",
+      "statement": "A Word (.docx) upload is planned into pages via planDocxPages (lib/identify/docxPages.ts) before extraction, because a .docx schedule may contain page-image screenshots, inline table text, or a mix of both shapes.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/upload/route.ts#L122-L155",
+          "version": "repo-lines-v1:sha256:b39f6fe8a33b43cea99f6d8415a97cafb46b5f5fcec4eaa9e1af8b1ddf621a1e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkMWYwNjMzNjVmMjU2MWNlMDNmNWQzODZhZTVlMzNhNGFmZTkzZDA2OGUyMGZhNGMwOWMxNWVjMTQ2ODI2NmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0NTBlOTllYmQ3NmZlYzgzYmVhNmQ2NmIzYTY1YjNjZGVkMWEyNzJjZGI0NTAzMzQzZTBlOGZiNWI3M2FlMjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f6ee82dc982a4a5ba51735088be9cdd0",
+      "statement": "The browser-prepared multi-page upload path exists to work around Vercel's 4.5 MB request-body limit enforced at the platform edge before the route runs, which otherwise surfaces to the estimator as an undiagnosable 'Failed to fetch'.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/upload/route.ts#L17-L29",
+          "version": "repo-lines-v1:sha256:18532609db30037f8239fd099475ec52c67b97dad9e988c5ad000740446e19a8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2YTdjMTc2MmRlOWMzNzNmZmY3ZGE3NTA3NWY5YmNhZDY5N2IxZDc0NWMwYjNiMDExYTI3OTJmOTg5YTkyMTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhOWY1MjgwNjA5ZTBkMDYwZDRlZjkzYWVmYzUzZGZiZjllZjNiOWZmYzQ5NmY1ZDU0MjRmZDE4MTIzMjk3NmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJjZGFjMjFlNDU3ODQ4ZTY3YjYwYjEzZDhkZTJkM2Y1ZGYxN2EzM2IwNmFiZmRhMTFhYzFjYjIzMzRjZjZlYTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAyMDQzNGRkY2ZiZWM5Y2M3YmNiNTI2Njk3ZmNmMzcwZTViOGQwN2IxYWRkYTdlMTI0YjM5NWFlOWQ4NzJiMDUifQ"
+        },
+        {
+          "resource": "repo://app/prepareUpload.ts#L9-L25",
+          "version": "repo-lines-v1:sha256:9307a2cd3b6ab37822fe7033128dcc81bc9198003daafb3bd403a940d429bf21:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljZDQ5MTMzNzkyNTY3MTk4YWRmZDRhNmY5MjIyOGYxZTk3NzU2ZmE0YThmNjg2NmIxMzFkNGUyNmI3YzkwYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzNDU1NDk3NmQyZmMxMDAzYzdmMTM4MzZlY2NmY2RmNTNhNjE2YmY4NzJjZDg4NTIzMDc0ZWQ3YTcwMDQ4YmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2ZTBhNzY3ODljMjMzNjQ3YmQ4NDBmYzViZjdhM2EyMjMwOTcyZjgzMGZjYjYxMTg5N2UxNTA5YTcyYWE4MTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e9d984ddd51049a195452af226f64691",
+      "statement": "app/prepareUpload.ts's prepareWordUpload re-encodes each embedded page image from a Word schedule as JPEG scaled to at most 1568px on the long edge (the vision API's own downsample threshold) using a descending JPEG-quality ladder, and posts the pages as separate multipart parts to stay under Vercel's body limit.",
+      "evidence": [
+        {
+          "resource": "repo://app/prepareUpload.ts#L59-L63",
+          "version": "repo-lines-v1:sha256:49cd5ed61c94ef956e1590bb1284b912a32bd78902b6de15a45e82191df4d1e2:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWE1MDNkY2Y2OThkNmI4MTRhYTcyZGMwOGVjMDA4N2YwNWU5YWE2YmZjMThjNmNmMzFlYWRkM2E1N2YxMTkwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjBiNTE3MTE1OGJkYWU4Y2Q3MGQyOGZlN2ZhODFjZDdjMDZkM2E3MmEwNjM4M2RiZTRiOWJjYTA2NDU2YzE0MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTEwMjQwYjU1NTg3OWUxNWZlZDE2YzUyM2ExM2FkMDgxY2VmNzkwNjcyMGM0NTllMmJlOThlYjdlMGI1NGE1ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWY3NWNiNzgyMjJlZjg0M2ZkOTgzZjgwMGU3NjcwNGNiZWU2M2NmMTcxNjI0ZDcyYjQ3YTIyOWFiMDYzNDdhNiJ9"
+        },
+        {
+          "resource": "repo://app/prepareUpload.ts#L95-L198",
+          "version": "repo-lines-v1:sha256:7d68291bb20b77a1d04f3f5a6d0a8c7b636313f244ba0ffebb2491536b91dc95:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlYWYyMmNmMDczMjU5MmMyNDcxNDFjYmU2MWVmYTExMDEyNjEyZjVhMzEyMmI5YWY5YmJhZjUyZjU3MjRkMTk0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkZmFiNzEwZGRmNzg1OWU1NzU3NjRhOTEzYTAwMmM3NDU4NWZmYTcwMDE1MTBjYjg4MTFkYTgzZDJjZjc0YjM0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0OTVkMDkyMTAxMTdhMDZhYzQ3MzIxOTc1Yzc4YTNiZjI2ZTk4ZWIxMmMwNTJmMzM3ZDllNzRiMWNkOTRjOWVmIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_ea4f31e851f54a48afd9ab484c1a9f2f",
+      "statement": "prepareWordUpload returns null (signaling 'upload the raw .docx') when the document has no embedded page images or when it contains literal table rows, since this browser-side path can only carry page images and would silently drop table content; the API route's own .docx reader handles those shapes directly. It throws instead of submitting an oversized request when no quality step brings the document under the upload budget.",
+      "evidence": [
+        {
+          "resource": "repo://app/prepareUpload.ts#L133-L198",
+          "version": "repo-lines-v1:sha256:68cdd005ab7ae13db9f9d3b6d1d20e442589fc77e34d218605da4dae12a9fda3:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiNWJkOTU3OWViYjU2ZDcxODFiNmIyY2E0Y2Q3MDc4ZjRmZDRiODAyNDk0OGMxOTZlYTJmM2Q2NTA2ODc2ZGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5NWQwOTIxMDExN2EwNmFjNDczMjE5NzVjNzhhM2JmMjZlOThlYjEyYzA1MmYzMzdkOWU3NGIxY2Q5NGM5ZWYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_773d0e4bdfac4587ae8adacc75005b7c",
+      "statement": "POST /api/upload's response source field is 'pdf' whenever the document was read by Claude (PDF, image, or Word alike) and 'sheet' for the known-column workbook parser path; this is a fixed route-contract value, not a literal file-type indicator.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/upload/route.ts#L12-L16",
+          "version": "repo-lines-v1:sha256:355704489832206bf54c8b9a43c9f8e50674f61458740db1dcbe9509d3d65b45:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjNlMGQ1ZWVkMWZjMzk5YWQ5Yzc5YTdhODllM2IyZDlhMzg4NmQ2NzJhZjE5ZTQ5NTFkZDE1ZWNlOWZkNTRhYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjIzY2I0YzEzZDY3NzU5ZDU0Zjc2NzFkNDQwMzQ5NzJkMDkwM2EzOWQwOGFmYWU3M2JiOTgxZWI5YWIwZGNmMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjdhYWM4MTBmZTFhMDQ1ZWQ3YTM3NmEzNWRiOTU4YTQ5OTRiMDA5MGFiOGNiZGRiZDJjZThkZTZlNTk5MWJkOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmQzY2IwMmI5YjIxYjBmNjlhYjRlMGVjNGQ1MDQ5MzE5ZmE3ODM4OGU2YjE0ZjY1NmI2YTY4ZjA3OGUxZWY0ZCJ9"
+        },
+        {
+          "resource": "repo://app/api/upload/route.ts#L226-L235",
+          "version": "repo-lines-v1:sha256:d2b58105e3badb0b2e1de9cc368c1e7d726ec40cdf6ff0b7982022ba3a82013e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhYmE3OGU1NzMzOTk2ZjBkZTg2Mzg3ZWM0MDJlNzBkZmM4M2I3NGI2M2M4NjE5YjRiYzQyYzJlNzEwMDIwY2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYyZDgyOGEwMzdhYzFjODE1MzViMWQ1NTAwODMyMzIzYmZiYjg2NmEzYTNmODdlN2E2OGMxM2EyYmFlNTZmZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2ccb7b4fce7e4fd0ae6bfa75fb5d6620",
+      "statement": "POST /api/identify-batch accepts the whole uploaded sheet (optionally narrowed via an explicit rowIndexes selection) and delegates to lib/identify/batch.ts to decide which lines need a Claude call, skipping lines the engine already understands, RFI placeholders, and LED tape at zero cost, and chunking the rest under a hard call ceiling with no web-search turns.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L1-L41",
+          "version": "repo-lines-v1:sha256:669c60b5172fdebdcbc31076deff04c9588f1cc3587523735ccaa3f77464bc16:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViOGVhNWE4MTA5NWVkMGIzYjY2YmZhZWY0ODBhZjQ2YzIwZGNkOWU1ODEyZjJjMGYyZTM1MzdjODM1ZWY3NzQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f569a8ab7499498980d5e37b0fbfe907",
+      "statement": "POST /api/identify-batch amends rather than violates the per-line 'never sweep a whole sheet' cost guardrail because it is user-triggered by an explicit button press, bounded by a hard call ceiling, and re-analyzes and returns only the lines identification actually changed, preserving prior per-line identifications made by the estimator.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L131-L147",
+          "version": "repo-lines-v1:sha256:653a88d0a01a2f22f9878aa2ff13476adffe9034b0c57249dd9c7abf6f66ba87:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmZTI1M2VmMTAyNTc1MDRiNjRjN2VkM2I0OWU4MDEzNzA3MDlkZDAyMzkxNzcwMGIxMmFjNjJkOTJhNDA0NmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1NzU1MmIxMGZjNDEyY2NkZWMzYzU2YjEyMGFiYjc3ODFhNDAwYjBjMDkzOGE1NGNjZGMyYmJiM2RkMzkzZDIifQ"
+        },
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L27-L41",
+          "version": "repo-lines-v1:sha256:44a736b7f8d316f3c9cd07fed05364315af0626b0620c0523f6bb88262c67303:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyMmU5ZTMyZmYzYTQ4NWYxZmM0ZWI4MDE3ODM0NWRmZDNjNTUzMGVkZGQ1N2JlOGZjZDBmMTIzM2MyMTE2N2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI4MzczNGUxZDE0MmM3ZDUxNWM3MjEwMjgwZDM0M2IyNjc0YTMwYzkwZjE4ZWJlNzNlNjBiY2ZiYTg3Y2E1ZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViOGVhNWE4MTA5NWVkMGIzYjY2YmZhZWY0ODBhZjQ2YzIwZGNkOWU1ODEyZjJjMGYyZTM1MzdjODM1ZWY3NzQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f252a370c83b4a64b1c0ffcd823b59be",
+      "statement": "POST /api/identify-batch prefetches the engine context concurrently with the Claude identification calls so a cold Airtable pull overlaps identification instead of adding to it, and runs with maxDuration=300 matching /api/identify's budget.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L116-L130",
+          "version": "repo-lines-v1:sha256:6d56186b7820aae41b89524dd1ec548a29b9bf28a3da14e32eb3e0761c771b37:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2NjljZDgxNDY1YjYzYmQyN2UzZDRiZTA4YzExNGU0YmZjODBmZmY3MzJjMTEyMmJlYTJhNWRlZjBmMzc4N2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlMWY1NmI1YWRkZmY0MmRmODg3OGMwZjg3MDg1OTlmMzZmYWNkMTI3ZmMzNmM5YjI3Zjc3ZTIzM2NlOTY2NzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2YWE2YWUxOWE0OWNhOTA3MzQxMWNiMGFkNzdkYTVjNjQ2YmFmMDZjYjQxMmUxMDYxNjcwZGYwYWJjMzg1MmYifQ"
+        },
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L34-L54",
+          "version": "repo-lines-v1:sha256:4e1b1e57cd32b75eb52e691b4f897d0ef59364a20cf7735344cfa89fdadf83b7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiZTcyODllYWFlYWQ4MzcwNzNjNGUzNzE4ZDE3ZjY0MThhNTVlNDhiMjg5NTEyMmE2YWQ0NDYxZDU0OTI4NWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0Njc0NjUwNDY3MTc4OTQwYTQ3MzZhYTZjNTVlOTFlMzQ4NDY1NGZhMGVlY2UzMjk4MTc3NTliZDQ5ZmI2YTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAyZDc3Y2M2ZmY1NWFhMDFkYWY2ODYwNDVjNWIzYTliMGY1NTUzMzRmNjUyNWIwNDA0YjRjZTZhZDg0YmI1MzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2NGQ4N2JhNTdmODMwN2UzMDdlZTAwYmY4YmQzNjZmMzdhZWY3ZDAwMzJiYWVlYjg4MmUxODA1ZTdiZTJlMzcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1442e62e96d24e24a8921bcf0b07ebe7",
+      "statement": "ANTHROPIC_WORKSPACE_ID is required only when ANTHROPIC_API_KEY is an identity-linked key, which the Anthropic API otherwise rejects on every call with 'anthropic-workspace-id is required...'; a workspace-scoped key needs no value and every Claude call is routed through lib/identify/anthropic.ts as the single place credential/workspace handling lives.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/anthropic.ts#L1-L44",
+          "version": "repo-lines-v1:sha256:68a056ebe3bda2ec7c3da4fc461c4b75ac816b48139745576bf6c4bc3195cc4c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhOGUxODdkMzMzMDdhY2UzMDhlZTU2NTBmZGQ2YWE3NDk4Y2ViYzQzNjNkZjhlOTRhZmVjNjdhMThjNjA3OTcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0916ed4202ca47bda4266ec3f73a7e09",
+      "statement": "IDENTIFY_MODEL (default claude-sonnet-5) is read independently in lib/identify/claude.ts, lib/identify/batch.ts, and lib/identify/schedule.ts, covering per-line identify, batch identify, and schedule/document extraction respectively.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/batch.ts#L465-L475",
+          "version": "repo-lines-v1:sha256:3b856907e1f271296959f7522bbe38f929c37a09049e797c0fd41991cd792040:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmNzljYmM4NWY3NTM3ZDZlMTRiNWNhZDVkZmVjY2Q0ZjRjMTc0Y2U3MGNmYjQzNDBhYmMxMzZlN2MwMDFlZjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzZTIyYTEyOTQ5ZjViZmMzY2FkYTg2NjQyNzMzMDk4MWYyNDFkZjZkZjU4ZGMxZWFkNjdkYTg0MjI4MmIwM2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4MDhhODNjN2UzMjFhMjllYTJmNzY4OGFmYTM4MDk5ZDk1MTJiOTNmODQ1YWMzMjJlYTJjNzBjYWNmNWIzNjkifQ"
+        },
+        {
+          "resource": "repo://lib/identify/claude.ts#L80-L90",
+          "version": "repo-lines-v1:sha256:a9dea2e611cee9e5a43d89526c12383d981c1e437b0f1ad0425de396ea3e9b75:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhYTk5M2NkM2E1OTIyYmU0MWZhYzAwMWJlYmM3MWNmODU1YzljZDM3OTdmNmU5ZGFhNzMzMjQ5ZDMwNzY2ZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAwZDE2MmFkNTUxYzBlMzRhNDUyZDVhZjYwOGEyNjI3ZDUwMmJiZjE1NzhlOTZhYTFhZTAwMTllNTcxNWNlZjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyM2ExNmVkZDI4Y2NkOGVlYWIyMWU1MTllYTExZWY4NDBkNjk4MzgwNjcxMzg0ZWYzN2IwNTJlZmIwZWUxNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyZWQ5NmQ5NTliODcwYjZlNGIwZmFiYWM1MTdlMDMxYjIyOWU3OGFlNTJlN2Y3ZjE4MGE4YjIzOWU0NGEwNGEifQ"
+        },
+        {
+          "resource": "repo://lib/identify/schedule.ts#L40-L50",
+          "version": "repo-lines-v1:sha256:1c7f634af1273c7b5e6408c121498e5e17dd8e5c30d185af259d43089ffb3862:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlMDIzZGE5YTcyMWNkMGVmYzAxMzY0NjE1MTE4MDBmYjI2NDhmNWU2ZWY1ZDI3NDczNzFmYjYzOTQ0NTRmZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMzdjOTM5MmIxMWQ5ODhhNzViYWE0MTk0NDlhMzJkODU5NjA1YmFmNDBjNzQ1ZWJjYTMyMzVkNzQ4OTVmMTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI1OWRhNTBkZTRjNGJhOTZkZTY4ODM3MTlhMGRmODIyMTYwZTk1NzVjYjY4MTQ0YTAxZGRmZGE0ZjAwM2EyMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzNzg2NWExZDIxOTBlYzgwM2IyOWRmZDZhNjU4NWE1NDgwM2QzODZmYTE4Y2Q4NjJlOGMxYzI0MGJhMmFjMzIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_65270d93c1ca4b7892f38a8461f1c9b4",
+      "statement": "app/page.tsx hand-copies plain-data types (ParsedLineItem, Recommendation, IdentifiedSpec, LineItemAnalysis, etc.) locally rather than importing them from lib/types.ts, a known type-drift risk, while still importing executable logic (defaultSelection from lib/engine/ranking, hasIdentifiableSignal from lib/identify/lineSignal, and the upload-preparation helpers from app/prepareUpload.ts) directly rather than duplicating it.",
+      "evidence": [
+        {
+          "resource": "repo://app/page.tsx#L16-L96",
+          "version": "repo-lines-v1:sha256:fd4a2fa997445004d5a1f7d4b0122dfb7f5fde5b9c5a17a66c5fc86193e02cf7:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxYzIwNDgyMTYzNmJlZTFjZTQ1MGQ0ZTBiZjFiZjM0ZmI1ZjQ2ZTk5ZjM4NzQ2ZTdlNDA3Y2JhNWUzMDYyMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1NGQ3M2FhYmYzY2FiYWY0OTIwZWNlMzZjOGU3OGE0YmU4ZjE4MTYyODNhNGJiMzllOTAxMDFiNDQxMWFmNmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyZjAyNzE4YmFiYWNlNTc5NjFlMzA1OTg2Y2E3MDk5YWY2NThkNzZmMDJiNDk5ZjkyYTc5MjcxMzIyOWU1NTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_886148ca91a3441dadbaeec05c1c79d6",
+      "statement": "app/page.tsx defines client-side constants (e.g. BATCH_LINES_PER_CALL, BATCH_MAX_CALLS, IDENTIFY_TIMEOUT_MS, BATCH_IDENTIFY_TIMEOUT_MS) that intentionally mirror server-only constants in lib/identify/batch.ts and lib/identify/claude.ts which cannot be imported into a client component; these exist only to set estimator expectations before a button press, with the server remaining authoritative.",
+      "evidence": [
+        {
+          "resource": "repo://app/page.tsx#L107-L136",
+          "version": "repo-lines-v1:sha256:0c74f36b4fb7b28b5571d5ed150591b698d831a7b77fa8d4cffb4735be2db23a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyNjdlMTgxMTA4NDBlZTkzMjVjZGQ2N2IyOWUwODg2MGUwMDM0NjA4MGFlZWVkNzk2Zjg4OTAxNDM4M2RiNWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2YWQzZmY2YWRmNTY4MDQ5MTVlYWM2NDYzNGYxMzMxOGUxN2IzYThjYmRlNDkxYTJmZjgwMjY2MjY0NDNiNGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEyMzAwZGYyZmQzMjg4ZmZlMjE5YzQ2N2NhZGI5ZGZkMGUzM2YxMjg2ZTkwMzAzOTlkYWI4YTI1OWZhMDk1MDEifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T12:24:50.371Z"
+  }
+}

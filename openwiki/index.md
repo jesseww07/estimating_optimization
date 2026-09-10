@@ -1,5 +1,5 @@
 ---
-okf_version: "0.1"
+okf_version: "0.2"
 ---
 
 # Files
@@ -12,3 +12,4 @@ okf_version: "0.1"
 - [data](data/)
 - [engine](engine/)
 - [operations](operations/)
+- [workflows](workflows/)
