@@ -1,0 +1,406 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:112451e99a8d09ab1610b08fee86f1f046f12d5c4d838b529e833bf0f980d7dd",
+  "claims": [
+    {
+      "id": "claim_5f580a04ab5943079a0af0dae84a8b42",
+      "statement": "Every identify mode (url, web, pdf, batch) ends by merging its IdentifiedSpec into the line via applyIdentifiedSpec and re-running analyzeLineItem, so the recommendation engine's scoring logic is never duplicated inside the identification subsystem.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L135-L141",
+          "version": "repo-lines-v1:sha256:9dcf5769d2e02cb6dfdba14c59f338a71c7410a395f3a853570a91e1a24b4c7d:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWRhYzM2OTIzYjQ3MmIwYmFmZDZiNzljM2E4YzgyYTI1MzBmZWYyMDU3NmM5ZjRiMzg2Yjc1OGNmYTdhZDMxYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTc1OTQxMzk5NjY4MzY2NzMxMzk1YjM3MWU3M2Q1NGUyMDY1ZThhYTEzZGM3ZDg0ZmE0YjU0MGViN2EzNzdlMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzE3MzRkZGEyYjdiNTAxYWIzMGFlYmFlODZiNzEzMDU5MTMwNWM3MGFiYTFkMjgxOWM2NDMyMmZiNmQwNDFjMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzA2ODU3NWU3NTExYTEzNzBmMTc2ZjIyNTQ1NDk0YWQwODM2NTkzYmRlOGExYjljZjk4ZTQ5MWZkM2JhM2FiNyJ9"
+        },
+        {
+          "resource": "repo://app/api/identify/route.ts#L45-L50",
+          "version": "repo-lines-v1:sha256:c9b29fb8060150b732b09b3f1367cb218abf7313f8d2f08888fe866dfd315e35:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGZhMzYxZWFlYTQwY2ZhZDViMTczMzgyOGVhZDk4NmNiNzZiMTgwMWJjYmFmOTYwYjcxYTdlN2I5OTkyNDVkYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDNlNDQ2OGQxMTIyOTQzZGQ2ZTYyN2MyY2FjZGIyOGRlMWVlYjRmNzEzZWU5MThmMDc3NzNkNjY1MGJkZGE1NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDYzNDIzOWY5MTBmZDgyNjNkMzA5NzQ0ZWFlNjcxNjFlMDNlODI0OGM2N2M4YjE0YjliZjhmYjIwOTg4YzRkNSJ9"
+        },
+        {
+          "resource": "repo://lib/identify/apply.ts#L1-L33",
+          "version": "repo-lines-v1:sha256:47440bb316a4f999801643cbd50292ab7669889ce2d172be366d5afdf976461d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e44dc41932d54df6b56cc57339835427",
+      "statement": "applyIdentifiedSpec preserves the estimator's typed catalogNumber whenever it is usable (non-empty and not a URL), only falling back to the identified value when nothing usable exists, so identification never disconnects a line from prior history keyed on the original typed text.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/apply.ts#L14-L33",
+          "version": "repo-lines-v1:sha256:2e6db4da9233e0f8f1d277b7b1b79325dc050c67fae957201def04d506ace3d0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkODk4YTBmNTI1NzM0NmQyZjRhNDIzZjJiY2M3MzNhODgzM2ZjZTU5YWE4MDZkOWUwM2MwYjlmZGUyNjU5NzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4ZThlOTM3NGExZmQ4ZmI2ZjlkNzQyY2Q0YjM5NGZiYWQ5MmQyNzMwMzFlMjcxZTkwMzU4YmI2ODBjMDA1YzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4bc70a922d4d4b7e9ef7a28462c5d237",
+      "statement": "lib/identify/spec.ts builds the structured-output category enum live from CATEGORY_GROUPS in lib/engine/matcher.ts (via ENGINE_CATEGORY_LABELS) and toIdentifiedSpec re-validates the category against that same vocabulary, so both the per-line (claude.ts) and batch (batch.ts) identification paths cannot diverge on which category labels the engine will accept.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/spec.ts#L13-L20",
+          "version": "repo-lines-v1:sha256:b2e2d05497b7aca9a09d1b56c46edc6446a4562578e96a450e6abe70e5d34c1f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNWUyODFkOTUzYTg3MDMzNzFkYTU3ZjVjY2E3M2RhMmU0YmMyMjc2NTVhOWFmMmY4ZjBhNTdhNTIyYTg3MTJlNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjVkZjlkMDcxNTA1MmQwYzQ1ODM3ODljYWU5MWY2MTA4M2NlZDNmZjlkY2NjMjRmMTAzNTdmN2QyODAzYjFjOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWZlZTQ0MjY2NjQyMmZkOWY0NTZhYzY5ODUyNzEyOTg0NjM5YWE0YzJlOGNjNzQ5YTRiMWNmYjEyZmQ4NDM4YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDA5ZWNmMTNjNzQ1MWViZTQxYzUwMDE5ZTA1NmMyNDMyNzRiNGYwOWE1ZWExOWYzNTJkMjYwYmIwNjY5YmU2MSJ9"
+        },
+        {
+          "resource": "repo://lib/identify/spec.ts#L99-L107",
+          "version": "repo-lines-v1:sha256:dbc5ce3de4196f4dc909148673c2f8ef0dfc3271a69eafbe6fe99a8c98abae65:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjhhMjY0ZGI0NTc5ZTQzMDFhZmYzNjViYjA4YTE3NjE3ZWU3Mzg3MWYwYTk1OGYxOGQ1MGRjNTM0YTI2YzNmYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMGI4NzgwMzAwMGZlMWUyZjAyOTkxMzQ5MTNkZTZiY2YzNmJjZmNjMzQ4NTFmYjI2OGQwN2JmNzFiN2QwMDU2MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDk3ZDRkNjdlNGQ4OTczOWVmNzNmMDE4MWM2ZDliOTdlZDE0Y2Q4NDI5OGMyYTc3NGQwOTQzMjE4MjY3Y2E3NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmJjOTlhZGIyMmZiZjkwNWE0NDBkNDA3YmFlODIwMDAzMTVjOTZjZDViN2YzZTNmZTE5M2RiMzAxNTdkNDYwYSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_e68c7227d977443ea3031d979f7291db",
+      "statement": "lib/identify/catalogNumber.ts splits a bid line's ordering string into a base item number plus trailing configuration codes (finish, CCT, wattage, lumens, CRI, voltage) so identification searches the base item (e.g. '4430802') instead of the full configured string (e.g. '4430802-112'), which returns far fewer/no useful web results.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:c6fc0b4b916162debaa24c86dc95872781e4b0dd8c7bf11d64103dd21f90b757:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2YzRmOGZiMGZiZDIyYjMyNTg1Y2Y0NDM1YjNkYTM0MzI3OTc2Njg2MTA3YjhmNGU1OWU5ZmMyOGIyMzMzYTMifQ"
+        },
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L134-L159",
+          "version": "repo-lines-v1:sha256:46e984654717b732f49cda77547655637587455b9e8f045e8a4fb21062f68a41:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwZDcwYmQ3ZTFlNWEzMTQxYzJiZGYyZjQ4ZWYzMGE4NmU5MTRkNTg5NWE5Y2IxZDczNTY2NWVjMGJiNGFmZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4NGY2MTY3NWI0NDdhMmY4ZDk1Nzg5NDYyOTUzZjcyMTVmZDAxMjQ4NDIwMzE1OGIxODg0YzQzYTUzMTg2ZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyM2VlMGI4NjQwODI2OTM2OGM4NTJlNGIxY2U0MGM2YTQ1ZjA3ZGVjZTEyYTU1NTM5NzRhM2FkOTI2YzE4NjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3ede5f52454147739588a9e6be1c2e24",
+      "statement": "lib/identify/catalogNumber.ts is deliberately import-isolated from lib/engine/matcher.ts in both directions, so identification-prompt changes cannot affect the eval-ratcheted engine matching logic and the engine cannot be perturbed by base-item extraction changes.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L17-L20",
+          "version": "repo-lines-v1:sha256:d4ad9881c7c134f85072dd6cdca7a3746ad240bfb90b75b8eb1556cd7a7b3935:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2JmMzIzYzEzN2VlZDdjMTUwZGQ4MmM5ZjE0MTlhOTkwODQ2NjhhNDlkNThhMWQ0YmQ3MWVkYTYzNzY0YjIxZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyYTQyOTM4MmIyZTE0NzE4ZTBlMzdiMDU3MGE4YTE3MDI5OTFmY2Q4NDk4Y2Q4NDA2MGE4YmY0ZjA1MDE3YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDQ4MmMzMDNhZTgzNjhmMGI1ZDJjODg1ODE1MTJjMjNhOThiODQzNDNmZTM4NWQ3MWZkNWI5N2U2MGJjY2VkZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDZjNGY4ZmIwZmJkMjJiMzI1ODVjZjQ0MzViM2RhMzQzMjc5NzY2ODYxMDdiOGY0ZTU5ZTlmYzI4YjIzMzNhMyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_c368771a2fa040c9acbc26e341319464",
+      "statement": "Upload-time schedule extraction (lib/identify/schedule.ts) plans long PDFs/images over page-range passes (PAGES_PER_CHUNK=8, MAX_CHUNKS=12) because a single extraction call has a 32000-token output ceiling that a normal ~200-line schedule already exceeded in live use, and a document at or under one chunk's pages is always a single whole-document pass.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/schedule.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:4f18b53abc7e6b4642dd7b108b0727e4fc2183726e05a5caf529f019e9083749:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmNTZkYWUwNGM3YWNmMjQyMjVlMmVjNTUzNDBiZThjZjU1MzJkNjY1YTg4NDczOThhZWFkODBjNDFjN2MyOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3NjIzZDRmNTI3NGY4YzhhY2YwNzJhMjg1YTMzYTE3ZDkxMzNiMjQ3OWNhMDkwZGRjY2M3MDhhZTMyMGViM2QifQ"
+        },
+        {
+          "resource": "repo://lib/identify/schedule.ts#L158-L177",
+          "version": "repo-lines-v1:sha256:7015824e904d8d8cd7340501005bba7e0dd0f4f9a630eaeb10835b9e864d7fd8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyMGY5OGZkZGIzNmQxMThhNjYyOTUwOTA4NWFiYTBmYTU2NDRkYjg2ODJlYzM2YjVkMmJiMWMxMjdmZjVmNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMwOTcxNDE1NzNhMzc5MTViYWRkYmM0ODFjYmFhZjlhZmM1ODEzMzVmNzg1MzI0ZjUxODczMjY5NGE2ZDgyZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczMTMzN2JjZDM5ZTNiZWQwZjJhZDVlOTk4NWMyMGE2ZjIwYTA0ZjIxZjUzYWFkMTNlYWMwNzlkMWY0ZWI2ZjkifQ"
+        },
+        {
+          "resource": "repo://lib/identify/schedule.ts#L48-L53",
+          "version": "repo-lines-v1:sha256:cccd1d0c8eb714d429603ce2d19a1f2003bd8814f847ba40c6bbebc59f97b26a:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzQzZTdmMDExYmFkOWVjMGE4NDI5MmE2MGY5MzEzODY0ZDkzOTI0NTgxMTRiYWRkNzEwMzU1YTE0ZmI2MDczMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTNhODliNmFkODRhYmZkMWQ4OTQ5NDU4NDM3MGJjNTI2YjhjMDU2MTA0YzU2YTliY2QyNmMxMmM5YjgzZDIwMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGZjMDlhMDM5ODMyZWJiYTIzNDkzM2ZkY2NmY2VjYmRlMGEyYzRiNDU1OWYzZTk2MTQ5YmFiYTYxMzdmMTU5OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjg3ZmY0MGIwMWM3ODlmN2IxYzBhYTRkYzgxMTY0ZTQyZTgwMzJhNDUyOWM0MzY3MTY3NmU3ODc2ZDNiNDY4YiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_56d77ef5f95d4eaaa317e1791bba7ec0",
+      "statement": "For PDF/image schedules, each extraction pass attaches the whole document (with an ephemeral cache breakpoint from the second pass on) and scopes itself via an instruction in the prompt, because the Messages API has no page-selection parameter; a pass that hits stop_reason=max_tokens is discarded and its page range is halved and re-queued rather than failing the upload.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/schedule.ts#L16-L20",
+          "version": "repo-lines-v1:sha256:009a2fb2bd22789cddd11633afc5df8f85506a8d0043c5f3080d299278a4f18a:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDBjYjVkZjdkNzE4NzIyNzZkNzQ2YTQxNDZkZGJiMmNhMThjZjU2MDBlNDU3OWJhZjdiMTZlMjRmNmQzZDZmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmY1NmRhZTA0YzdhY2YyNDIyNWUyZWM1NTM0MGJlOGNmNTUzMmQ2NjVhODg0NzM5OGFlYWQ4MGM0MWM3YzI4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmNmMzE1N2RlNDMxMjIxNTIyYThhYjU5OGQ4MmQ2N2NlYzRkMmMzYWYxZWJkMDkyNWI4MzBkMWQ2Mzc2NWFiNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDc2MjNkNGY1Mjc0ZjhjOGFjZjA3MmEyODVhMzNhMTdkOTEzM2IyNDc5Y2EwOTBkZGNjYzcwOGFlMzIwZWIzZCJ9"
+        },
+        {
+          "resource": "repo://lib/identify/schedule.ts#L283-L341",
+          "version": "repo-lines-v1:sha256:e771a43ee3b742b162487bd2fadc90f8b9b33027a2fcf9e105d789946b9bbade:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjZTJkM2FmODhhZWVhNWFlZTc4M2EzNTk4YjhlYzdmYzEyMTY0NDliODQ3OTJlYTc4YWY3MzJkNDA4MzBhODQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5Njk0YWRlZGRmZmY5NmFmMDJkYzg0YWJiMDg2ZmQyMTJiY2I1NGVkZjdkMTI4MmU3YWYzMTJjM2MxMzczNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNlOWQzOTJjZmVjNmNhNDE0ODc3YWJjZGEzOWE4ODcxOTg2MzdkZGQ1MTU5NTIyMzc1ZWZhMWQ1ZWNjM2MyMDcifQ"
+        },
+        {
+          "resource": "repo://lib/identify/schedule.ts#L363-L400",
+          "version": "repo-lines-v1:sha256:cb9102870ca0978c17f2a7bbb89407502dcaad96c6c3e0bd15701cb4e3df687d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiNGY5ZWVmZjRlMDk0ZWI5MmI4NDM5MmEwYjZmMmU2ZjcxMzNhZmViMTI4NTNkZWZiOGZmODMzMjdhZDVlOGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNGQ5NjA1ZDFjMTQxNzQ4OTM4OGUxNGQ0ZTlmNjE0ZGQ5ZWNhNGQ4ODczYTk3YjJiYzdiMTU2NmIwYmNkZjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5Mzc1MDA5ZTZkOWNmMTJjZDY0M2M5N2IyNzc0NzJlOTg5NGY2ODliMDJmMzQ2MjU1MmYxN2MwNDUzZjZjZjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQwOTI0ZjY2OTM3ODM1YWIxMzhhNTEwNmVhZTg1Y2ZhOTY3ZWM0OTc1YjU4MGU2YjM4MWViMWJhODk0MzJkN2MifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0d44a59236fc423f88d5fafe7e1eb9ca",
+      "statement": "Section/location carry-over (lastSectionOf/buildSchedulePrompt) tells each schedule-extraction pass the heading in force at the end of the previous pass, and boundary-duplicate handling (appendChunkRows) only drops a leading incoming row when it exactly matches mark+catalog+quantity of the last two accumulated rows, to avoid losing a genuinely repeated fixture elsewhere in the schedule.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/schedule.ts#L179-L247",
+          "version": "repo-lines-v1:sha256:a5a72758194d2684020a275c82e20fc68aca6875f70f31f76cf8f26192d71783:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4Mjk4NWJkODRmZTc1MjhhNzc1NDZlZTBjN2NhMzQzNGQ4OTMxYTUxNWM1NzFhZmRkMGMwYWQ4OTJhZWM0MGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkYjg1ZTZiZDE2ZWNlYTc3YWFlNzQ5MWIwOTQ4ZWY2YWE3ZTk1NWE4M2QxMGYyYTljNDFiYzJlYjIyMjFjYWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_77a9e125c844450098fb8d300d8b2149",
+      "statement": "countPdfPages (lib/identify/pdfPages.ts) determines PDF page count without a PDF library by reading /Type /Pages /Count and /Type /Page markers (inflating FlateDecode object streams as needed), is deliberately biased high, and returns null when nothing usable can be read so the caller falls back to a single whole-document pass.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/pdfPages.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:7c5958e4e32cf83109938bd527998d1f25df3013fc560b5b66380a43ee0f423b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzNzFkM2I2YWI0MWQ2MjE1YWU1Yjg1MTA5MzM5YTFkNjE0MjM0ZTg4OTI2NjNiYWFkNTA5YzdkMWIzNmE0YjMifQ"
+        },
+        {
+          "resource": "repo://lib/identify/pdfPages.ts#L99-L100",
+          "version": "repo-lines-v1:sha256:90e882f16450d2ba2af35deb62cd1236f2948b10cbddc0299a3645bbc0adf777:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmMwODMwMDM1ZTI3YTJhM2YwOGJjZWEyOTFjOWE3NGE5Nzk1OTgxN2EwMzI0Nzg1NjhkNTNkN2ZlNmI1YTNiZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDQ1ZmZmZjVkY2ExYjcwOTk4YmQ2NTA2ZGNiODJiYzVkMjhhMzA1NmJiODI2N2Q1ODg5M2IwOTM4MjJiYjAyNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYzODcxMDkzZmQ4MGRlZDA1NGI1MDc1OTUzYjA1MjlkYTExZmQ4OWJkYzcwOWEyZGI2OTM4OTgwNTZmOTMzZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmRkYmU0ODdmOGU5YzYwYmVhNWNmNmQzZjAyMzIyYjAzODA5YTg0ZTE5NmI5MDAxMzU3MGU2ZDRkYzBjOTM4MyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_df78fe0254dc4b849efe37fe12edf12a",
+      "statement": "A .docx schedule is read via lib/parse/docx.ts into an ordered list of text/image blocks, and lib/identify/docxPages.ts deliberately treats Word-table rows and pasted-in screenshot images as both-present rather than either/or, because picking the image path whenever any image exists would demote a real Word-table schedule's rows to unused context.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/docxPages.ts#L1-L21",
+          "version": "repo-lines-v1:sha256:42bf9e1ba0827091829c50025f58a65b875e6f37de9869160b81f0665070f4e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5OWQzZGY3OGRmOWNmOTQxNjhlNWM4MmYxMGZlMmFhNWI3YTlmNTQ5ZGE4Zjk2NDRjNGQyYjE0MWFhNTQyMjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0MTJlYmRjZTI5NTE5ODZiZWZhNGFhOTJhYWEwNmUzZmE5ZDIzZjBmNzE2NjNiZDA2MjkwZjAxZWRhMDhiMmIifQ"
+        },
+        {
+          "resource": "repo://lib/identify/docxPages.ts#L80-L120",
+          "version": "repo-lines-v1:sha256:a07eda64b4ebfcc122e341189d9835470e15e422f4ab00eeb29f4eb14723d641:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwNWE4MWIyMjQ5MWJhNjhjMzQ1NjA0NDA1OWU4NzcyZjgwOGE4YjkyZjlmOGZkY2Q3ZmQ3OGY4YmM2ZTE1NGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjViZTVjMWFiMWVkNzkyNGIxOGYyYThjNmFhYzk3ODU0ODdmOWRmMTJlNjE0NTI3NzAxZjAzNGZlNmY1ZjMyNDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcwNjJmOTYyM2I5MGU1OGVkZDg4ZTgyMjA2MTZkY2FiMDJlZjc1NmVmYmQ4MTllNWFiOTU1MTMxNTE5ZDI5NjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg4M2JjNjg4ZTU0NDJjM2RiNWEwYWVkZmJkNjk3ZGQ5N2NiYzY5NDM1MDkyYjk1NGY3ZDVmMTJlYzE2YmJkNDMifQ"
+        },
+        {
+          "resource": "repo://lib/parse/docx.ts#L1-L24",
+          "version": "repo-lines-v1:sha256:26d3253060f7097fbd3f88995bd5e8b6654cc78672830fe6a4487a2ad68ae906:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4MGZmOWUwZjNiMmFlYzlmNGE3NjNlZmU3MTFkM2Q2NGMwMmNiNTQ4ODUwNDU3N2NhMDg3MTA4OTQ2MTUyN2IifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f5c725102d454187a9c9e58aa99e6c34",
+      "statement": "Word-document schedule extraction (extractScheduleFromPages) physically slices the page list per pass and attaches only that pass's pages, unlike the PDF/image path's instruction-only scoping, so a page outside a pass's range cannot be double-read or dropped; MAX_PAGES caps total pages and document text context is truncated to MAX_CONTEXT_CHARS=6000 because it is resent on every pass.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/schedule.ts#L405-L449",
+          "version": "repo-lines-v1:sha256:6fe271ec52b79682e209c78f45612378341404e762ab8d3103026cfbbd3869cb:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2ZmI5YThmYzMyZGI4NDQxMDMxOTM5Zjc3OGRlZWZiM2NmMjI0MTJhMGMwZTY0NmZmNjkzN2NkZmE5OWMzYTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlmODYyMTFlYjkwY2M5NDU4MTYwMWJiZWFkYjE1OWY2ZDQ2MmY5NjMwZTc5ODg4YjM1OWNiYzU1MzUzMjJjNjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwNDMxZTYyYWZkMGQwZjFlY2UxNTIwZjdmYTFlODc0NDMxNTdjMDhlNTBlMjllNWM1Yjg1YzFhYThlZDdmYjMifQ"
+        },
+        {
+          "resource": "repo://lib/identify/schedule.ts#L462-L484",
+          "version": "repo-lines-v1:sha256:4ea790aaa7a0556ec09e43c3cb3e3c63958981832cdaa677d82e572e53ea2192:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkOTZmNTNhYmViOTE0OWRhNmI2OThiYWZjN2Q5NTRjMmFhN2I5ZWJhOTYxOTI0NWJmZTAyZDA1YTdjMWYxODkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1ZWFmOGQxOTkwZmZiZjhhZWY0NTUyM2M1ZjZkOWE3ZGU4M2ExNzUxYzZkNDEzYzljZjEwMGU2YTE4ODIyNmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM3OTBkNzMwN2RlYzg0NjNkYmMxMmVjNDBhNTA0OTgwYzkwYWM5ODcxMjk5MmQ5ZTk5ZjU2YWE3YzRhMTVjM2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5ODczZDg0MTljMzNiYzE1MTY0YTY1ZjEzOTQzNGEwYWIyMjk3NzhmNmE5NjUwN2M3NGJiODc0ZjU0NzEwYjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_421f61dd27ff42828aebded3dffea997",
+      "statement": "app/prepareUpload.ts pre-splits a Word schedule into recompressed page images in the browser, because Vercel enforces a 4.5MB request-body limit at the platform edge before the route runs (surfacing to the user as a bare 'Failed to fetch'), and a schedule .docx's bulk is almost entirely its embedded page screenshots.",
+      "evidence": [
+        {
+          "resource": "repo://app/prepareUpload.ts#L1-L25",
+          "version": "repo-lines-v1:sha256:95f7346a6c29d2a5b218865117bad3dd063936b5bedd9ff98c28dd54112a678e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2ZTBhNzY3ODljMjMzNjQ3YmQ4NDBmYzViZjdhM2EyMjMwOTcyZjgzMGZjYjYxMTg5N2UxNTA5YTcyYWE4MTgifQ"
+        },
+        {
+          "resource": "repo://app/prepareUpload.ts#L29-L46",
+          "version": "repo-lines-v1:sha256:3cd7ad0c209f3c9587c9d7efe2843c2acc56c49ea1ac9cbdef0d5325d9962df7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2ZTBhNzY3ODljMjMzNjQ3YmQ4NDBmYzViZjdhM2EyMjMwOTcyZjgzMGZjYjYxMTg5N2UxNTA5YTcyYWE4MTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZmZWFkM2QxYTlhMTgxNzQ3ZTM1ZmZmZjEzNGMzMWJhYjU0OTMyZjZjMDFkNTNkMGEzNWRiYjczNGJkODI5OGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f3136f2c047c4128a7135db260d55c9c",
+      "statement": "prepareWordUpload only recompresses and pre-splits a Word document when it has page images and no table rows, tries JPEG quality steps [0.85, 0.7, 0.55] scaled to a 1568px max edge (the vision API's own downsample threshold) until the encoded document fits the upload budget, and returns null (meaning 'upload the raw .docx') when the document already fits or has table content that this path cannot carry.",
+      "evidence": [
+        {
+          "resource": "repo://app/prepareUpload.ts#L133-L198",
+          "version": "repo-lines-v1:sha256:68cdd005ab7ae13db9f9d3b6d1d20e442589fc77e34d218605da4dae12a9fda3:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiNWJkOTU3OWViYjU2ZDcxODFiNmIyY2E0Y2Q3MDc4ZjRmZDRiODAyNDk0OGMxOTZlYTJmM2Q2NTA2ODc2ZGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5NWQwOTIxMDExN2EwNmFjNDczMjE5NzVjNzhhM2JmMjZlOThlYjEyYzA1MmYzMzdkOWU3NGIxY2Q5NGM5ZWYifQ"
+        },
+        {
+          "resource": "repo://app/prepareUpload.ts#L59-L61",
+          "version": "repo-lines-v1:sha256:0c0a2b5c4de50bf17e4faf57d575b725a4de65b570c164cfd11c5b4558d3cf14:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWE1MDNkY2Y2OThkNmI4MTRhYTcyZGMwOGVjMDA4N2YwNWU5YWE2YmZjMThjNmNmMzFlYWRkM2E1N2YxMTkwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTEwMjQwYjU1NTg3OWUxNWZlZDE2YzUyM2ExM2FkMDgxY2VmNzkwNjcyMGM0NTllMmJlOThlYjdlMGI1NGE1ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTFjZDdjNTJhZDQyMmQ3MTkwMTg5NGI4MzExYjIxNzljNzY5MjQ0MTNmNGQ2OGM3MWU1NmRlYzg0YWY0ZWQ5YiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_fecc2f1bf83c402aa08a1690542b8ccb",
+      "statement": "lib/identify/media.ts sniffs upload media type from magic bytes (never from filename or browser-supplied MIME) for both PDFs and images, because both are routinely wrong in practice and the Anthropic API rejects a mislabelled media type; app/api/upload/route.ts similarly distinguishes .docx from .xlsx by ZIP directory contents rather than file extension.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/upload/route.ts#L207-L213",
+          "version": "repo-lines-v1:sha256:5bdfeb83e4870b6287f7839365aebdc25f18808ebb595885cb4dff225cbcbfc5:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzY1OTRhN2NiYWQ1ZWY1MWFjMzU4ZWM4NTA5MjU5YjM0MTkxMWQ1YWViYmFhNWQxMzVkZmQ2NTYxMTBmZmU0NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTRkZDdhZjAxMmMyMGNjYTdjYjBiODJkZWFhZmNjMGM5MzM0M2NmODcxZTAzZWM3ZDliZGUyMmRkMzUwN2I3ZiJ9"
+        },
+        {
+          "resource": "repo://lib/identify/media.ts#L1-L18",
+          "version": "repo-lines-v1:sha256:8382eca956e77070c1aeb50380611d5f2e74e16c12001d241b52978732f14e93:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBhMzIxODY3ZDlmY2VjZWE5MzdhOTBiYzQ2ZjI1MzNkN2QwOWM3MjI2ZGJmMzQyYTY1ZDdlNzdjMDg1ZTE3YTcifQ"
+        },
+        {
+          "resource": "repo://lib/identify/media.ts#L54-L70",
+          "version": "repo-lines-v1:sha256:b3ae82f33a8762d6119261d39a38ff9ea75a67318f4f71ae857625a7256d24d2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjMTFjZjkzM2I4MzA4YTZlYTY4ZThiMmUzMzQyZTllYzQ4MjBlMzUyYmQwZjVmYzI2OTc2YmQzZDdiNjVhODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3MzcxNDhlMWYxMTE0NDgwYTMwNmM0NGEwMDRlNDViMWY1NDY0NmNkYmY2ODY5M2JhNzk0MjhhOWEwMTQzNzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5NWU5MDhiYmNlMmJjOTRkMGJiNzMyMDhkYjllMWQ1ODBlNTgxODQyNTJhZDYzNDFmODU2MDk4ZWY5NWY4YzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_146e82319eae453cabeb3a2ad4bf2031",
+      "statement": "Per-line identification (lib/identify/claude.ts, POST /api/identify) is strictly one Claude call per request per line and is only ever triggered by a user click; nothing in the module may be called in a loop over a whole sheet, which is the property the batch pass at lib/identify/batch.ts amends rather than violates.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify/route.ts#L1-L22",
+          "version": "repo-lines-v1:sha256:658670848a86e01ea709a807d5e7103d6c1e2e30becbf3d2e6458642c5663fcb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViOGVhNWE4MTA5NWVkMGIzYjY2YmZhZWY0ODBhZjQ2YzIwZGNkOWU1ODEyZjJjMGYyZTM1MzdjODM1ZWY3NzQifQ"
+        },
+        {
+          "resource": "repo://lib/identify/claude.ts#L1-L33",
+          "version": "repo-lines-v1:sha256:b91d936f2da9c371a859ddbd10231331414836480f6355229f2b202ad2f97c47:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMzODczN2VlNzg2MWU3ZjQ1YTJiNWU0ZTY4YzUyYzJlMjg1M2Q0NTY5ODAyNGQ1ZTZhYTJhZTViNWQzODg2MjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ae1b43f2af934b829f3c19c9805a8368",
+      "statement": "lib/identify/fetchUrl.ts fetches a pasted spec URL server-side with SSRF hygiene (public http(s) only, blocking localhost/.local/.internal hosts and loopback/RFC1918/link-local numeric IPs and IPv6 loopback), a 10s timeout, a 10MB body cap, and strips HTML to plain text truncated to 40,000 characters before Claude ever sees it.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/fetchUrl.ts#L1-L41",
+          "version": "repo-lines-v1:sha256:8e964c43640ecd8fc95e853eba0722bb74831212a1bc3d525a34ad15f8355707:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgzODEwYjA5YzhlNjg3MmIzYzYwZWE2MWUyMjZiZDZiZjAzZmI3MWE0NjVjZjc4OGI5OGY5ZDQ2MTIwMzkxNGMifQ"
+        },
+        {
+          "resource": "repo://lib/identify/fetchUrl.ts#L63-L98",
+          "version": "repo-lines-v1:sha256:1b0f3472c3e93330f46f82673e726932d0efe2543bfe0bd0b85ceb2a9d0eeed4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhYWZmOGMyMTQ1MmQ4NjY0NmI2ZTE1NjM0NzNlYWNhYjI4Mzk2ZDEyYzcwYzY2ZTUyY2NjZjkxZGRmMDM0YzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI1OTdkMzcyMTM0ZGM5ZGY3ZDZhYzM4ZGNiNGQzZDZkNmY4MGFiYjYzZjA1Yzg4ZWQ1Y2I5YTZlMjlkM2Y0N2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczOWUwOTJlMmU5MWVhNTllZDM5NGExZWE2YmNlODVjYzIzMWRiNTEyOGJmYmFjMTg2MWZiMzU2NzJjNDgyODgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_60fbc2186eb3418885d240df1120d520",
+      "statement": "When a direct URL fetch fails (e.g. a manufacturer site bot-blocking a server fetch with 403), app/api/identify/route.ts falls back to identifyFromWeb with the pasted URL as the primary search lead instead of failing the line.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify/route.ts#L123-L144",
+          "version": "repo-lines-v1:sha256:00d03aa265d04b73cdbd3d60bd277317851664f09fb5fceade5b8715fdb615a7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4YWQ3ZGRlZGQ4MGVkMWM1OTY5NDIyYTdkZDdlOTkxOGM0YTYxZWYyYTg3MGEwNjhjOGQ1NTlmOGY4M2I0NGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4NDRiYjEwNmM1MTMyNTlmZjI2ZjIwZmM2M2ZhZTMzYWRiZGQ3YTRhZGE5NmMyMGRmN2Q1ZDFkM2YxYTJjNTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmOGMzMTQwNDc0Zjc4NTFmODBmYmM1MGM1MTZkYWZiNzgzNTBjMjVjM2ViODFkYjkzY2RmOWE0ZjgwNWRhNDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4MTc1Yzk0NDg1NTgwOGZmYjhkMmYzYmEwMjI3MTMwOGNiZDFhNzBlYWQwMzU3NTQyYjU0NmVlZTBlZGJmZTcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_69c7dbd2f9834bb28f03685b5e3ab484",
+      "statement": "identifyFromWeb performs two Claude calls because structured output and web-search citations cannot share one response: a streamed research call using the web_search tool pointed at the base item number (from planCatalogSearch) rather than the full configured string, followed by a shared structured-output extraction call over the findings.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/claude.ts#L110-L127",
+          "version": "repo-lines-v1:sha256:711f9588f7bf16ad37c3eebe647815f84100acbcb205b4e5ee8abdb6f37e2ba5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0NjQzYzMyM2VkNGI2ZTUwNjEyNGUzNDNmYmNhMzkyMWU4OTMxYTkwMTM2MDU5Zjc2NGVmZTQ4MTAyMGM1NjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlOWU2NTQ2N2M2Yzg0ZDAzODQ4NjFlYzU4NTQyODAyODNkNTFjNDM3ZDExNGQwNWQ0YjliN2RkN2QzYWU1MjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzNzJiOTY3NzY4MzMzY2ExM2E2YzExOGVmODA5OTlhOTYxMGFmOGFiYjkxM2JhYjQ1ZDMzZjU2Y2I5Y2M2ZTMifQ"
+        },
+        {
+          "resource": "repo://lib/identify/claude.ts#L240-L326",
+          "version": "repo-lines-v1:sha256:32da44b672adc3484e2c314bbd56d5627e6033c127b0f3a57e29528bd7a1363e:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OTM3Njc5MWU2OTQ3NmY3YTA3MTg5NmRjMjViOTEzN2VmODQyM2UzZTk2MzQwY2NmYWMzMzIzZDQyY2E1MWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_22696d3a499d46baa13e798fb04e5a9f",
+      "statement": "The web-lookup research call is bounded by a 150s hard timeout and streamed against a 120s soft deadline that aborts the stream and extracts from whatever text has already streamed, because an earlier 90s ceiling caused every web lookup to time out on searches that were actually succeeding; the full chain (150s research + 45s extract = 195s) stays under a 240s client abort and the route's 300s maxDuration, with maxRetries:0 everywhere to prevent the SDK's default retries from tripling these budgets.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/anthropic.ts#L51-L69",
+          "version": "repo-lines-v1:sha256:faa12726c9757dbaaefb7a94c902354acf98700f4684ea4eab8399a02af84c03:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NDVkMGQ4YWNiYzA3NWZhYzBkOWMyMGQ2NTdmOGFhN2JiYzcxNjNkYTJhNzA2ZDRkYjQyNmI5NDdlNmY5ZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://lib/identify/claude.ts#L286-L324",
+          "version": "repo-lines-v1:sha256:13cce31d65b4549c4b57d4a5601d840785d73d5c89141143a63e362195899fb1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZmYyNGZmNmEyYTk2NGZhNDkwZjk3ZWM5N2Q3YTIwYTJiZjhiZTYxZjdiN2VjODEzM2JjNGUzNjYyYTcxYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1Njc3YTgzNzVmNWU1NzEwYjNhZDVhYTgxNzhlM2U1OTc1NDNhMmQwMTc5M2U5Y2Q1MzBlNjBkNTBjYmZkMzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4ZTczZDU5NzBiNzk5N2EzOWI3MTBlODMwYjZmYjFlYjU2YWU1ODc4YmMzNWY0NWVhZjg3YzcyMzExNzdjYTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5MjcxMmI5NDM2ZGY0Mjc4ZjUxZDVmYzgxYTgwYjA2YjQxZDM0ZDJiNGU5Yjk4OTAyZjhhNGFmOGRkYTA4NzEifQ"
+        },
+        {
+          "resource": "repo://lib/identify/claude.ts#L49-L76",
+          "version": "repo-lines-v1:sha256:43172e52ef3b8e0d6d0920d1a1c65d6eb07b4915bcdd694b789fe4eae136cfa4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0NjNiOTRlZGY1Y2E2Y2RkMDk1NWJhZjJjN2JhNDc5NGM1NzIxYmExYTExY2RlMTZhOGU3MzhjY2YzYTgwMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwNWJmNDE0NmM4NjM3ZTI3MzhiOTA2NDI0OGQ3YTlkZmU2YzBjYWQ0YWMyYjk4NmZjYjkyMTdhYzdhMTk1MDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzODdlMGM3ODVhMjkxMGVlMjA1NDY0MzEyZWExNDg5NGIyMmY1YTU1NzNkMzEzMjM0Nzg0Y2ZmYmI2NzIyNDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyM2ExNmVkZDI4Y2NkOGVlYWIyMWU1MTllYTExZWY4NDBkNjk4MzgwNjcxMzg0ZWYzN2IwNTJlZmIwZWUxNDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3e7def25416d4f27b037e3b3ec2a95e1",
+      "statement": "The batch category-identification pass (lib/identify/batch.ts, POST /api/identify-batch) is a deliberate, documented amendment to the 'never sweep a sheet' rule: it uses one Claude call per ~18-line chunk (BATCH_CHUNK_SIZE), caps at 12 calls per request (MAX_BATCH_CALLS), performs no web-search turns, and is reachable only from an explicit user-triggered 'Identify N unrecognized lines' action, never automatically on upload.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L1-L32",
+          "version": "repo-lines-v1:sha256:f44be46d3f54e5bb1603d8a16008c0ce328a59245c88530bd986b6d568208a99:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzMzc2NzA3OWE5OTM0YTM2MWY5YTJkMDA2MzQ0ZDBiMTMwZDJhYjc5NDE1Yjc4Nzc4OTgyMGVkMDdhMjgwZWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlMzM5OTE4MDNiZGE2MGI3ZDk4NmUzYjYwNGNlNTk5ZjUwNzc5MWFhYTBkMDc1OTdhMDRkMThmOTM1ZTY4OWQifQ"
+        },
+        {
+          "resource": "repo://lib/identify/batch.ts#L1-L36",
+          "version": "repo-lines-v1:sha256:d73b422aa47c494455e5920e0f8a7f2eb164212c6b8b1bafedcd32734a3676cf:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJhZmFjZWQ0YzBjNzI1Y2ZmMjdlNTYxZjUxZGQ3YzQzOWIyN2Q2ODE3OWU4OGMyODUxZmFiYjk4MTNjMmMxYmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_852666781eae41e691aa149f7ecc9726",
+      "statement": "BATCH_CHUNK_SIZE=18 was set from a live measurement (a 25-lines/chunk run produced ~380 output tokens/line, using 69% of the 16000-token cap on the worst chunk) rather than the original ~250-token/line design assumption, trading a couple of extra calls on a full sheet for restored headroom (~43% of the cap).",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/batch.ts#L69-L96",
+          "version": "repo-lines-v1:sha256:c4aa3b280b0fb00af814c934cd0fed1c0c613522810a2d118d9175933c6a38fb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjM2VhOWRiNDNkNTI2MWQxNzY4NDBiNWQ3MDA0YzM3NTI4ZGUzZjJmMzQ5NGU3YjI3NmY2YzIyOTgwNmMwNzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxN2I5NmUzMTQyODNiNjFmNWM2ZmEzM2ExMTliZjU1NzU2NTBjM2E2YWQzMjAzMmVhMWRlMmEyOTgwMWNjZTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a07b7700ab324b548db855f587a5c57c",
+      "statement": "Batch identification's latency chain is bounded by BATCH_CALL_TIMEOUT_MS=120000, BATCH_CONCURRENCY=6 (at most 2 waves), and BATCH_TOTAL_BUDGET_MS=240000; a chunk that cannot finish inside the wall-clock budget is never started and is reported as a call-budget skip instead of being started and abandoned.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/batch.ts#L49-L96",
+          "version": "repo-lines-v1:sha256:21015287c000ec6a849a485691fcac5d7ca71367d7a706535854d597c049d5d5:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyNmEyYTMyN2QyZTg2ZDUwNjJiYTMxMzkxNGUzYzQwZjliMzI0YzIxNTlmN2EyMDI1MmEwZmIyZGUzNzhmMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxN2E4ZmQ0ZWQ4NzMyZDRlNGU5YTBiMTJkNzE4ZTcwNmFiMTI4MDA3MzNjMmM5YWRkOWEyOTc1OGE5ODgwOTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxN2I5NmUzMTQyODNiNjFmNWM2ZmEzM2ExMTliZjU1NzU2NTBjM2E2YWQzMjAzMmVhMWRlMmEyOTgwMWNjZTEifQ"
+        },
+        {
+          "resource": "repo://lib/identify/batch.ts#L571-L609",
+          "version": "repo-lines-v1:sha256:255fa4a15502b23d5dea57e028937b3424cee5bbcd0d6f13bc6f42532a2ec3a7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkYzFiZDFmYjdjYzFjOWM2ZDMwOGE1Y2QyZWIzOGI5MGFmNThjM2EyZWMwODcxYWE0OGNkMWJjNmEzMzA2OWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1Y2RlZjgwODVhZTc0YWI2MzZkNjQ1OWY1YzZkNWZiZmIwZGIyNjRmMWIwZDc1YmFjNTE5YzliM2Y2NzE3YWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliN2EwYmJjZDUzYzdmZjU2ZDYzNjFiMjNjMzM5N2UxNjRkZDg4MTRmMWIxZjYxNjZmYTU4ZDg1NGNiODgwNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ4ZjQ5NWYwNTUwM2E4YmJhODdmZDVkYmNiZGY0NmVjY2ZjNGU4YzgzZmY1YWU5NzMxNmE2YWM1OTAwMGU2NGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_354ae09e7ed5492dba663cc0e1c3ce9c",
+      "statement": "selectBatchCandidates skips lines that are RFI/TBD placeholders, LED tape, already category-resolved (by prior identification or the text-based detectFixtureCategory), or lacking any spec text at all, so a sheet the engine already fully understands costs zero Claude calls; the ordering mirrors analyzeLineItem's own pre-checks to keep the two in agreement.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/batch.ts#L165-L206",
+          "version": "repo-lines-v1:sha256:fc5486eba7f1e34c4864bda31d0d422b085c4178cc2f339e2ff159790c68d810:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlhYmFmMjkzY2FmNDcyZGRhNjRhNzI4N2Y3ZjZkZjlhNzY0ZjEyYzliZWViN2JkNjllMjkyZmEzNzM3YjYyODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjNGZiNmIyYWUwZWQwOTI2NWE5NGEzNWMyOWU2MzRhNjU0OGNjZDcxNWIyYzBmZDFlMTNkYTA5MGQxYmQwYTQifQ"
+        },
+        {
+          "resource": "repo://lib/identify/batch.ts#L214-L234",
+          "version": "repo-lines-v1:sha256:58ad5c1ca3dad95594aff5061d6cdb261d644ef811775da10eeb9aa108a2fc39:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3MDhkMDBiYWEzNWUzNzE3ODA3MjFhODY3OGRiZWE0ZWJhNTEwMmFkNWI1NjQzOWQzMjEyNThkNDA0YThhMmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkMjRiZjMwYTZmNTU2ZWQ0MDU0ZjAwOGIyMmY1OWI1YmE0MjllMjQwMGFhOTc0OTNkMzYwZWFkZTdhYWZhYmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ca1acbfc54334168a441ce4e6d2c03ff",
+      "statement": "mergeBatchRows maps a batch chunk's model response rows back onto candidate lines strictly by an opaque per-request lineId, never by array position, because a model that reorders, drops, or duplicates rows could otherwise silently attach one line's identification to a different line; an unknown id is dropped and reported, a repeated id keeps only the first occurrence, and an unanswered candidate comes back as 'no-result'.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/batch.ts#L388-L419",
+          "version": "repo-lines-v1:sha256:fee2f08f553b0456648148f70a35ff98e0ff13e359d3da3c88fcedb7d01172f1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFlNTZjNjgyNDE2NzU0Njg5MzZhZTU1NjZmZDhhZjU1Y2U0NzQxNjc4YzE1OTg0N2MwOGM0MmFlYzExODM2OWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjMGMwYjNiYWY3YTdlMjJiZmY0Mzk2ZDkwYmIyYjg1YTVhYjA3ZGE0YzA3NzBjM2E1MDBlZjc1YjFjZjNlMzMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_65c01e295b4843b589f35a28e3c98699",
+      "statement": "A failing chunk in identifyCategoriesInBatch never fails the whole batch request: its lines come back with skipped:'error' and the caught message while other chunks, processed by a fixed worker pool pulling from a shared queue, still complete and return normally.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/batch.ts#L484-L522",
+          "version": "repo-lines-v1:sha256:faa47b1d8ae19000d1da1ca04e87ca3e24f0470fefb29dbc2af036ddca3d1976:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ODEwMTUxY2ZhZmEwY2VhOTc2ZmU3MDQyY2M3OWU5MjBkYTc5ZjA3MGMzNTc5OGNhMWUwMWM3ODUyYWM0N2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OTM3Njc5MWU2OTQ3NmY3YTA3MTg5NmRjMjViOTEzN2VmODQyM2UzZTk2MzQwY2NmYWMzMzIzZDQyY2E1MWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MzE5NGYyYTY0ZjdiMmUxNzc4NDczMGRjMTZlMTlmNzc3MDRkMDU3ODEwYTJkNjA4ODgzMDc0YmI4ZjY2MTgifQ"
+        },
+        {
+          "resource": "repo://lib/identify/batch.ts#L571-L611",
+          "version": "repo-lines-v1:sha256:d6cf785d87074a23e553ba14e9330cb69feebde55700101233f4a62f380e9d8c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkYzFiZDFmYjdjYzFjOWM2ZDMwOGE1Y2QyZWIzOGI5MGFmNThjM2EyZWMwODcxYWE0OGNkMWJjNmEzMzA2OWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlMjI2YzBkZjZiN2NkNWQ2MWQ3MmU0ZTE3MDc4MzZjYzYzYjkxY2RjM2FhY2NmOTgxZmYyNDI3YWNlNzk4OTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliN2EwYmJjZDUzYzdmZjU2ZDYzNjFiMjNjMzM5N2UxNjRkZDg4MTRmMWIxZjYxNjZmYTU4ZDg1NGNiODgwNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4YjQ0YTBlMmI3NjBlZjIzMGYyYWI5YzYzYzA3YWYxNDEwMWY5ZTQ0MzJmNDI3ZjYzZTZkMWU0ZjJiNTY2NDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4d8c8ff1138547a68a9e67d51dc5af59",
+      "statement": "app/api/identify-batch/route.ts accepts an optional rowIndexes selection to narrow which eligible candidates are actually sent to Claude, rejects a present-but-malformed rowIndexes value rather than silently treating it as 'select everything' (to avoid a client bug triggering an uncontrolled paid sweep), and prefetches getEngineContext concurrently with the Claude calls so a cold Airtable pull overlaps identification instead of stacking after it.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L19-L41",
+          "version": "repo-lines-v1:sha256:169a162171e9f33eb3ef8fdf0674d79ecd8a347db4600cd49bddef438cfebbf0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyM2NiNGMxM2Q2Nzc1OWQ1NGY3NjcxZDQ0MDM0OTcyZDA5MDNhMzlkMDhhZmFlNzNiYjk4MWViOWFiMGRjZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1ZTIxYjhmYmY1ODQ3M2JiMDZiZDFmNjFiZjg0ODFlYWY3MzcwMTEzN2Q4Y2RmMjQzNzVhZjRlMTZhMmU0NmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViOGVhNWE4MTA5NWVkMGIzYjY2YmZhZWY0ODBhZjQ2YzIwZGNkOWU1ODEyZjJjMGYyZTM1MzdjODM1ZWY3NzQifQ"
+        },
+        {
+          "resource": "repo://app/api/identify-batch/route.ts#L88-L124",
+          "version": "repo-lines-v1:sha256:170d2f6042dc564e092d4c4c05c2434556b046b218c5e7869bd40620008858a3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwYTFjY2EzNzEyNzk0Yzc5NDdjYmIyZTY2NzU1ZWQzZTUwNTMzNjNmNTBjNDk5OWM2ZmNhNjVlNjZhZTQyZjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2OTQwZTQ3NDdmNTgyMWU4Mjc4MmFmMzJiMGJlNjY0N2U1MmMyNTY3ZWI0ZmRlMGRiNzdiYTQzMzFiZDk5MDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY5YWFhZmYxYTIzMDEyMzM5NmM4YzE1ZDAzNDQxNzMxNTk4Mjc4ZTMyOGRlM2IwNmM4NDljZTljYjRkNDc4OTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bf085a9c8cce43bbb92b481cc564c518",
+      "statement": "Every Claude call across schedule extraction, per-line identify, and batch identification logs a single-line [identify] source=... stage=... model=... input_tokens=... output_tokens=... message (with cache_read_input_tokens when applicable), giving a consistent grep-able cost signal across all three flows.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/batch.ts#L474-L482",
+          "version": "repo-lines-v1:sha256:f4bc5625c00ad25bceff6669507bba7287ea36fb9e9ac1fda46fb9691c3a03ff:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTBkOTY2N2RmMDViMTIyYjkzOTU1Y2E4M2M3NzBiNzlhYzA4MmNkYTkyMGYwNGYwMGQ2M2IwMTFlODY5ZTYyZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGZjMDlhMDM5ODMyZWJiYTIzNDkzM2ZkY2NmY2VjYmRlMGEyYzRiNDU1OWYzZTk2MTQ5YmFiYTYxMzdmMTU5OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGFiOWNiZThmODUwOGFmMzAxMDQzMmYwODRhMzI0OGU5ZTIwY2UwNmMyZmYyOGE2YmYxZWVmODY0MmY4MjlkMCJ9"
+        },
+        {
+          "resource": "repo://lib/identify/claude.ts#L161-L168",
+          "version": "repo-lines-v1:sha256:eaa0133143e1d6ad218d59b9f130c6ec5177561038add78dafaa191024d3c2ea:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNWQ5NWJiM2IyOWYyOWNhZTYwZGQzMTUyNzlkMzc4ZTc2M2VmOWJmMjVlOGM0ZjMzZmMwYmU4Yjg0NzJlOGRlOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjZkMzA0MjRmNWM4YzIzOTFjMzcwYWE1MGI3NzkzMWI3YmVlZWNkNTMzMmE2ZDM1Y2JjM2U5ZWRmNmNiNTM3NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjg1ZDU3YjQzN2M5Mjg1MjVjMmMwMjk5NjhhOTc2MDlhMmM4ZTIwNTIxNTJjODA1ZWZhNDQ5MTBkYmJhZGY1NyJ9"
+        },
+        {
+          "resource": "repo://lib/identify/schedule.ts#L382-L389",
+          "version": "repo-lines-v1:sha256:1a933af804242b9d89c499f0a0e3fc90900d9cc916f0ae0bff2710be71b68a9b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDcyNWEzN2EzNTcwNGViNmRiNGY5YzQ1ZjYwMDYyODJkNmE0MzE1NjUzMWJkZTU2OTM1NTRjZWJkZDUwMzlkZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWU3NWM3MGQ5NDYzNjI1ZTEwNzlmZDhmYzhlZTYyYWQyZTkyYzQyYmVhYWJmZDg1Yjc4ZDhlMGE0OTc5Yjk0YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2YwN2I5ODk2ZTE1YzcxYjI4NmJhNWJiYzUzNWVjZjJlYTZmOTI5YjJkMDVhMTllYzU3MWZmNDFjYzMwOWUzMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTcxYzQyNGE5NjU5OGFlYzg4MTBmZTZkYTMyZmI0NTBjYzQ4YTk5MTdmY2I5NTQ1MzNmYzM3NDZlZWY4ZjExNCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_4e03866e440e416f8b62c047b82dc032",
+      "statement": "An identity-linked Anthropic API key requires the ANTHROPIC_WORKSPACE_ID environment variable to be set via lib/identify/anthropic.ts's createAnthropicClient, because such a key fails every Claude call in this subsystem (schedule reading, per-line identify, batch) with a 400 error without the anthropic-workspace-id header.",
+      "evidence": [
+        {
+          "resource": "repo://lib/identify/anthropic.ts#L1-L27",
+          "version": "repo-lines-v1:sha256:e486f7186ed027e7faf93550860dfe69d15633499634812924bf0ac6d1880a20:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2ZGQwZjhmZmNkMWNmNzQ0OGNjOTBiM2RmOGY2NWE1Mjk2MjkzZjY3MzU0YTFjNzUxOWI5ODQzNTgxMDcyMWQifQ"
+        },
+        {
+          "resource": "repo://lib/identify/anthropic.ts#L59-L69",
+          "version": "repo-lines-v1:sha256:feb669191395f946e64677b390e4b15092d0346a1ef8f576afff915331d8837a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1YzM3OTQ1YzIxNTNkMjEzMTQwNDNjN2U0ZGM5MTcxOTE4M2IwYmZjM2U4N2MyMzRjNzcwNjBmMGQ5M2Y0YTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiYjM1OGY5ZDczZjNjOWYwYTZiY2I2MTQzY2U3NTI1MDgwYjM4MzI1Mzg3ZWVmNGFkNDFiZjY2NmU5YTk4YjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T12:24:50.371Z"
+  }
+}

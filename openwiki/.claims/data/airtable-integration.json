@@ -1,0 +1,308 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:39b23353c6c38cb82ea616b752a845c9445c33a3a08529cda12348a51434523e",
+  "claims": [
+    {
+      "id": "claim_67d79cd0d61446f598cbdc2a07249e2c",
+      "statement": "All catalog and historical-decision data for the VE Estimator lives in one Airtable base (default appWj912AEOvtxqJF, overridable via AIRTABLE_BASE_ID), containing History, Premier Items, Fans, 3rd Party Domestic Items, Product Categories, and Manufacturers tables, each bound by pinned table ID in lib/airtable/schema.ts.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/schema.ts#L22-L31",
+          "version": "repo-lines-v1:sha256:40f7a7e4469be8cc32980ca8185832d86ab43d66c0ab3d73ff6f2a1874013473:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1NTQzZjkzYzhmNjRmMzliZDU4Yzc1NGExMzlhYzFhMzgwZjMxZDNiMjgyYWViYWVjZDgyZGJkMzc4ZmMyZDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzYzQ5ZGYzMTJlOWI4ZDgwYTRkODRiZjZmYTU0ODJjM2I3MThmODgxOGU4OWU2OTg4ZjRmNTcwNDk3N2JmNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzOGVlZGRjZmIyMzI2ZmNjYmY2MWNmNmNmNGFmZDRlZDFiMjYzYTZkMjk3N2UwZjhmMmJiNGMxYWNkOTk5ZmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxYzAyY2NjNGRjOWZiNjU4YjM1MTExNDMxNGI3YzRlODE1ZTI2NjNiNzQ2ZTI5YjIyZjQxNGFkMGRmZjIxZDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_da89668796834a4a8d9ba0e1a56fbf2b",
+      "statement": "A History row links to at most one of Premier Items (PREMIER_LINK) or 3rd Party Domestic Items (THIRD_PARTY_LINK), never both, per the schema's design contract.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/schema.ts#L45-L60",
+          "version": "repo-lines-v1:sha256:0da7f8b4c0633eee61d035b92c674eda2b67246351ba32f809bdc58b72cb7bbc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyODUxZjkyMzllYjNhNzkwNjE3Mjk0NGFmZDE1ZGE2NDNlNDVlNWQ1MzMxOWNjYjFlYTZkYTA2ZjM4NGFmYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU4ZGQ4OWI3Njc3OGFjMGQ3NzkyM2Q2NzNhOTNjNDg5YTgwZDVkMDBkNjJlYTgyNWYxZWQwOTMwMzEwZWY3NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkNzIxN2JhMzUzYjhhODY4N2RmMGMyODA4YTZlMzUxNmNiOTM1YWFmMzA4NGVkODhkMTUwYzUwNTgwODA3NTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg4NzY2YmZiZmQ0MTdlYjY2OWUzN2FkNzM2YTdiYmNjNmU1ZDdhNjQzZDA3ZjJiNzFhMTZjNDVmNjcyNzQyOTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3eb017566ddb47bfad3c9e5fb01cba38",
+      "statement": "lib/airtable/schema.ts binds every Airtable field the app reads/writes by immutable field ID rather than by human label, so a label rename in the live base cannot silently break field access; the constant name records the field's role and the trailing comment records the label as of the last verification date.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/schema.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:42865945e5b58c11cfc08cf9b7be6dc92c9a1cfe0647938d115ebd61aa84d120:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYjU0NGE1ODg2MzQzNTBjMTkxNjlhODI0M2I1MzFiZjMwOTVlYjU3YzhmYjAzZTQ0ODM2OTQzZjA4MTY4ODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjYzY4YjVmMzNkOWQ0MjdlMGZjMzQzYTVjMjlmZTQ0ZDczM2RiMGNlNGIyZGUxOTEyMWMxODZiYmQ5M2I5ZDMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_229f750832eb4022b6de3349949885f1",
+      "statement": "3rd Party Domestic Items has no stored Times Used count field; the adapter derives timesUsed by counting the linked rows in the reverse-link History field (THIRD_PARTY_FIELDS.HISTORY), the same signal Premier Items stores directly.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L272-L276",
+          "version": "repo-lines-v1:sha256:0e77ceab3c52a93fa6175c2f18bf422ca26998cec61cb262d49fbd6e207be899:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmRjYWQyM2E5MGVmNTUyY2EwMTkwMDIwMmE3YTY1M2NlN2ZlMGMyNGRjMDNhOWZiNzRkZTJmMWRkZGY3NjhhMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzBhMmQwZGFhZjI0MDA1N2ZiNTlmYzliNWZjOWJhNDg4MTA5Zjk2NGUzNGQ2OTc5NWNmNDQ3OTAxZjFmZDVjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWE3NTZiNjQ4NTUxYTk4NDkxOTk4N2E5NjE2YzFhMDc4NmI2ODZmMGFhZmU2ZjBkYWI3ZTViYjc0N2NjNTRiNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDBjNGM4OGM3YThmNTE2NDVmZjhjODYwYjhmM2U1MGQ0OThkMzRlOWZmOGQ4NTFlY2ZlOTE3NGYyYzNmY2ExMSJ9"
+        },
+        {
+          "resource": "repo://lib/airtable/schema.ts#L92-L120",
+          "version": "repo-lines-v1:sha256:2128f9cf41f3bd45bf13f109139b419eebaee16ff58f0de989457d7c54daa50a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwN2ExNDNlY2FhMjNlNDdiZDRjYmVjYmIwOTBiNDY0ZWIzNmRjOTU1MGVmOWI1YzZiNDgxNTllODlkNDE3NWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzYzQ5ZGYzMTJlOWI4ZDgwYTRkODRiZjZmYTU0ODJjM2I3MThmODgxOGU4OWU2OTg4ZjRmNTcwNDk3N2JmNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkNWQwNTlmMmFmNTJlMmI4MmNlZDMzMTQ4NTEwY2IxZDkwMjhkM2RiMWYzNTcwYTNhMmEzOGY2MjMyZWYxMzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1MTM0YjgyNGIyMjA0NzZkOTk0OTljOTVlZGZiZDMwMDMyYTlkMDA0YjAzYmRkMTUxZjU0Nzc3NDQwM2UxZmEifQ"
+        },
+        {
+          "resource": "repo://lib/types.ts#L195-L211",
+          "version": "repo-lines-v1:sha256:b7419d6e9a49c0f992d351fa5890dbbe90bf6ba475f41639edad16617440e2aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyNWQ1ZmI4YmVlOTNjYThhYTAzYjJlNGMzMmU0ZDBkOTY0MTQ4NDQxZTkxYzU4NTM4NDUyNzMyODI3NTVjYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzN2VhMzVjMjg5N2E0NTA3NjAxM2U3MjU5OTI0NTg5MjYyMDk2OGJhNWFlN2JhODUwNDBhMzM4YWIzODQzYTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e27eb987423547e79c233ddb2dc7f7db",
+      "statement": "History's Product Category, Premier's and Fans' Product Categories, and 3rd Party's Product Categories and Manufacturer fields changed type from lookup/select to multipleRecordLinks in a 2026-09 consolidation, so the Airtable REST API now returns bare record IDs for them instead of display strings.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/schema.ts#L46-L52",
+          "version": "repo-lines-v1:sha256:efd9dee99a305b2a3399df7d3aeca43ea67ad0b478404e6478614e28bf86b197:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2FiZjNkNTEzMWEwMTEyMzUwOWM3NjYxMWFhY2VjYTIyM2I0NTBmZTc2OTIzMmZkNzc5OTVjZWY4ZjE1MDNmYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWQyODNmMTJmNDNiN2QyOTE5ZDI2N2UxYzJiOGM0ZDc2MjU0ZGZjMjBlZDdkYmIwNjY5ZmJkYzViMTZlZTU0NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2FhNTFlZTUwMzkwMGM1NmQxYjMxNGFjMjFlZTFjNjg4NWE5MTdmOTUxYWJiZTJhNDJkZGQwM2I3OTM4N2I4MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzBkYjU2MzcxY2Y0MTFjZjI2M2M1YjQ4YzQ3MDViYmM1OTQ1MjcyYTUxMzliZjg0NjhiOWQzNzM3ZWY0YzIyYSJ9"
+        },
+        {
+          "resource": "repo://lib/airtable/schema.ts#L73-L119",
+          "version": "repo-lines-v1:sha256:d2cccee0484fc7275a97b79f6543b093d71b4d4ddb93d05887fc5753863541a8:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1OTU1ZDRiMzRkYjM4MDZhMmQyMzNmNmFjNjllN2U2MDk3N2VjZjljNjk0ZDI1MGI0ZTM5ZTY0ZWNiZDJhMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkZTMwYTQwMjg5YjliY2IxMmJkMTk0M2JlM2FmYTA5NWYwYjNlNmZlYzQ2MDNhZjU0MDlmZjM4OGRiYjA4ZGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkZDUwZmZmZDNmNjdjZTBiOWNmYTU5OGNkYWI4NDc3MmNkNDJkZjg0YmZmMmY4MTk0NDViMGRlYTVmZDc2MWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ZWU0OTU1YjRmOWU2NGQ5ODI5Nzc1OTFhNjE0ZDNiN2M0MmQ4MjA1YTRiZGVmZDY4NmNmZjE4MjY2MGZkYWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_da6b3a36ce80437399063c32f749ee9c",
+      "statement": "asString() in lib/airtable/fetch.ts deliberately drops any string matching the Airtable record-ID shape (rec + 14 alphanumeric chars), so an unresolved linked-record field reads as an empty string rather than displaying the raw record ID.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L49-L58",
+          "version": "repo-lines-v1:sha256:134df08d8a9ec1d7b0c223698585266b0cbc75b12945aa09868b5f184377fcc1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1NTk3OWI1MmE0MzFmZWYwOWNiY2E2OTZiNzc3Njg2ODZmNzY0ZTJlMjE4NjMzMWY4M2UyYWEzYjJiNzgwODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmYjYwMDgwZjNiZTE4MTIyODVkOGI1NGZmZTliZWQyZThhMDk5ZjI0ZDI5ZTZlY2NhNzY2YTcxZTVmZTk5MWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4NDdmZDNjODY3OWIzNDI3N2EyMmI3MmRlNTg3NTAyYTcwN2M2YTFkYmZmY2ZkYzllYTlmYzlmMDk5NzczMGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c7f70ae3b9d340e481b04fa69847b4b9",
+      "statement": "fetchLinkedNames fetches the Product Categories or Manufacturers table into an id-to-name map so fetchHistory, fetchPremierItems, and fetchThirdPartyItems can resolve linked-record category/manufacturer fields to display names; if that lookup fails it degrades to blank values for that field instead of failing the whole context fetch.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L133-L177",
+          "version": "repo-lines-v1:sha256:f0fdc727b6f04d593aa57587d8f424d9dd3d699a4973fe93a3d14bc17d8e915c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjcwMjU3NTkzZGEwNmY2ODJhM2RkZGE1NGE5ZDI2MGQ0ZmM1MTRmNjQ1MjM3ZjVjYTc0YjA4ZjhkYTYxYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZlNjZkZjliNzgyODJkMjZkNDJjYTQzOTgzM2EyOGU2OWVkZmI3M2E1ZTJlNGQ1OTZiMjI2MDhiYmFjZDdlYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYwMjNlOWUwYWU1MGQxZDFkZWQ0YjMxODRlN2JhMTAwYTcyMDk0ZmI1YTY0MTc0Y2JhZjc3NzY0Njg5YmU1YWMifQ"
+        },
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L184-L277",
+          "version": "repo-lines-v1:sha256:e03a247160372f7012fe31ae16e4b96691fe4a1996d6835349b557b52b4ba0f1:eyJzZWxlY3RlZExpbmVDb3VudCI6OTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmZjAxODliZTA2MjA3ZGRjM2ZkOWU4YWU3ODg2NTI1OWM5MzhjYWU0ZGQwZmQ4ODFiMDM4ZjNjYTEzMjc0NWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3ZjE1NjlmNThlZWU3ZGU0MzQ3MzQzODRhMDdmYTQwMTRiOTYyNWJmMDBiZmNkYzM1MjY3YzcwNWNiN2RlNDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJjODZjMWU5YzBmZTk4NzlhMDQ3NTdkNDJmMjVmMzJkNzc5OWI4MWJkZTA1ZDQzMmZjMjA5NDFmMGYxYjkyNTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c46919b5039140ac98c58008324adc61",
+      "statement": "fetchHistory always sets specManufacturer/bidManufacturer to empty strings and instead carries the plain-text Spec Manufacturer (text) / Bid Manufacturer (text) backup fields as the values used downstream; the History linked-record manufacturer fields are never resolved to names by the adapter, unlike Product Category links.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L201-L219",
+          "version": "repo-lines-v1:sha256:ec620453cf79e3ba54be656110fdcd63aadcf31d73901457a1e7d439d779ec56:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3ZmJjMTQ1NjQ1ZjJkYmI0MTM1MWQ4ZWExNTU5NGU5MTBiMTY1ODI3ZjlkYjhkZTI0ZWM2YWU4Y2ZmN2M2NDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5MDFhMTFmMmQ4MTcyMGMwMjU1ZDVlMTUyMjJiMTE4NTFmYTJmN2QxMjNjZjc0MzkyZGZkNWRmNmFlYTBmYWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4NWJlYzg1OWJmZmRmODJlYjgzZmFjZjUxMWMxNDU2ZjhmOTk1YzU0MDA5NDJiMTZiZDFiYTZiODY5ZGRhYmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3YzdkMGI5N2JiZDFkMmIyNDc1N2VjZTE1ZTg1YzM2OTRiZTA2MzE3NzJhOTQwM2Q0MTQwNGVhMDRlN2QzMjIifQ"
+        },
+        {
+          "resource": "repo://lib/types.ts#L158-L175",
+          "version": "repo-lines-v1:sha256:5a9d9f6e8c011516b21afe0b7a6b4c8750c36be99ff899bd645a0864e0a0040d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiZjIzZTY4YzZkODYxMDI1ZTQ3NjkzMzg3OGY3YWZiOTEwY2RhY2Q4NTBiNmRiMDExMDY5ZTI1ZThmMDk5ZGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU0MzAzMjk3MDZlNmE3MTVkZWU5ZWVlYjU1ZGQwMDMzMGIyOGJhYTg3NmE5YTA4YmM2MDZlNWIzN2Q5OGQ3YWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhNzE2Y2ZmOTBjN2M1MThmN2EwMDJiY2IzNWQ0ZWRmYjM1Y2NkNTBjZGJkYzNkZWZhYTUzMmU4YzA0OWM2YmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3847ecbe346f4470b6c065b8e2565dd2",
+      "statement": "fetchEngineContext fetches History, Premier Items, 3rd Party Items, and Fans sequentially rather than in parallel because Airtable caps a base at 5 requests/second and penalizes bursts with a 429 and a 30-second window; sequential fetching keeps the full ~130-request pull under that cap.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L302-L313",
+          "version": "repo-lines-v1:sha256:e5cbb3a47a70d4f5bbceabb937c40b53e443d2bc31e40114caef7fe0ed3493d9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUzYWYxNzdlOTNlNTY0MzU3NjI0NGRjMmRlZjNkNGNhODZlZjliOGFiM2RjYWQ3YTdjYzgwOGU2N2M2NjUxNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYwMTc2NjM5ODkyZGFlNDk2YTA4Y2RmZmU2YjU4ZGY3OWQ2ZDgyZTJiYzViYTE5ZjBiZmQ2NzlmNmRiMDA1NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bf0c8aee2f854bf1b7d00c56bce80a63",
+      "statement": "selectAll in lib/airtable/fetch.ts catches the 422 Airtable returns when a pinned field ID no longer exists on a table, parses the missing field ID out of the error message, drops just that field, logs the drop, and retries — bounded to at most one retry per originally requested field — so a missing field costs only that field's data rather than taking the whole table fetch offline (a prior production incident from a 2026-09-01 schema edit that removed Premier's Style and History's Spec Vendor fields).",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L97-L131",
+          "version": "repo-lines-v1:sha256:a7e91949dd6da43b55d310328ac5dbdba122824552e145499e79c254981d4043:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5ZTkzMmUzYjMzYzExODhlOWQ4M2U4N2UwZGVlNmIxYmZkOGMwMjVjNjI0YmQ1ZjgyZmJlNjNmNzA2YTQ5ZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5NGM3Y2IwZTc1YWY5N2RkYzNhM2ZhODI4NzJlMGI3ZGRkOTE4NDEwNmNiODllYmJkYjk0ZDFhYTk0Mjg4NmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_20b1d5729fc44f0dbcd2000f3b38acfe",
+      "statement": "fetchFans treats any failure fetching the Fans table (missing table or missing field) as an empty fan list rather than failing the whole engine context fetch, because Fans is optional.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L279-L300",
+          "version": "repo-lines-v1:sha256:44d0764d5c4ae7b2ee4e4e5f05aa41237df31688f5e8e54f3f0dfbebc3254d30:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4Y2ZiN2VlY2Y0NGY5MWJkNDMyNDg4MDI1NDRjODM5NDA4N2IwZGJlNTczZjg4ZjE3MGNlZmIyOTFkZjZlMGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYwMTc2NjM5ODkyZGFlNDk2YTA4Y2RmZmU2YjU4ZGY3OWQ2ZDgyZTJiYzViYTE5ZjBiZmQ2NzlmNmRiMDA1NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjljZjhhNGNmOGZkMGM2MTBkMGZjODgzMmQwMmMxYzUxOTVhNmRlOWVjZDFmNmJiYWJlNTMyNmIzMTdkYzVkMGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bd7b45d0ab404eb2acede93906b0a22a",
+      "statement": "Without AIRTABLE_PAT set, every Airtable fetch function returns an empty result and isLiveDataAvailable() returns false, so the app builds and runs credential-less and API routes can surface liveData: false.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L23-L37",
+          "version": "repo-lines-v1:sha256:96c6a8175135cdd7a1dcddf1141f1bb942b6507e02e20eea23a6aaeb447f0168:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4YmUzNDliOThiODkxNTRhYTlmMjA1NmM0MzQ2MTE1N2RhNDFhOTYyNjZmNzY2ODUyNDQzNDQyN2Y1ZWUyOTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNkZDAzZTJkMjMwZDA2YWFlOTgyZWQ0NmM2ZDJmOGY3MzI4YTQ4ZWI2NmE0ZTdiMGEzODNjZGQ5MjQ5NjgzMjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjY2Y4NDdhYjU0NTI5OGE3NzNhNGJlY2I2MGZlNGMzYzU4Mjc4MDQ4MGRhZDhiZTVhY2M5MzVmNzJiNThkNjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dd9c4760c0924f039f368c9326907a43",
+      "statement": "lib/airtable/cached.ts caches the engine context in an in-memory, per-module-instance cache with a 5-minute TTL instead of Next's unstable_cache, because the full context (~9.4K history rows plus ~3.2K catalog items) serializes past unstable_cache's 2 MB entry limit, which previously caused runtime 500s on Vercel.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/cached.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:55d5abeb1d04c195d91f8cddb15a6296ac308922f70634f969dd2abf56d02f97:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4MTBkNjlmZWM3MzViZTZjYWY2M2JlMDE1MDQ0ZjY0MTI0ZTAyMjJkZGY3ZGUyMDg0MTdkMzc3YmM4YWY0ZDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkMzkwYzU3MDFlMjQzZTQwNDE1YjlkMzE0ZjIyOTBmZGJlNmEwOWNiNDFhN2RjMjc0ZDBlYTE5MGUxMTExODEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f45d9291f2794ba09a3fae7da7bbcea6",
+      "statement": "getEngineContext implements stale-while-revalidate: once the cache exceeds its TTL, it immediately returns the stale context while kicking off a background refresh, so no request blocks on a full Airtable re-pull; invalidateEngineContext() clears the cache outright.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/cached.ts#L22-L53",
+          "version": "repo-lines-v1:sha256:1662d6445040eafda7c0df2dfe38ee588b211f1eb403040b864675ee2999a542:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhZTZlNjRkOTgyNTJkYTI4ZTU5NzNjNjhmMzkxZTM4MWRkOTQ5NWEzNmQyMjllN2RiZTg0ZGQwY2ZhYzNkMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmOTBlMDBjNGI3YWU0Mzk2ZDFlMDA0ZGVmM2I3NTNjOGZkOWFkZjU1ODliZDM3ZGQwNGY3MTM0ZTY1YjFjYjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b2259cd0f4a5418a82c693d23837d3f1",
+      "statement": "/api/export calls invalidateEngineContext() only after a write-back result with mode 'live' and written > 0, so the cache is dropped precisely when new live History rows exist for the next analysis to see immediately.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/export/route.ts#L140-L149",
+          "version": "repo-lines-v1:sha256:c24fbf8d0f26e19e6d7c6412b6d4ff18e4eec9d3c97d98f7b7f248e730c90767:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxMjUzN2JkMzkyZDAxNzkzMWRlOWQ1MjRhYjRkMWQ1Yjc4YTc1YWU2OGMwZDllOTRkNTg2NDA2ZjhjNTg2MDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkMzU5YmZjZGY5ZjgxZWY4NDUxYzQzNzc4ZjI2ZjQzYjMzMmI4OWExYmJlMTRiZTU1ZWU3ZDRmMTUxZjgyYzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljNzdlNWFhN2JkZGMzMWFiZTc5MmI5ZTViOWY1NDhiZGRkN2QyZGM2ODM2MzY5MzljN2JlYzdmMDgzYzdhNGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0NWFjMzRiMmZlYWQwZDdiZGY0YWVhYmY1N2M1MjY5ZGViOTg0NjM4YjdkMzllNjViN2Q2MzhmNzdmZGJkYjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0b442c51022a4d398b2bc131eaf732d5",
+      "statement": "History write-back (lib/airtable/writeback.ts, triggered from POST /api/export when recordToHistory is true) is create-only: it never updates or deletes existing History records.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/writeback.ts#L1-L18",
+          "version": "repo-lines-v1:sha256:7c5198ff76dd189cb8e39e19b95c4b582acfe5b19915d33ec3027873929a316c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ2MmRiYWMwMDg1OTFjMTkzMWJmYjU4NjZkNzgwNWEzNzQ2YTkyMzVlM2M1YmE2ZTg5YzgwYTQ5ZTAzYmVjNjUifQ"
+        },
+        {
+          "resource": "repo://lib/airtable/writeback.ts#L169-L221",
+          "version": "repo-lines-v1:sha256:041de94098d947c0ce7de13cb86cab48638abdbd2be4935c0151b62f508ef857:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4NTk3MjZlOWMxNTMwYTQzYTdlMzhmMzE4YjBkNzNmZTI3NTNmN2JjNmMzODk2NzA3NTM3MWQxZGEzMWU4YjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkxMTk4M2ZiNTdlZTNjOWE5ZjA2NDhjNjQ2ZGRmOWI5OWViOGUyMDkxMjQ1NDk2ZjI1MWIxZDQwNmM3NjM0YjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8c03649a2e374258886616b0b1aa1f54",
+      "statement": "getWritebackMode reads HISTORY_WRITEBACK (live/dry_run/off) and, if unset, defaults to 'live' only when VERCEL_ENV is 'production' and to 'dry_run' otherwise, so non-production deployments never write real History rows unless explicitly configured to.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/writeback.test.ts#L56-L85",
+          "version": "repo-lines-v1:sha256:617c6c10f18c6b49e1167e73d42d1a6920b884a762395cc00fc393d6e8f8955b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNTRhNDAxMGU0MWU5ZDVhMDhjMjFhZDEzZWQ1MGQ0YTYwZjUxYzI5YTI4M2FkNDAwMzJhMzE2NDdmYzZmOTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMDU5YzhjZmI1YTA3MmM2ZjY0ZGQzZDFiZmRiYzM1NmZiZWM5M2FlZWM4ODc5MWRhN2VkYmE4OWMwODg1ZGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVkMzdjYWUxZWZhMDk0NjAyOWVhMzQ3Yzc2NjUzMTNjZTMwY2ZhMTc2ZWE4MmQ3OWY4ZmNmZTEwMTgyYWUzNmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3NGI0ZGVmODZhN2NiYTZhNTFmYWZkY2ZkM2NjZmVkMjliOTM2OGY1NWFiMDg1YWEwZDg5Y2FjMjkyZGJiM2EifQ"
+        },
+        {
+          "resource": "repo://lib/airtable/writeback.ts#L29-L39",
+          "version": "repo-lines-v1:sha256:bc403f9350ddbb9a9c134cbe18941a2fae41b8764bc5d585e8f4a51b4547bbda:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyMmY4MzY2MDE1YjgzMjg1YzMwYjFjMDA5ZWFhN2Y3YmQzZmQ5NzY2YTE0MWE0MGZjODZlNGY5MWI5YzNjZGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4NWNhODQ4ZmE4MzRmNDI3Y2NjNWUyYWVkMWQ0Yzk5ZjhiMmUyMzc0MTg0M2U4ZWU2YzMxZTgxMjg0ZTVkYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY0YTRlOGUxN2JlMDYyMGFhNDUzZDkzZTRiMDRmNTQ0ZTc3MjY0NzE3MWVhZTY1OTZjMDI5NTE3NzQ4ZmU4MTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c28994d0b6ff4874abed5416181639d2",
+      "statement": "writebackKey builds a dedupe key from normalized (project, mark, Original Spec, Bid Item) shared with the engine's normalizeSpecKey/normalizeProductId; partitionAgainstHistory uses it to skip rows already present in History and to dedupe within the same incoming batch.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/writeback.test.ts#L88-L105",
+          "version": "repo-lines-v1:sha256:0ff4d08bac8935cb421e6b1f43dcc4db71de9ae37766e0b408a2558e1a69075b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzODllNDE4NjFmNWZkZWVmMDI4ODBkMWVkYjNlMDU3ZDQxMWJlZTM5N2I3NWIwMTI4NGE5Y2VkNTViNmNiMmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMDU5YzhjZmI1YTA3MmM2ZjY0ZGQzZDFiZmRiYzM1NmZiZWM5M2FlZWM4ODc5MWRhN2VkYmE4OWMwODg1ZGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlMjNiNGQ5MjQyN2IwNDMxYzIwZGJjZmY1ZmI1NTkzMjkxNzEwNTcyNjczZWVlMWQ4YmQyZjgyNzM1NjY4NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0ZGNmNjkwZmFkMDNmZDgyNGE3NjgyNGNhMTgyNGRkNGQ0Y2UxMDkxOTUyNmQ5MjVhOTg5NmE0MjQzNTNhNGUifQ"
+        },
+        {
+          "resource": "repo://lib/airtable/writeback.ts#L150-L164",
+          "version": "repo-lines-v1:sha256:1bab1355adc99c5f543cd5097d8e72543a2304ba4d337ffacfb424ae2f7091a2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmYzA2NjIxYjhlMjNmZjk0MWNlMWJhY2EwZjIzNmRkZTEyMzA5NzlmNzIyMjJkZTE3ODliNjFmMGZhZTFmMDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1M2ZhNTlkMzJlYTdkYzEyZjdiMWQ2MjhjNGY0OWMyZGZhMzU0MzJkZWM5ZGFlZDEwZGY3MmZlYmFmMmQ2YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwNGY3MWI3ZjE4OTMwNWMzOTUxNDRmOGNmNmJmOTc5OTMzZTIwZTc5NDE3NGNlOWI5ZTYxOWEwMDE5YTE1YjUifQ"
+        },
+        {
+          "resource": "repo://lib/airtable/writeback.ts#L70-L78",
+          "version": "repo-lines-v1:sha256:1a7aa23d2887086b53daeeaaf4f9809da4590180de0567791bf02c3a52345fd4:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGRkNDY5OWI0Y2UxMzNhMWE2OGI0MzI0YWYyM2FjM2JhZmVlM2Q4ZWMyNDlhY2YzYTM4YWI5ZDNlNzVhYzlhZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTMwZTBhMDQ4NWY1ZmZiNmQ0MmNiMjg4NzUyOGNiNWE0Y2RiZGJiYjAwZmIxZjhjZTAyY2UyMzc0MDA0MzM0YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2M3MzA3OTlkNDI4OWRiMjIyZTA4MDc1YjE3YjIwYzkyNDllOTA3Y2ZmZWE1NmU2YThmODgyNGE4NWU4OGYwZSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_9747209f7330477da3f12423bba73ef4",
+      "statement": "backfillBidManufacturers fills an empty bidManufacturer only from a majority vote of manufacturers already recorded on prior History rows for the same normalized bid item, never overwrites a manufacturer that is already set, and leaves the field empty when History has no matching prior vote.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/writeback.test.ts#L130-L152",
+          "version": "repo-lines-v1:sha256:d1a5cc6a012178499f059c6d5b0e03fd811f58db5d8f1bcebfa74e370b56a091:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhNjRhNTEzMWJmYmY4ZDVkNTgyOWJiZjc5YzJlOTVhZmRkNjg3MDQxMWE4Njg3NTc0MmNmNDM1MTZkYmQ0YjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzZGRlZjcyNDc4NmI0YWY0NWFiN2NhZDgxZDM3N2FlNTQzYmI3ODQxMjk2NTY4ZmI1MjI2OTk4YWVjMjE2MzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlMjNiNGQ5MjQyN2IwNDMxYzIwZGJjZmY1ZmI1NTkzMjkxNzEwNTcyNjczZWVlMWQ4YmQyZjgyNzM1NjY4NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://lib/airtable/writeback.ts#L110-L144",
+          "version": "repo-lines-v1:sha256:59bfd38aa07bceaeaff5ac3996b4bd351cf910d28be4495da6018d8e7a16575f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4OGYxMDY1ZmU2ZDZjYWFmNTU0MjllYzAxYTBkYTJiZGZkOTBjOWRkZmYzNTZmMzgxOTk5NzhkNDVhMGVmY2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhMzE0YmIyYzc5MDJlNDYyNzZmYjQ3ZmY5ZjllMzdlM2ZjMDFkZGM5ZWIxMDYzMTIxNDE5NGQ2MjAwODc5ZGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b31587787cc74327b8dcf67d8e731d8e",
+      "statement": "/api/export filters out RFI placeholders, LED-tape rows, and rows with no selected substitution before building write-back rows, so only real accepted substitutions can be written to History.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/export/route.ts#L117-L139",
+          "version": "repo-lines-v1:sha256:d4d6b15d2727d96cb88fd7360a1a550068b6c18fe8e85ac53a3b24c644311868:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5ZmFlZWJlOTljNDM5Njc1ZTZkYjkxNDVmMDQwOWE1ZDZkNzYxNWIxNWZlOWJlNDE2NTVmNDlmMmE4NjM0OTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkOTllN2M0OTcxM2MzMzc2Njc3MTI5MWRiY2NjMzc2NGM0OTk1N2U5N2U0NjgyN2U3ODIxMzliM2FiZjk5NDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg4YTBmYjIzZDE0NTkwMGZmYmQ2OThiY2UyZTdkYWEwNDVhZmVkZmUzNTgyNmE0MDBlM2QxZTMyOWJjZjQ1NTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlmYjJjYzg0Y2ExYTE5NDUyZjY3ZmE4NmYyMDlmNmM0NDE1OTkzNmFlMjU4ZjY4ZWQwM2Q0ZmQxYmUwMGNhMzQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b403b8b169f44f0e99bb0eb5a3c98e98",
+      "statement": "toAirtableFields records the export-time engine matchConfidence to History's Spec Match Confidence field as a rounded percentage string (e.g. '30%') only when a finite confidence is provided, and always sets Match Type to EXACT for write-back rows since the row came from a user selection.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/writeback.test.ts#L117-L128",
+          "version": "repo-lines-v1:sha256:d81af8e024d7b00e12c1dd63a2dd94d390187fab0b49d47ac38bea676fd5600c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3ZmNiOGQ3NWI5ZTY3ZDUwMTMxOWU2MjAyZTU2OWYzNTdhMGM2YzY5NjRhNThlYTgwZGVjNjU2ODE4ZTVlOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzZGRlZjcyNDc4NmI0YWY0NWFiN2NhZDgxZDM3N2FlNTQzYmI3ODQxMjk2NTY4ZmI1MjI2OTk4YWVjMjE2MzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlMjNiNGQ5MjQyN2IwNDMxYzIwZGJjZmY1ZmI1NTkzMjkxNzEwNTcyNjczZWVlMWQ4YmQyZjgyNzM1NjY4NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM3OTYyNDg1MWU5OTNmNWI3OWNkZGNkYzYwYWM0Yzk0YzgyNGZhMGY2M2E2YWYyNzhhN2FiODIxMmVlNTRiZDgifQ"
+        },
+        {
+          "resource": "repo://lib/airtable/writeback.ts#L86-L108",
+          "version": "repo-lines-v1:sha256:ffd19f4ed8fe9bdcda25b25b5a37c69526bacfeeab3b6d5121ed3cabebf8ab91:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzODBhODNmYzYwYWM5YWE3YWVmNjc5NDczOTA2ZWZjODBjOWM4ZGZkOWFhOTU5MGRmMzMxOWNjNDM5OTU2NWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzMmQxNzIwN2Q4MmNmZGI4MmMzZjk2ZGZkY2QwMDlkOGQzNTkzOTk1YzVjNTBhN2Q5OThiZDI0MTM2NTkwMzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNmNWFmZmJhNDZiYjg5OTU3NzdlYWNmM2MyNjhhOTE4NzY5MmEwNWNlOTQ4ZGQ1YWY2YTg4YWI5NDg3YTExZDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2307ceefcbdf4142ac408242f9d4ce69",
+      "statement": "toAirtableFields writes manufacturer values to the plain-text Spec Manufacturer (text) / Bid Manufacturer (text) fields, not to the linked-record manufacturer fields, matching how fetchHistory reads manufacturers back from those same text fields on later fetches.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/fetch.ts#L201-L207",
+          "version": "repo-lines-v1:sha256:4b10d0573e1d069ab88c5f8b616d061831adf12e2a702ec2793cad26a8633684:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjdmYmMxNDU2NDVmMmRiYjQxMzUxZDhlYTE1NTk0ZTkxMGIxNjU4MjdmOWRiOGRlMjRlYzZhZThjZmY3YzY0NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDM1Y2VmMTk4NDAwOGEwNDhmYTBmZmRlZDNkNTU1MWZjYWE5Y2U3YWUzMzA0MzJlM2I4NzIzZjI1NjIwZDIzOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTg1YmVjODU5YmZmZGY4MmViODNmYWNmNTExYzE0NTZmOGY5OTVjNTQwMDk0MmIxNmJkMWJhNmI4NjlkZGFiYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGY1NGE3YzU1NTRhNDQ4MzlhMDZhNTQwYmM3OTYyYTMxOGI0YzY3M2QxZDVlMzgzODdjMzY0MDM1MTI3NzEzOCJ9"
+        },
+        {
+          "resource": "repo://lib/airtable/writeback.ts#L86-L108",
+          "version": "repo-lines-v1:sha256:ffd19f4ed8fe9bdcda25b25b5a37c69526bacfeeab3b6d5121ed3cabebf8ab91:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzODBhODNmYzYwYWM5YWE3YWVmNjc5NDczOTA2ZWZjODBjOWM4ZGZkOWFhOTU5MGRmMzMxOWNjNDM5OTU2NWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzMmQxNzIwN2Q4MmNmZGI4MmMzZjk2ZGZkY2QwMDlkOGQzNTkzOTk1YzVjNTBhN2Q5OThiZDI0MTM2NTkwMzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNmNWFmZmJhNDZiYjg5OTU3NzdlYWNmM2MyNjhhOTE4NzY5MmEwNWNlOTQ4ZGQ1YWY2YTg4YWI5NDg3YTExZDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3c4cfaa085f54dbe800ef6fccecb0651",
+      "statement": "writeSelectionsToHistory batches live creates 10 records per Airtable API call with a 250ms delay between batches to stay under Airtable's 5 requests/second cap, and a failed batch is recorded in the result's errors array without stopping subsequent batches from being attempted.",
+      "evidence": [
+        {
+          "resource": "repo://lib/airtable/writeback.ts#L166-L219",
+          "version": "repo-lines-v1:sha256:43497f13fcf72e3543fb7a50ebd7dde6a98afe0c682b91243b3eef5533a3ca50:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkZTZmYzkwNjAwNTM3MDY1NDc0M2RiYTg4MWQxMWY1OTkzY2ExNjc1MjZjMDRlZjYyNDBjMmZlZGMyYWE5MjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzN2FkY2QxZjc1YzhjZmYyYTE2OWJkMGE2NGMyZDIzOTY3ZjYxMmQ3MGRhNWZmMWE2M2JiZDFiM2NhYjk5YWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU2OTA0MDZiODk0NWJlNzEyYzNhN2IxMTRjNDQzNTIxZTkxNmYzMjZmMmU5ZmQ3OGVlNGQwOGE1MWNkYjA0MDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4Zjg4MmNlYTBkMjU1NDNjZmM3Yzc0N2Y2Zjk4ODViNGU4YmY2MTdjNzE1NWI1MWI5ZDkxNWM0YmRkMmZkNzkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ea445713d13b4384a937f276170ea346",
+      "statement": "POST /api/export wraps the write-back call in a try/catch so a write-back failure never prevents the export response; the outcome (mode, written, skipped, attempted, errors) is surfaced only via X-Writeback-* response headers, and the workbook is still returned.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/export/route.ts#L140-L163",
+          "version": "repo-lines-v1:sha256:97882056145ed25371b7dd7a664f2e537e61522089fd8df35b271b0b8bb51bea:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxMjUzN2JkMzkyZDAxNzkzMWRlOWQ1MjRhYjRkMWQ1Yjc4YTc1YWU2OGMwZDllOTRkNTg2NDA2ZjhjNTg2MDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkNWYzNWE2MTZhYzE3NjUxZjNiZmU3YzAxYTU2OTI3M2Q5N2IyODg1ZDFkMzM4NTVjMDRhZjc1YTc3YjEwODYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljNzdlNWFhN2JkZGMzMWFiZTc5MmI5ZTViOWY1NDhiZGRkN2QyZGM2ODM2MzY5MzljN2JlYzdmMDgzYzdhNGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0305c4d48de946dcb6b0917d47787de9",
+      "statement": "scripts/schema-audit.ts is a read-only tool that compares every field ID pinned in lib/airtable/schema.ts against the live base's metadata API for History, Premier Items, Fans, 3rd Party Domestic Items, Manufacturers, and Product Categories, reporting MISSING (pinned ID no longer live), RENAMED (label changed, comment stale), and UNPINNED (live field the app does not read) per table.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema-audit.ts#L1-L74",
+          "version": "repo-lines-v1:sha256:a85c1de6ba8a6c6517f45d4864e56210595d574bd5bca61715d501a3590ca75e:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYzYzQzZTk3NzQ3Mjk0YTc3NDQ2YWFjYjk0MzdiZDdkMmFkZWIxOGI0ZTQ3ZjlmNWVlOTkwY2JhODQxYzJhNGIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T12:24:50.371Z"
+  }
+}

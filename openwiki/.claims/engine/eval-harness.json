@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:ba08c1754a268635f549052f5e7e2ea77e95855db141e451f1cbcabcda6ddebf",
+  "claims": [
+    {
+      "id": "claim_e3fb9113f3f349f1a653126d01552b26",
+      "statement": "A History row becomes a labeled eval case only if matchType is not 'NON-ITEM', it links to a resolvable Premier or 3rd Party catalog record (whose Item ID becomes the label), its Original Spec is at least 3 characters and not a pasted URL, and its project is not in QUARANTINED_PROJECTS.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L191-L284",
+          "version": "repo-lines-v1:sha256:dc2f0614446108c951a0f9d45188906ec44c51bbbfa328013b7ea59642a72f81:eyJzZWxlY3RlZExpbmVDb3VudCI6OTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2Y5NjBiNWZjNDIwZDk5ZDZiMTJmZWYwYzEwODY2ZjQxZjhmZTNhYmFjMmZkMmYwZTFmMjI2OWJmYzczNDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ0ZTBhMmUyYzVkNTRkNjJkY2IxYjAzZDk0ODBkMjM1Y2E2MWQyNmIxMjhkNTg3OWZjNWE0YjE3MjFlODU5MjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiZTEyMDc1N2JjYjA5YzkwMzQwMjIwYzMyM2UzOTBhY2U5MWY1NDJhOWE5OTQxY2EyNGI5OTRmMWY4ZWRjMGYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_566a1a949ff5416684adbecf312a85fc",
+      "statement": "History rows sharing the same (project, normalized spec) key collapse into a single eval case whose label set (expectedItems/aliases) is the union of every item chosen for that spec, so a multi-item fulfillment counts as a hit if the engine surfaces any one of its items.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L240-L282",
+          "version": "repo-lines-v1:sha256:ab4ce105d0bd1c3a69e4d2d4c42d1ae1107fb794146fd1b92192f5a2e4c6181a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwNWVlN2RlOTRkNDFmZTIyODAzNmY5MzAxZGY1YzY0NTNlMzlkMjk5NjdiMDMyNmI1NGQ2YTk5OWE5MzM0ZDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkMTNhNzgyMzk3YjlmZGRjNmMxOTYzYjZlN2QwMzc4ZGQyZWJjOTk3ODljMjUwODgxZDhhNzNiOTg5NzFjOTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgxNjZjOGQ3MGQzZGUxZGRiODUxOGY1NTk0MjQwNzBjZGZlNWU0YjYzZDUyNzkyZWY3M2VkYzFlYzU0NWNmYTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2dab377a5b3847ddbf70393e8bb07a36",
+      "statement": "'Collective Medspa' is the only currently quarantined project in the eval harness, excluded both as source cases and as cross-project evidence, because it is a mechanics-test export of default selections rather than real estimator endorsements.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L183-L184",
+          "version": "repo-lines-v1:sha256:b44fcaa3609e7caca70b411002a2ecdf68c62e02072d8f864880e6e4c679ad73:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGUwZTIwZTUyZTlmMWM2Mjk1NGFlN2JmMGQzNjlhMTM3NmY2YTk2ZDQyNDQ2YTdlNmQ0YzU2M2FjYWFhN2IzZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGYzMzAyNGJkY2NiNmI4ODkwNThhZTlhYmI2ZTk2NTVlN2RhYjgwMTFkZDAwZmZhZWFlYTRmMTQ1NmNiNDdjMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTNhZjlmYTlhNjExYjg3ZTk3OTNiY2FmMWVkZjJlMDIxMmQ1ZjZmYjc0ZDQ0YTYyZDYxYjY0Yzk4ZmI0MmRmYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGI0YjkwNGEwYTY5NmY0Njg2N2ZmMWI5YjcwNjFhMzMyYTIxYzdlOTQ2N2ExYTA4ZDcwYzJhNWFkMTA5MDViMCJ9"
+        },
+        {
+          "resource": "repo://lib/eval/harness.ts#L312-L313",
+          "version": "repo-lines-v1:sha256:38e092da3c19ca1df770e0affa149b22eb000c45bda6b358eb3d6135b05a34e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYThjZTZkZGY2YjE3OTEwNjA0YWNlYzhkY2NmYzEyNGY0NmNjZGM0MzgzOWE1MzhhMTNjODRiMWNiMjFiZjQwNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGViNDA2OGU2OTE5YzJkMmI1OTNiMzZjODMzOTA2NDg3OTVhNDE4YTc1YTkzYjMzNmVmMjU2NmFmZDVmMzUzMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTczNjdkMDQzYmQ1ZGNjZTkyMWMxM2FlOTE3MzkxNzBjYTlkNWE0ZWRjMzNhNmExYmI5ZmNjYjY0ZDVjOGIzMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGNmMGY5YzEwMjBhNjAyMmM5ODg1MmZkYjgxNWZmMDkwZTBiMjUwY2JiMmQ0YThlNzExMTI4OTdjOWQ5MjgwNyJ9"
+        },
+        {
+          "resource": "repo://lib/eval/harness.ts#L65-L74",
+          "version": "repo-lines-v1:sha256:e1af02b2ff6d7a11081cd5d8856c6ad647e8bd94dc51857bb7c7aa91f1d7ac84:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImViMGZmNGFkZjJiYTI3OGNmNWVkMDU0Y2I2OTIxZWI1YmUxOGY2NzAyZGIwZWQ0N2NhOTg5MzIwOTY4Mjc5MjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkNjNmNWVlMzMyMWY0M2ExMTI3MTAyMjNiNTY5NjBjYmJhYzA4YjA2YmU0YTM0MDJjYjRlNDFmOWRkNmNmNmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_606b0c1d37074984b9648ce9d1144644",
+      "statement": "The eval harness scores each case under leave-one-project-out: the EngineContext history passed to analyzeLineItem for a case excludes every History row from that case's own project, while cross-project history remains available, so the History matching tiers are tested as prediction rather than lookup.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L311-L365",
+          "version": "repo-lines-v1:sha256:c763f19925970958bfb4c4033c099a5a59d4d84dbebeb6da2f126f0093fd138c:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3ODc4ODA5NzZlOTA0ODNhZDFmMTE2NWM2MDRkZGI1MjQwYjNjNzQ3ZDM5ZTljMjA4ZTU1MTJlY2NhNzQ1ZDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlNTQ4MmNjMDcyNWExZjk1NjgzZTliZDZhMGE0ZGE2M2ZhZWY2NTc0MzY0N2U2NzljM2UyZGM1N2NhYTMyMzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxNmQ1OWY2NmQyMDhiZjhlYTU2MWUwN2JhNzNhMzg3NmE3ZTI5MTI4YzMyYWM1ZWVmMDkwZTA3NDk0ODYxOTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlMDAxYTJiNWQxOTA0OGIwOWI1YzYyOTJhZDBiYjRkMzgyYjE1N2VlNDUwMmE4MzA5NTY0NDk3YzY0ZWNmOWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c553661f87554181b7a149dec2cf26d6",
+      "statement": "Within runEval, cases are grouped and processed per project fold; for each fold the harness relearns the series-to-category map from that fold's own LOPO-filtered history via learnSeriesCategories/toSeriesCategoryMap and installs it with setActiveSeriesCategoryMap for the duration of that fold, resetting it to null after all folds complete.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L333-L411",
+          "version": "repo-lines-v1:sha256:ed2f2a86972e9a262ab77454a34ffb7cefc142b7209e1296b075b6f0fc13905f:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUwMWJlMWVhOTIzYWYwMmZmMjdiNDMwMDJjMmNkYWU2N2ZlM2E4MGU1NTEzMWZjN2M0M2VkNTNmZTMyY2Q1NmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0ODE0Mjc2ZDA0Y2ZkYzQ3NzgwYWUwY2VlN2Q5MTA4YjIxYmZkZWEzZGIwYmUxNWRiZGEyNDIxZGI1ODI3OTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxY2FjMWE5OThmN2RlNjE2YWNlZjJmNjkwYTQ3NDBhMDdlMmU5MzE3MjE3MDI0NjI1MzM1MThlNTllNzNlOTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlNGI1MGU1ZjZmMjFkNGIzNzJiYTA3ZmFhYmQ4NzM1M2I2ZmNmM2NmYjg2YTdhY2EzMzNjNjIwMDVmNjBmMDkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1559d4f85345470a8aa08966a1f05255",
+      "statement": "The series-to-category learning logic itself (learnSeriesCategories, toSeriesCategoryMap, MIN_SUPPORT/MIN_AGREEMENT thresholds) lives in lib/engine/series-learning.ts as a pure function of a history corpus, and is called from two different places over two different corpora: scripts/build-series-map.ts over the whole snapshot to produce the committed production map, and lib/eval/harness.ts per leave-one-project-out fold to avoid label leakage during measurement.",
+      "evidence": [
+        {
+          "resource": "repo://lib/engine/series-learning.ts#L1-L31",
+          "version": "repo-lines-v1:sha256:545dbed118ac164348f78eb5c571bee0cd125fc9e79a94bdc907f66a4d01b9db:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5NWFlN2I0ZGQyMTFiNzhhNDVmMDY4NjRlYmJkZDkxMmY2YWQ5MTg4MWE1MzMwMTQ2NDliYjliZDIyZjcwM2UifQ"
+        },
+        {
+          "resource": "repo://lib/engine/series-learning.ts#L133-L183",
+          "version": "repo-lines-v1:sha256:8856af65fc991a6098cb13ea3f4384a262083801ffbabccd79f3a0f23403a43b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3ZDQ5NWM2NGRkZTIzZDgwZmY3MDg1ZTdhN2UzMjZjNjA4OWRjZjkxN2VjYzIwMDFhNTk5YjYxYjhhNTYxYTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZjNmQ2YzY5NDUyZTIyOGY2MDJiZDU4MDVmZTFlNDJhNWFiNDMyZjkyNjc5OGNkNWM4NzU1MDNhODJmYTcwNjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0NDcxODZlOTE0MmY4MDVmMzU0MmRmNDczNmY3ZjNlMDM1MjM2MGNlZWMzMjJkYzBkYjFhZjc2YTkyNDljODIifQ"
+        },
+        {
+          "resource": "repo://lib/eval/harness.ts#L340-L352",
+          "version": "repo-lines-v1:sha256:b1def25e1055abea897b84fe691c60d4d7ed80b352192b1533b1320eecee911e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyYWMwYWQzMjAwMjg2YWVjM2Q5NzVjOGJjZmE5ZTJhYmZkMzE2NTBkZTI4YjAzNmRlOWY4Y2E1OGM0ZGZkZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyMDE3MzQ2M2UyZmQ3YTA5ZDNlOTQ0YjI4Zjk1ZTUyYTBjZDU4M2MxN2M5YmViMmI2OWExZWYwNWI5YWIzMjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0Nzg3MWY3YWUwYmRlYTI4ZTQyMDNhZjgxZWQ1ZDczMDlhODhmNTFkODYxNTRlNmM5OTBlNDYzNTRhNWQ1MzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyMjg1NTRhMTNmYWZiNDM5MmQ1OTAyYWI2NjUyZGMzNGNmNmM0N2FhMDM2NjJmYjU2ZGNlOWNjZjYwYmU3MTAifQ"
+        },
+        {
+          "resource": "repo://scripts/build-series-map.ts#L1-L40",
+          "version": "repo-lines-v1:sha256:65a3025e4358c186f3af0a056e03b9a91f71ca8b8cd4574d8d1b2114db9511bd:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwMGNmN2MzMzllNmU0YzBjOWQ1YmEyNzA3YmMzMTEwMTcyZTI1MjQ4MDQwNGM2NzUyYTg1MzY3MDZkYTBhOWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM4MTk0NDM5MTgyNGFkMDk1MWViYzM1ZWU1ODMzM2NhMWNmY2YxYjY2Y2UxYWRiNjFjNDJkMjhkNGJmOTc5NDIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_df394f98d2174abe86041b581aafa588",
+      "statement": "Before the per-fold series-map relearning fix, LOPO withheld only History rows while still scoring folds against the whole-corpus committed series map, letting a project's own rows teach the map a series the engine then 'recognized' for that same project; measured on the 2026-08-31 frozen snapshot, 77 of 129 keys in a widened map had single-project support, and hits resting on those keys accounted for 3.93 points of a reported 16.87% top1.",
+      "evidence": [
+        {
+          "resource": "repo://lib/engine/series-learning.ts#L13-L27",
+          "version": "repo-lines-v1:sha256:647344da13583e3251a49890d981d2b0caf5cfcc91daa3cdc9690853eb72eccc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1MTYyY2Q4OWFkYmRhZThiMDQ1NGU5OWUyOGMwMjM5YTdmMTE3NmRmMDkzYzk4MTZkMThjYTI0ZmFjMjhmMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiZTE5YmE3MmEzZThmMDUyZGEyNWIwNWViMGJjZmVmZTE3ODRlM2Y1NWJhODYxYzQxNjk1Y2JjN2QxOTY5NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU5YTcwZTg3NDZhYjllYThlMDY0MWYxZWY2YzNlNDUyNTA0YTg2NmU5NWRiNmQ4NjU4NGIzMWYzNzlmMzc2MGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmYjRmNWRlODAxOTcxMmZhYTI3OWY3NTEzNjQzMDYwYzk4MWQxNTQ3Yzk1Y2FiMzI1ZDY0ZDAzYzYzODYxODcifQ"
+        },
+        {
+          "resource": "repo://lib/eval/harness.ts#L340-L352",
+          "version": "repo-lines-v1:sha256:b1def25e1055abea897b84fe691c60d4d7ed80b352192b1533b1320eecee911e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyYWMwYWQzMjAwMjg2YWVjM2Q5NzVjOGJjZmE5ZTJhYmZkMzE2NTBkZTI4YjAzNmRlOWY4Y2E1OGM0ZGZkZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyMDE3MzQ2M2UyZmQ3YTA5ZDNlOTQ0YjI4Zjk1ZTUyYTBjZDU4M2MxN2M5YmViMmI2OWExZWYwNWI5YWIzMjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0Nzg3MWY3YWUwYmRlYTI4ZTQyMDNhZjgxZWQ1ZDczMDlhODhmNTFkODYxNTRlNmM5OTBlNDYzNTRhNWQ1MzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyMjg1NTRhMTNmYWZiNDM5MmQ1OTAyYWI2NjUyZGMzNGNmNmM0N2FhMDM2NjJmYjU2ZGNlOWNjZjYwYmU3MTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3b01a3ebdc6a4c08b4b672a1f0b96591",
+      "statement": "Production is unaffected by the per-fold relearning fix: scripts/build-series-map.ts still generates lib/engine/series-categories.ts from the whole committed snapshot, so a series learned from one past job remains usable knowledge for the next bid; it is only excluded from scoring that same job's own eval case.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L348-L351",
+          "version": "repo-lines-v1:sha256:a5900883c9f114195935ff057dc7798dae016bbc17f3257f49f21bb9f99d999a:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWU0YTRlZDU4MmU2ZGRhMTM4MTI0YTM0MGYxZjk5OWQ5MDdjMjExMDAwMzJmYTMzYTQzNDAwYzY0MDg1ZDIwNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjc4MjRlZjgwY2Q0NWIwOGY4NjQ1ODlmY2QwNTY5ZTIyNmRjZjYxMTVmZTQ0YWVlOTE2YmRiNzQwMDE2NzJmZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGM5ZmU0YTk4ZDk2M2Y5MmIyZjQ3ZjE2NzJlZTVmZDMwMDZiMzNmYjhhMTIwNDhkYWI4YWQzZTkyNjdhYTdiZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzkxOGZmNDNiYWRhZDdlZDNmOGM0MTliNzM5OTFjMWYwODQ4MmFiZDIwZGQyZjcyZjJmOTM1MWVjNDQ5MGZkOSJ9"
+        },
+        {
+          "resource": "repo://scripts/build-series-map.ts#L1-L23",
+          "version": "repo-lines-v1:sha256:20d34fe498f9e0764cba9b4a6e1ee4938045d29fcce34b032d2014eb607a8d8a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwNzczOGM0YzYwNDU4NmJjYWFkYTY2ZjAwOGZkYWM4NDQxN2RiZTA4YmM3MDY0ZjdkOGU1NTUxM2U1OTk5MGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3Yzc4ZDUwZjVlMjg2ZWZiMTFlOGIzYjRmZWFkZjI2NmEyODE4OWVkZGY3YjAwZmZlYmYwMjdhYjY1NzZiODMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c5cd30ea65d24cfb824c2a98dfb7f101",
+      "statement": "Eval outcomes are classified as top1 (first substantive recommendation matches the label), top3 (label appears among up to 3 substantive recommendations), junk (substantive recommendations shown but none match), or silent (no substantive recommendation), with passthrough cards excluded from 'substantive'; top3 + junk + silent sums to 100% of cases.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L370-L381",
+          "version": "repo-lines-v1:sha256:50f54c06c232e2cadb32bb49e7eed69570f62450151eba4d3e9851223500bfc5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhMWI1MDRiOTU0ZjZlNzBiNzM3M2RlZGU2OTA2MzNhZTQ5MjU1MjE3MWM3OTY1MDk4N2Q0ZDNjMDYxYmZmYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMwZDQ3MDg4ODQzOGFiY2I1YTNkNzU1YTY1ZmE1ZDlkNWY1NjBkY2Y0NjRlNmNlZGRiMjc3ZWRlZmZlNjIyYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiZjI0YmE5ZjY2NmUzOWQ0NzQwNzkyODI1ZDNjZmYyNThjNGJjODI0MzEyODhjYTQwZGJlMjFiNDdlZjBiYWEifQ"
+        },
+        {
+          "resource": "repo://lib/eval/harness.ts#L420-L437",
+          "version": "repo-lines-v1:sha256:c607cfaff08e40960dde59e0be69370b68bd17b742099d2e75d97788ff17ed32:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3MGM1MGJlNDc2M2RjZmQ5OGUzMmFiMDZjNzBlNzY0NGM0OGYzOTYwOTIzOGJmZTY4NjhhNWJjMmFkOTA2NjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4NmVjYTljOGU0NDdmNTRkNTY5OWZhMDE4ZTNlMzViOGZkOGY1YzJmZjU2OGM0MzY4MjJmNjkxYjdhYmI4MGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYzNWY5ZmI4ZTQ1ZTE4MjJkOTg0Njg3YmM4NDhkMWUxN2E2NDk1NjhhNzBiNTZkMTE4NmVmYTRiMzEwOTA2ZDMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_83dd4607d2bf471da9639ee04cf31fc9",
+      "statement": "autoWrong flags cases where the top recommendation clears shouldAutoSelect (the UI auto-select gate) yet does not match the label, marking the case as one that would pollute future History via a wrong default-selection export.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L383-L385",
+          "version": "repo-lines-v1:sha256:b4581ef626669c8ad301f57f6a1fa7d44c215b7200f2e2572e16df12025e45c4:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTk3ZjQ2MGY5ZDgzZGUzY2MxMTk3NzYzZTIyMjQwZGMzY2M2MjVjNGU1MjQ0NTM5NGYwNDRkMTUzMmY0MzdiNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWU0NTFlNDdhMWQzZjQ1YTVmZWE0MzRjYjZkYWQ0OGNkODM2NDdlYmQ5Y2Q0YzE2ODRjMDY1YjY4ZTg5NDY5MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTM4N2Y2ZDMxYmUyMDgyMTEzNTg2MzRlNDYzZTgxZjA4NzAxZDA4NzU0NmQ4ZWJkYWQxNjU2ZWE0MzA0MzczYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmQ0OGJjYjU1ZTY3ZjUzOWU4MDI4YjM2YWQ5NjhjYzdkOWZkZGY3ODBlNDM4MDhhOTYwMDM3NTdjODJlNTQ2YyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_9e7bde9e74c34353bbacfcc91a11e630",
+      "statement": "Headline metrics cover only pipeline classes 'standard' and 'bulb' and explicitly exclude as-spec cases (where every labeled outcome equals the input spec itself); tape and rfi lines and as-spec cases are reported as separate slices rather than scored as headline failures.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L160-L179",
+          "version": "repo-lines-v1:sha256:e83dccc7f576dcee6ef8e43aebc0d243242ca76dbe7a1a181850b357b261b304:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxMGQyY2RmNDBjNGFjZWU1NmEwYWFhZTZkMTgwYjI5ODcxNDNiZGNlODYxNThjNzUyZGEzMTg1YTliOTc0MmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJmYzgyNDRmYjk2ZGIyYjE4YzI1YjE1NGFjZDYwZjIxMDI5YWYyZTlmODE1YzBiMTdiNzJkNzk3NTA0YWNjMDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzYWY5ZmE5YTYxMWI4N2U5NzkzYmNhZjFlZGYyZTAyMTJkNWY2ZmI3NGQ0NGE2MmQ2MWI2NGM5OGZiNDJkZmMifQ"
+        },
+        {
+          "resource": "repo://lib/eval/harness.ts#L454-L456",
+          "version": "repo-lines-v1:sha256:a04ac0a4fb317e83413b4a9d4522b55fa3199e1f399ca28dd79a05c571ece230:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGMzYWIyOWM3MzAyNzdkNDc2NDUwN2IzMjNiMDNmYTQzM2FhODVhZTUxOTc4OTljZDY2ZWZjYjNmMmY4MWMwNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMGM5NGY5MmJmODg0NzllZjk0NzY4YjI3NDNjZmZkOGFkYWMyMmE4OTA1NDRmMTBjMDg3MDdjNjhjNGIwN2Y2ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTJmOTA1NDFiY2MxNjNiYjNlYmUyYjAwNzVhOWZkYmE4M2RkNzE1YjkzOGY4MTA3N2IzYjc0MzI0MDEyOWU1MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODE2NDJhMGRiNzk4MDM3NWYyY2I5MzUxYjU5ZDFjNmMwNmEwYmYyZTAyNzk2ZDFiM2RjZGRhMzFiMTI0YjMxMCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_abb63e7bdc464a28a8d41f425647629c",
+      "statement": "checkRegression fails the ratchet if headline case count differs from baseline, if top1Rate/top3Rate drop more than 0.25 percentage points, or if junkRate/silentRate/autoWrongRate rise more than 0.25 percentage points versus __tests__/eval.baseline.json; it also reports per-case outcome flips and whether the run improved on the baseline.",
+      "evidence": [
+        {
+          "resource": "repo://lib/eval/harness.ts#L536-L589",
+          "version": "repo-lines-v1:sha256:47a2d3b1b606fa535deffd6bc1745c012ad54675a620c503c3cc7f72d571afb8:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxODBlNmMzMDFhMjgzNjg5NmQ5ZWQ5YWZjZWRkOTFhODNlMGU4MDVhNzkyYzI4M2IzODdmYTBlYzE1NWZlYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMxODMxOWIzMDgwMDlmOGQ0Y2NlNWY4ZGJjYWU4NTY3YTI3NzU5NTgyOWE2Y2I3NTY0MTFkNmU2MDA5NDJhZWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a4442ed1b0d94738a473231341dfd1ec",
+      "statement": "npm run eval:update overwrites __tests__/eval.baseline.json unconditionally with the current run's metrics and case outcomes; by project rule it is only ever run as a deliberate, reviewed acceptance of a metric change, never to make a failing regression check pass.",
+      "evidence": [
+        {
+          "resource": "repo://package.json#L11-L13",
+          "version": "repo-lines-v1:sha256:79d798b044c6768fc8f5f711006406c50a0d77e0be4c5f1239aa62bb11fb130e:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2FlMWM3MmJjYzliZGI4YzQ0NjQ4ZTIxMmRjOTE1ZTRmOTVkNzIzZTE1MjEwNDNhYzFkYzQ1NWJmNTliNGFmMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTJhZGY0YmQ0MGVjZjAyZDVhZWZlMzkxNmRkYTE1NGY0NWNkYjFjNjUyNTVlNDI1YjdiYTk5MDk5MTVlNGEwNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWIyMTdhZWNiMTQ0Y2NhZDU0MjNlYWNhZmQ1OTRhZTQ3ZWU5YTEyMDlhMjRjZDc2NzY1ZjhmNGQ1MDE1NGEwZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjA4MTAxYTc1Mzk3YWI5ODFhMDYzZDQ1YTU5N2VjZDUwY2RmNDY3OWZlZWRlYTk1MDVhMGE2N2RiNTE4YWNhZiJ9"
+        },
+        {
+          "resource": "repo://scripts/eval/run.ts#L157-L163",
+          "version": "repo-lines-v1:sha256:f86fcf6b9b1baa8dbd205168bae5f95a97ac4eb4a4d8bcf64f24613478adcc7d:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGI1M2Q2ZjZkYTZkNWM5YmZkYWUyNjczOWEwYmM4MDk5ZmNkMjhlMjBkZTIwNjA4NjVhZDJjZmE2ZTQxODkzYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDJhZjJkY2I3MmVkOTU3MTczMjE4Nzc5YjU4ZWRmYWZmYzg3NzMyYTE5MGVmZWFhNzljMGIzYWExMGI2MTRmZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzU1ZTcyY2YyYWFlYTZmMGQ3YmNjZmViNjIzMzRkZTE1MTZjNDAzMzkxNTQ0NmU0ZGM1NjU5MWEzYWE3ZTlmYSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_0661572aaa8f474784dbbe969d6022ba",
+      "statement": "The vitest guard in __tests__/eval.test.ts checks that the committed snapshot's sha256 fingerprint matches the baseline's recorded datasetFingerprint before comparing metrics, failing with an explicit message if the baseline was generated from a different snapshot.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/eval.test.ts#L238-L264",
+          "version": "repo-lines-v1:sha256:183a74372398c39a5fca1b79da67c9660001f4e9b36b353c7af0d136903a2711:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkYTFmODNkOTE3ZDI0ZGY5ZDIxOTFhNDhmODllZWM3ZDE2ZWQzYmY2YTRhMGFjMjM1Nzc2YmE2ODI5ZTU2NjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhNzFkOWZiODgwZWVjZGNiYTUzMjc1MmRhMjM3YTZlOGI2MzJlMWNlY2ZlNTM2ZDhmZTkyYjhmZDA5NzJiYzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUwZWJjNzFiMWRiYjA3MWRkYzA1YmYxNzZiMmNiNzBkMGYwMTVlMmMzZmFjMzE5MzNlMTNhNTdlYzEzNjdmZTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxZjlhNGIxOTJmNGQyOTg4NmM3YmZlZWUxMmQ3NTMzZDIwYTFkZjQzMDdjMDUyN2EzYWU5NDc4NDdmOTE1ZmYifQ"
+        },
+        {
+          "resource": "repo://lib/eval/dataset.ts#L75-L82",
+          "version": "repo-lines-v1:sha256:48031917d1c8f8c5702aa10342542c99b46e08836a925bfd5078d76a793b030a:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzhhZmI5MTc2ZmFmNjQ1M2I3NzhmZWZkZjgwMDc1MjU1MmVkNGZiMTliYTE4MWQxZmU1OGQ2Y2QxNzdhZDNmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGVkZjZjM2Q5Yzk2OTdkZjZlOTM1MTRiZWI2MTM0NDUzNDhiMzg1MmFmNmI0YmEwZDY5MGE4NWY1MzlmYzQ2ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_1c51a561f0114c2288708696f9157b79",
+      "statement": "CI (.github/workflows/ci.yml) runs `npx vitest run` on every pull request and push to main, which includes the eval regression guard, without any Airtable credentials, because the eval dataset is the committed, frozen snapshot fixture __tests__/eval.context.json.gz rather than a live Airtable fetch; only the offline `npm run eval:fetch` refresh path requires AIRTABLE_PAT.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/ci.yml#L1-L53",
+          "version": "repo-lines-v1:sha256:104ca77d22ec3c8298988ae495ade43873b411b512cd5d414651935b5f932f19:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2ZTFiMzJmYTA5MDc5YWUyZjAwMDFmZmYwZWNhMjdiNDk4NTk1N2Q0ZWI0ODU3OTI5YjNjZjA1OGZhYWU1NDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjZDAxNzIzYzdjMGQ2YTNjYmY5NjFmMzI0MzA4NmE2MGViMDdkNGMxMTcyNDM5M2M5OGMwN2M0OTIwMmUyZjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://scripts/eval/fetch-context.ts#L1-L36",
+          "version": "repo-lines-v1:sha256:5a1b28f93c4cbc0917e2a0cb940f514b5b1452941149f7dd7393591833328b10:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3ZTY1Y2ZmOGJiNWRiZjI5YjgyNWZkZWMyNjU1YTU2YzViOTlhMDU0M2VkNDUzMzYyZDEzMzU3NzdiZGI3OTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1d1b0b68ae924af889d8c200873bdb26",
+      "statement": "As committed, __tests__/eval.baseline.json reports 981 headline cases with top1Rate 13.76%, top3Rate 17.43%, junkRate 39.65%, silentRate 42.92%, and autoWrongRate 0.71%, generated from the snapshot fetched 2026-09-02 per __tests__/eval.context.meta.json.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/eval.baseline.json#L1-L11",
+          "version": "repo-lines-v1:sha256:be47a60ed1e126659b54fa9734ce7d6ca3b23ea8726605ef47d55b3364e3a6e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyYTVhMjFkYmM2YTZhM2M0ZTE4YTY3MTA4NzM1YTNhNjYwMGZjNzdjZGNhMTE0Mjg1M2MyMDkzZGUxYjY1ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNmJjOTdiZDE3YTE3Y2VlMWVjZmFjZTQ3N2I3Y2I5MmUzYzc5N2FiOTVlMGZkMDM4MDAwN2ViNjU3NThjMDcifQ"
+        },
+        {
+          "resource": "repo://__tests__/eval.context.meta.json#L1-L10",
+          "version": "repo-lines-v1:sha256:3d08036e618b352c42daedf9f9c67851462b2c9ac3639071fed9de89c23cfb00:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzZWFlN2U2YTRkM2M3MWJjYzk2MzI4YzUxOWZiYTI5NDFlZTQ4Njk2OGE2ZDYzMjJmYjA4Y2ViNDRlM2VmZDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwYzk0OTg1NTI2YzFjNTdlZjAwYzAwZDNmNGRjOTA2MTU2NzdhMGEzNmE4Yjc5NWRmZjlhZmZkNTBmZTlmNTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI1NjhhNjY0ZThmMTA2ZTc4YmJjNTE0NGJmNWZlN2UyYTViMmQ1MWQ0ZWQwZDVmZWExMjk5NDc2YWJlMmU0NmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_89ab8dc324e147faa15f9c016c192a7c",
+      "statement": "The 2026-09-02 baseline snapshot followed an Airtable base consolidation (unifying four category systems onto one Product Categories table, deduplicating catalog rows, and merging manufacturer-name variants) that changed the dataset fingerprint and the headline case count from 971 to 981, making it explicitly not a like-for-like comparison with the prior baseline even though every headline metric held or improved.",
+      "evidence": [
+        {
+          "resource": "repo://__tests__/eval.context.meta.json#L12-L15",
+          "version": "repo-lines-v1:sha256:e40ba7728c34fa6cc14f8e1546843debe6fc8e1fb7c22634923298da5256083e:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjg3ODExOTYyOWIwOGI0ODI2ZTdiNDRhZDI2OWQ4MzJkNjliNmRiZjMzNWJmZTZlZmY0YTY4YmM0OTM5YjhhNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODc3OThmZDAwZTNkOWU0Yzg4NmFkZmRhZGM0YTJlMDNmZmJiNTdkOGZhM2I0OWRkN2I2MjdjODdmYjEwNTM0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmFjMzY5MWRmMGQ1MTY4MWJlNWVmMWM1N2NhM2U1OTY5M2IzYWRmMDg5ZjkyNjhhZjczZWMwYTZmOGY1ZGYwYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2NkMmM3YmU3NzMyMjQyY2NjYTY5NWIyMDlkZGI5YmUxMzYwNzYxYjQyNWJlODhlYTllNWViNGEyNDE3YjNiYiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.1",
+    "at": "2026-09-10T12:24:50.371Z"
+  }
+}
