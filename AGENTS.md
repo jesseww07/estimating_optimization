@@ -48,6 +48,17 @@ This is Premier Lighting's internal estimating substitution finder. Start with
   names.
 - Pushes to `openwiki/update` deliberately skip Vercel deployments
   (`vercel.json` → `git.deploymentEnabled`); don't "fix" that.
+- **The Wiki tab is generated, never hand-edited.** `wiki-publish.yml` renders
+  `openwiki/` into the wiki repo (`<repo>.wiki.git`) via
+  `scripts/publish-wiki.mjs` on every push to `main` that touches `openwiki/`,
+  flattening `engine/eval-harness.md` to the page `Engine-Eval-Harness`. Page
+  names come from the file path, not the front-matter title, so a retitled page
+  keeps its URL. Anything typed into the Wiki tab is overwritten on the next
+  push — change the code or `openwiki/` source instead.
+- **The OpenWiki agent run is the expensive part** (~20 min and a full model
+  pass), and it repeats in full on every run until the `openwiki/update` PR is
+  merged, because `.last-update.json` on `main` still points at the old head.
+  Merge or close that PR promptly; don't add back a daily schedule.
 
 <!-- OPENWIKI:START -->
 
