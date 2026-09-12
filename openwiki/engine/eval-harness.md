@@ -5,7 +5,7 @@ description: How the VE engine's substitution accuracy is measured against label
 tags: [eval, accuracy, ci, regression-testing, history]
 verified:
   - by: openwiki/0.5.1
-    at: 2026-09-10T12:24:50.371Z
+    at: 2026-09-10T18:40:06.129Z
 sources:
   - id: openwiki-source-c54b69307d742355408fda56
     resource: repo://__tests__/eval.baseline.json

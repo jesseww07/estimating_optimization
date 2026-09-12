@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:612a15323cf4f9eebca2b90a4a16c7b1985ae642ad4739da5ad2e2f091caf64f",
+  "pageVersion": "sha256:508714751926ec6a92c0de57549c1127a07aa1117fcdc1c0822a24fccd06e330",
   "claims": [
     {
       "id": "claim_685bd3ea5c5c412e8a4a6089d7a63878",
@@ -45,8 +45,8 @@
       "statement": "The repository is public: test fixtures must be synthetic (invented brands/part numbers) or frozen already-committed snapshots (e.g. __tests__/eval.context.json.gz, __tests__/parity.context.json), and customer bid workbooks, pricing data, or raw Airtable exports must never be committed.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L12-L14",
-          "version": "repo-lines-v1:sha256:f6ffbe75a4c1c5a9b694a6e532ad3036f9ee439bd1dc14932bdf2f05adf59786:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTJjY2NkOGZhMTFjNjMzMWU1NDJiMjI4MmEyNTUxZjIwOWE2YjhkN2ZmNDdkY2ZkNGMyNWFlNzMxOTdiMGFlZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWY3MWEwZGYxYzYxMGUwZDg3Njk5MGY4MDY3NGM2NDZhNWY1YTk1NDM5ZDQyZWY4NTEyYWQwNzk1YjMxMzI5YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjA0ZGRjZWZjNzc4Y2I5YzFmZmUwYTZiNGRlZWZiNzYzN2YzNmM1NTIzNTQ5YWZiOGY2M2MwOTI5ZmUyYmZkNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWZiMDA4YjlhYzYzYmJkYTcxZmVkYmJlOWY1MmE0MGRlZmI0YWQ5MWVlNmNkZDExMjJkMjRkNTIxZTczODMyYyJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:865e276ed31924b0639b2e46fc4111325350c52f13d4dc1d7056f5d81925ba25"
         },
         {
           "resource": "repo://README.md#L108-L110",
@@ -71,6 +71,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T12:24:50.371Z"
+    "at": "2026-09-10T18:40:06.129Z"
   }
 }

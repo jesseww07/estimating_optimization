@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:48c9110bd8f9091ff57dc7e18266557cc362f33848894db759002bfdf0daf537",
+  "pageVersion": "sha256:79fcc1bba83489a60d2f9944db9e42e7e00fbf3328c48393344bee1d47751560",
   "claims": [
     {
       "id": "claim_22e57b70f3fd473dafc858769daa658b",
@@ -96,7 +96,7 @@
       "evidence": [
         {
           "resource": "repo://.github/workflows/ci.yml",
-          "version": "repo-file-v1:sha256:104ca77d22ec3c8298988ae495ade43873b411b512cd5d414651935b5f932f19"
+          "version": "repo-file-v1:sha256:ebe9ecf9565b904af4c0b4939185c5b7c95a609dcc67faf367b689a1595da314"
         }
       ]
     },
@@ -130,11 +130,11 @@
     },
     {
       "id": "claim_3d68f724940849e985391bf9c0a23738",
-      "statement": "The openwiki-update.yml workflow runs `openwiki code --update --print` on a daily 08:00 UTC schedule, on manual dispatch, and on pushes to main outside the openwiki/** path, pushing changes to and opening/updating a PR against the openwiki/update branch, independent of the accuracy/typecheck/lint CI gate.",
+      "statement": "The openwiki-update.yml workflow runs `openwiki code --update --print` on push to main outside the openwiki/** path, on manual workflow_dispatch, and on a weekly Monday 08:00 UTC cron backstop ('0 8 * * 1') rather than a daily schedule — deliberately weekly because a run costs ~20 minutes and, until the resulting openwiki/update PR is merged, `.last-update.json` on main still points at the old head so every run regenerates the same pages from scratch, which would make a daily schedule scale cost with how long the PR sits unreviewed. It pushes changes to and opens/updates a PR against the openwiki/update branch, independent of the accuracy/typecheck/lint CI gate.",
       "evidence": [
         {
           "resource": "repo://.github/workflows/openwiki-update.yml",
-          "version": "repo-file-v1:sha256:4a3578003a7a2b13912546449f4656451c8f002fc3449eb576ac780097e54507"
+          "version": "repo-file-v1:sha256:adf9be965f4344899a7fd51ec3f1e8c63d6cb1f50490e8d869a44ecb3a800fc0"
         }
       ]
     },
@@ -147,10 +147,68 @@
           "version": "repo-file-v1:sha256:c1679c721d67f419cb0abc2e898220ea9fb73d55ba9644b076b14ad5fb9fd691"
         }
       ]
+    },
+    {
+      "id": "claim_8b20e11fbd844185aa811f56f7761b53",
+      "statement": "A third, separate workflow (.github/workflows/wiki-publish.yml, 'Publish Wiki') renders the committed openwiki/ markdown into the repository's separate GitHub Wiki tab (<repo>.wiki.git) via the dependency-free scripts/publish-wiki.mjs, triggered on push to main touching openwiki/**, scripts/publish-wiki.mjs, or the workflow file itself, plus manual workflow_dispatch.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/wiki-publish.yml",
+          "version": "repo-file-v1:sha256:417ac9fe2ec4224a0c3c0b99506d59250aa7c39cfecdf8585b2510c94d573eab"
+        }
+      ]
+    },
+    {
+      "id": "claim_d53e0746dd994e16be8bba17b5f73662",
+      "statement": "wiki-publish.yml is intentionally split out from openwiki-update.yml rather than being a step inside it, because openwiki-update.yml's push trigger uses paths-ignore: openwiki/**, so merging a docs-only PR would never fire a publish step living there; splitting also keeps publishing cheap (seconds, no model calls, no dependency install) and independent of whether the ~20-minute OpenWiki agent run succeeded.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/wiki-publish.yml#L1-L13",
+          "version": "repo-lines-v1:sha256:d57dc5efd91cc02bafb75399375524e9159221f7c79892be3e496542614b9075:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMWVjZjE4NTg0MjMzMzIyYmQwMTkyNGYxMDI3MDA1NDM4MTRkZTg2MGRmYzM0ZWZjMmU4NmNlYzUyMDhmMGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0Y2I3Nzk0NDc1OWZjZjg0ZjU0OGE0NzQ2NDkxMDQ1ZmY0YzczZmY1OWJhODFhMzRjNmZjOTk2NDFlYWQ0M2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3NTYzMTI0NTY2NjM3MThiNDM0M2YzODE1MWRjNmNmMmZhNzE5OWU1ZTE5NDU3YjUzMzlkMWIzYTQ4NWRmNmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_51d80a1112b74af3af85b5b6cb66d91a",
+      "statement": "scripts/publish-wiki.mjs is dependency-free (Node built-ins only), letting the Publish Wiki workflow skip npm ci; it walks openwiki/ (skipping dotfiles and index.md), derives each wiki page's flat name from the source file PATH rather than the front-matter title (e.g. engine/eval-harness.md -> Engine-Eval-Harness) so a retitled page keeps a stable URL, rewrites internal markdown links to the corresponding wiki page names, and removes pre-existing top-level *.md files in the wiki checkout before rendering so deleted source pages don't linger as orphans.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/publish-wiki.mjs#L1-L53",
+          "version": "repo-lines-v1:sha256:03a3ec0b4f4699a030362fbd586e1a65d1a186c87b16b4d451eb0493363fa31d:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1OWM0Nzg3MmI3MWYxMjU4OTk0Mjg5MjQ2NGU3NjRjMGRiMzUwYzIwYjcyMjI4NjQ1NjE1Y2MzNmUwYTA3MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjYTZlMzk0NDFlYjY2Mzk2ZmEzYmM2YTgxZWNiNTM4YTc3M2YzMDYzMmY4NGFjNzJiM2NhMDA3NGI3MDU5YWMifQ"
+        },
+        {
+          "resource": "repo://scripts/publish-wiki.mjs#L55-L97",
+          "version": "repo-lines-v1:sha256:d920ce39e7b3ea1f8269f493a10919c6e05836db73ff7ed32a96c41837b610fe:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjYWM4MDRmM2U2MzU4OTk5MDMzM2U5M2Y0ODczZjExNWIyNDA4NzM0ZTNiZDdhOTlkZDZhZjE0ZGY5MGUwZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllOGNiYWExMzBhNzE3M2U4NWY0YWU2N2ZhNjMxNWFjZjFlYjg4ODQ1YjVkZWQ1Yjc0MGJlNzQyZjNmZmI2YTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2OGVkMTg1M2U3ZTgzMWNlNWVjMDcxODBmNGVhYTU3YTE0MTBiNDljZDFmNjY2MDgzZjQ4M2NiM2I5MDY3OWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5dda25e25132490888a6747cfb60be19",
+      "statement": "The GitHub Wiki repo (<repo>.wiki.git) must be initialized with at least one page via the GitHub UI before wiki-publish.yml can clone and push to it; this one-time setup happened out of band before the workflow could run successfully, and a run whose rendered output has no diff against the existing wiki checkout is a normal no-op that exits without committing.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/wiki-publish.yml#L11-L13",
+          "version": "repo-lines-v1:sha256:6e6d0252f2fe98363022c93d3197c7dc71c8c6332a1c0b91b6f92bad4e664b9b:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDA0YjFkMDQwMmUwNTY2YmIwYjMxYzY3YmFiZjUwOGRhMmU5NjJiODUwYzhjMDkyODYxNzRmODEzZmE1MWI4NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTRjYjc3OTQ0NzU5ZmNmODRmNTQ4YTQ3NDY0OTEwNDVmZjRjNzNmZjU5YmE4MWEzNGM2ZmM5OTY0MWVhZDQzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDk4YTFkOWJiNmZhNTU4ODI5ZWRjZDYwODAxYjc1YzBiZWViYTVlNDMyYjVmZDgwYTBlZjlmNTQ4NjE3NjcyOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjc1NjMxMjQ1NjY2MzcxOGI0MzQzZjM4MTUxZGM2Y2YyZmE3MTk5ZTVlMTk0NTdiNTMzOWQxYjNhNDg1ZGY2YSJ9"
+        },
+        {
+          "resource": "repo://.github/workflows/wiki-publish.yml#L55-L68",
+          "version": "repo-lines-v1:sha256:271cb2db731f7cd7aba1328d88390c3e7ec6ed90967507cb56a5361f5b2d0546:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ODJkMWU2MTVhM2Q4ZTJiM2RhNmI0NTY5NzY2YzJjYmY4MWFhZWUyYTQwNjVlMDFhOWU2ZGFmZjZkZTAyZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmZGRhNTRjOTZmMDkzYjdmNzlhMzBkNjM0ODNhNGQ2ZWViZjIxM2JiOGM0YzhkZTFkYmNmMTM4MGIyMTlhNDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk1ZmQxZjM2ZTgxNzdlNWY2Nzg3NDgyMTAxMGUyNjhkOGZjMWNhZjA0YWIxMzkyZTIzYTkwNWNlNmNmOWNkZjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_48a9de37df504a658877ef6e3c20e426",
+      "statement": "AGENTS.md documents that the GitHub Wiki tab is generated and never hand-edited: content typed directly into the Wiki tab is overwritten on the next wiki-publish.yml run, and documentation changes should instead go through the code or the openwiki/ source and let OpenWiki (and then the publish workflow) regenerate the Wiki tab.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L51-L57",
+          "version": "repo-lines-v1:sha256:224ead8fab7a843e594387d87e2734a1d33bfb5050283a5895f052d2d546fa8a:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTVkMzlkOTUwYWM2NmI2ZGU2YzYyZTVjOGIxZjhkNDExZTZiZTc4NWY4YmQ3YTRhZmQyODRmZmM0M2Q3YTJmYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWZkMmNlNzU0NzUxMDQ2ZTg1MWIwMTk5OGU1NmY3YzY1NzVlYjkzMDU1MmY0NmY5Y2YyOWQyMmYzMTdjNzIzOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTkwMzQ1MmYyZGE1ZDkzYjM5YjNjMWVkYThlNjk1ODZkMjRjOGFjMWM0MDE1YmJlN2IzMGZiZjQzNzFiOGQ5ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzU5ZTEzOTEwMDE0ZDdmZDU5MGFlMzEyNTA2ODljNWZlZWZiYzkyY2Q2M2IxY2E4OWFhYjEzMjcxMmU4OTdjMiJ9"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T12:24:50.371Z"
+    "at": "2026-09-10T18:40:06.129Z"
   }
 }

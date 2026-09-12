@@ -3,9 +3,6 @@ type: Overview
 title: VE Estimator Quickstart
 description: Entry point for the Premier Lighting VE (value engineering) estimating substitution finder — what it does, how the pieces fit together, and where to go next in the wiki.
 tags: [quickstart, ve-estimator, premier-lighting, next.js, airtable]
-verified:
-  - by: openwiki/0.5.1
-    at: 2026-09-10T12:24:50.371Z
 sources:
   - id: openwiki-source-cbf8826979b66452c4f7cd0d
     resource: repo://__tests__/categories.test.ts
@@ -23,7 +20,10 @@ sources:
     resource: repo://lib/identify/media.ts
   - id: openwiki-source-23775c3de52f3ab95a13cb8b
     resource: repo://README.md
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-10T18:40:06.129Z" }
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-10T18:40:06.129Z
 ---
 
 # VE Estimator — Quickstart
@@ -152,10 +152,8 @@ failures. All commands run from the repo root.
 | Schedule extraction (Claude-read PDF/image/Word, page-chunking) | [Spec Identification](workflows/spec-identification.md#flow-1--upload-time-schedule-extraction) | `app/api/upload/route.ts`, `lib/identify/schedule.ts`, `lib/identify/docxPages.ts`, `lib/identify/media.ts`, `lib/identify/pdfPages.ts` | `extractScheduleFromDocument`, `extractScheduleFromPages`, `planPageRanges`, `planDocxPages`, `detectSupportedMedia`, `scheduleRowsToLineItems` | `__tests__/identify.test.ts` (schedule/media/PDF-page-count cases) | `npx vitest run __tests__/identify.test.ts` |
 | Recommendation scoring/matching/ranking | [Recommendation Engine](engine/recommendation-engine.md) | `lib/engine/matcher.ts`, `lib/engine/recommend.ts`, `lib/engine/ranking.ts`, `lib/engine/categories.ts` | `analyzeLineItem`, `calculateCatalogMatchScore`, `isFamilySpecMatch`, `isIdentifiableSpecKey`, `categoriesCompatible`, `shouldAutoSelect` | `__tests__/tuning.test.ts`, `__tests__/parity.test.ts`, `__tests__/categories.test.ts` | `npx vitest run __tests__/tuning.test.ts __tests__/parity.test.ts __tests__/categories.test.ts`, then (conditional — any scoring/threshold change) `npm run eval` |
 | Learned series → category map | [Recommendation Engine](engine/recommendation-engine.md#learned-series-categories) | `scripts/build-series-map.ts`, `lib/engine/series-categories.ts` (generated) | `SERIES_CATEGORY_MAP`, `MIN_SUPPORT`, `MIN_AGREEMENT` | `__tests__/tuning.test.ts` ("Largo Station: learned series → category") | `npx tsx scripts/build-series-map.ts` (regenerate, review the diff), then `npm run eval` |
-<!-- openwiki: broken internal link [workflows/spec-identification.md#flow-2--per-line-identify] heading anchor "flow-2--per-line-identify" does not exist in "workflows/spec-identification.md". Fix the href or restore the target, then delete this comment. -->
-| Per-line identify (URL / web / cut sheet) | [Spec Identification](workflows/spec-identification.md#flow-2--per-line-identify) · [Architecture Overview](architecture/overview.md#per-line-identify--post-apiidentify) | `app/api/identify/route.ts`, `lib/identify/claude.ts`, `lib/identify/fetchUrl.ts`, `lib/identify/apply.ts`, `lib/identify/catalogNumber.ts` | `applyIdentifiedSpec`, `isFetchableSpecUrl`, `isIdentifyAvailable`, `planCatalogSearch` | `__tests__/identify.test.ts` | `npx vitest run __tests__/identify.test.ts` |
-<!-- openwiki: broken internal link [workflows/spec-identification.md#flow-3--batch-category-identification] heading anchor "flow-3--batch-category-identification" does not exist in "workflows/spec-identification.md". Fix the href or restore the target, then delete this comment. -->
-| Batched sheet-wide category identify | [Spec Identification](workflows/spec-identification.md#flow-3--batch-category-identification) · [Architecture Overview](architecture/overview.md#batch-identify--post-apiidentify-batch) | `app/api/identify-batch/route.ts`, `lib/identify/batch.ts` | `identifyCategoriesInBatch`, `isBatchIdentifyAvailable`, `selectBatchCandidates`, `chunkCandidates`, `mergeBatchRows`, `MAX_BATCH_CALLS`, `BATCH_CHUNK_SIZE` | `__tests__/identify-batch.test.ts` | `npx vitest run __tests__/identify-batch.test.ts` |
+| Per-line identify (URL / web / cut sheet) | [Spec Identification](workflows/spec-identification.md#flow-2--per-line-identify-libidentifyclaudets) · [Architecture Overview](architecture/overview.md#per-line-identify--post-apiidentify) | `app/api/identify/route.ts`, `lib/identify/claude.ts`, `lib/identify/fetchUrl.ts`, `lib/identify/apply.ts`, `lib/identify/catalogNumber.ts` | `applyIdentifiedSpec`, `isFetchableSpecUrl`, `isIdentifyAvailable`, `planCatalogSearch` | `__tests__/identify.test.ts` | `npx vitest run __tests__/identify.test.ts` |
+| Batched sheet-wide category identify | [Spec Identification](workflows/spec-identification.md#flow-3--batch-category-identification-libidentifybatchts) · [Architecture Overview](architecture/overview.md#batch-identify--post-apiidentify-batch) | `app/api/identify-batch/route.ts`, `lib/identify/batch.ts` | `identifyCategoriesInBatch`, `isBatchIdentifyAvailable`, `selectBatchCandidates`, `chunkCandidates`, `mergeBatchRows`, `MAX_BATCH_CALLS`, `BATCH_CHUNK_SIZE` | `__tests__/identify-batch.test.ts` | `npx vitest run __tests__/identify-batch.test.ts` |
 | Export / corporate workbook | [Architecture Overview](architecture/overview.md#export--post-apiexport) | `app/api/export/route.ts`, `lib/export/corporate.ts` | `buildCorporateWorkbook`, `inferSubManufacturer` | `__tests__/export.test.ts` | `npx vitest run __tests__/export.test.ts` |
 | Airtable schema / fetch / cache | [Airtable Integration](data/airtable-integration.md) | `lib/airtable/schema.ts`, `lib/airtable/fetch.ts`, `lib/airtable/cached.ts` | `fetchEngineContext`, `getEngineContext`, `invalidateEngineContext`, `isLiveDataAvailable` | No dedicated unit file — exercised indirectly via `parity.test.ts`/`tuning.test.ts` fixtures that shape `EngineContext` | `npx tsc --noEmit` (typecheck; live-base changes need a manual `GET /api/recommendations` healthcheck against real `AIRTABLE_PAT`) |
 | History write-back / learning loop | [Airtable Integration](data/airtable-integration.md#history-write-back--the-learning-loop) | `lib/airtable/writeback.ts`, `app/api/export/route.ts` | `writeSelectionsToHistory`, `backfillBidManufacturers`, `getWritebackMode`, `writebackKey` | `__tests__/writeback.test.ts` | `npx vitest run __tests__/writeback.test.ts` |
@@ -177,7 +175,8 @@ failures. All commands run from the repo root.
 | `lib/eval/` + `scripts/eval/` + `scripts/build-series-map.ts` | Accuracy evaluation harness and the generated series→category map |
 | `__tests__/` | Vitest suites (parse, tuning, parity, categories, writeback, identify, identify-batch, export, eval) plus the frozen eval snapshot/baseline |
 | `.github/workflows/ci.yml` | Typecheck + lint + vitest (incl. eval ratchet) on every PR/push |
-| `.github/workflows/openwiki-update.yml` | Scheduled job that regenerates this wiki |
+| `.github/workflows/openwiki-update.yml` | Push-triggered (code changes outside `openwiki/**`) plus a weekly cron backstop; regenerates this wiki into an `openwiki/update` PR |
+| `.github/workflows/wiki-publish.yml` | Push-triggered on `openwiki/**` changes; renders committed `openwiki/` markdown into the repo's GitHub Wiki tab |
 | `docs/*.md` | Hand-written phase primers and the eval-harness reference |
 
 ## Backlog

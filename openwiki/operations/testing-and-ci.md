@@ -1,11 +1,8 @@
 ---
 type: Operations
 title: Testing and Continuous Integration
-description: The Vitest test suites covering the VE Estimator's parser, engine tuning/parity/category taxonomy, identify (single and batch), export, write-back, and eval logic, plus the GitHub Actions CI workflow that enforces typecheck/lint/the accuracy eval ratchet on every pull request.
-tags: [testing, ci, vitest, github-actions]
-verified:
-  - by: openwiki/0.5.1
-    at: 2026-09-10T12:24:50.371Z
+description: The Vitest test suites covering the VE Estimator's parser, engine tuning/parity/category taxonomy, identify (single and batch), export, write-back, and eval logic; the GitHub Actions CI workflow that enforces typecheck/lint/the accuracy eval ratchet on every pull request; and the separate scheduled OpenWiki-update and Wiki-tab-publish workflows.
+tags: [testing, ci, vitest, github-actions, wiki-publish]
 sources:
   - id: openwiki-source-cbf8826979b66452c4f7cd0d
     resource: repo://__tests__/categories.test.ts
@@ -19,13 +16,22 @@ sources:
     resource: repo://.github/workflows/ci.yml
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
+  - id: openwiki-source-a7a8965ff53d3530162adf6d
+    resource: repo://.github/workflows/wiki-publish.yml
+  - id: openwiki-source-8037e2358a2c4f9b2c722a11
+    resource: repo://AGENTS.md
   - id: openwiki-source-5b54a58d1b51cd490b0e7162
     resource: repo://package.json
+  - id: openwiki-source-ef78767c07114f30622ad312
+    resource: repo://scripts/publish-wiki.mjs
   - id: openwiki-source-55831e92f29f8b3e9d43f58b
     resource: repo://vercel.json
   - id: openwiki-source-fbadcd8591b65031efaaedce
     resource: repo://vitest.config.ts
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-10T18:40:06.129Z" }
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-10T18:40:06.129Z
 ---
 
 # Testing & CI
@@ -100,13 +106,86 @@ history, attribute agreement), not threshold inflation.
 
 ## `openwiki-update.yml`
 
-A separate scheduled workflow (`.github/workflows/openwiki-update.yml`, daily
-at 08:00 UTC plus manual dispatch, or push to `main` outside `openwiki/**`)
-runs `openwiki code --update --print` to keep this generated wiki (the
-`openwiki/` directory, plus `AGENTS.md`/`CLAUDE.md`) in sync with the
-codebase, pushing to and opening/updating a PR against branch
-`openwiki/update`. It is unrelated to the accuracy/typecheck/lint CI gate
+A separate workflow (`.github/workflows/openwiki-update.yml`) keeps this
+generated wiki (the `openwiki/` directory, plus `AGENTS.md`/`CLAUDE.md`) in
+sync with the codebase. It triggers on:
+
+- **push to `main`** outside `openwiki/**` (`paths-ignore: openwiki/**`) —
+  the normal trigger, firing on code changes but not on merges of the wiki's
+  own update PR;
+- **manual `workflow_dispatch`** — used for the very first run, when no
+  `openwiki/` directory exists yet;
+- **a weekly cron backstop**, `0 8 * * 1` (Monday 08:00 UTC), *not* a daily
+  schedule. The workflow's own comment explains why: a run costs ~20 minutes
+  of agent time, and until the resulting `openwiki/update` PR is merged,
+  `.last-update.json` on `main` still points at the old head, so every run
+  before that merge regenerates the same pages from scratch. A daily cron
+  would scale cost with how long the PR sits unreviewed rather than with how
+  much code actually changed, so the schedule is weekly instead.
+
+Each triggered run executes `openwiki code --update --print`, which reads the
+commits since the last update and rewrites only the affected pages (or
+generates the whole wiki from scratch on the first run), then pushes to and
+opens/updates a PR against branch `openwiki/update` rather than committing
+straight to `main`. This is unrelated to the accuracy/typecheck/lint CI gate
 above, and `vercel.json` deliberately disables Vercel deployments for the
 `openwiki/update` branch (`git.deploymentEnabled["openwiki/update"] = false`)
 — docs-only pushes to that branch are not meant to trigger a deploy, which is
 intentional rather than a misconfiguration.
+
+## `wiki-publish.yml` — publishing to the GitHub Wiki tab
+
+A third, independent workflow (`.github/workflows/wiki-publish.yml`, "Publish
+Wiki") renders the committed `openwiki/` markdown into this repository's
+separate GitHub Wiki tab (`<repo>.wiki.git`), so the docs are readable at
+`/wiki` instead of only by browsing the repo tree. It triggers on:
+
+- **push to `main`** that touches `openwiki/**`, `scripts/publish-wiki.mjs`,
+  or the workflow file itself;
+- **manual `workflow_dispatch`**.
+
+It is deliberately a **separate workflow** from `openwiki-update.yml` rather
+than a step appended to it, for two reasons documented in the workflow's own
+comments:
+
+1. `openwiki-update.yml`'s push trigger carries `paths-ignore: openwiki/**`,
+   so merging a docs-only PR never fires that workflow at all — a publish
+   step living inside it would never run on exactly the merges it needs to
+   react to (an `openwiki/**` push is precisely what that workflow ignores).
+2. Splitting keeps publishing cheap (seconds, no model calls, no
+   dependencies) and independent of whether the ~20-minute OpenWiki agent run
+   in the other workflow succeeded.
+
+The steps: check out the repo, clone the wiki repo (`<repo>.wiki.git`) into a
+temp directory over HTTPS using `secrets.GITHUB_TOKEN`, run
+`node scripts/publish-wiki.mjs "$RUNNER_TEMP/wiki"` to render pages into that
+checkout, then `git add -A` / commit / push from inside the wiki checkout. A
+run that produces no diff (e.g. a merge that only touched OpenWiki's own
+state files, not rendered page content) exits cleanly without committing —
+that is the normal no-op case, not a failure.
+
+`scripts/publish-wiki.mjs` is intentionally **dependency-free** (only Node
+built-ins) so the workflow can skip `npm ci` entirely and stay a few seconds
+rather than a full install. It walks `openwiki/` (skipping dotfiles/dirs and
+`index.md`, which are OpenWiki's own state and auto-generated directory
+listings), flattens each nested path into the wiki's flat page namespace by
+title-casing and hyphenating path segments — e.g. `engine/eval-harness.md` →
+`Engine-Eval-Harness` — and rewrites internal `](*.md)` links to the
+corresponding wiki page names, warning on any it can't resolve. Page names
+are derived from the **file path**, not the front-matter title, on purpose:
+OpenWiki regularly rewrites titles as the code changes, and a title-derived
+page name would silently move the page (breaking bookmarks and inbound
+links) every time a title changed. Existing top-level `*.md` files in the
+wiki checkout are removed before rendering so a source page that gets
+deleted doesn't linger as an orphan.
+
+One-time setup note: the wiki repo has to already exist before this workflow
+can push to it — GitHub only creates `<repo>.wiki.git` after at least one
+page has been created through the Wiki tab's UI, which this workflow does
+not do itself; that initialization happened once, out of band, before this
+workflow could run successfully.
+
+As `AGENTS.md` notes, **the Wiki tab is generated and never hand-edited**:
+anything typed directly into it is overwritten on the next publish run, and
+changes should go through the code or the `openwiki/` source instead, letting
+OpenWiki (and then this publish workflow) regenerate the Wiki tab.
