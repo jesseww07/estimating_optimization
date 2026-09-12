@@ -3,9 +3,6 @@ type: workflow
 title: "Spec Identification: Schedule Extraction, Per-Line Lookup, and Batch Categorization"
 description: How the app turns unreadable or under-specified bid lines into scoreable line items — Claude-based schedule extraction on upload, per-line identify (URL/web/cut sheet), and the batched sheet-wide category pass — and how base-item catalog-number extraction feeds all three.
 tags: [identification, claude, schedule-extraction, docx, pdf, web-search, catalog-number, cost-guardrails, recommendation-engine]
-verified:
-  - by: openwiki/0.5.1
-    at: 2026-09-10T12:24:50.371Z
 sources:
   - id: openwiki-source-1d4605aa35fb16ba7dd73a86
     resource: repo://app/api/identify-batch/route.ts
@@ -15,6 +12,10 @@ sources:
     resource: repo://app/api/upload/route.ts
   - id: openwiki-source-41733ca814a15305110ed0e0
     resource: repo://app/prepareUpload.ts
+  - id: openwiki-source-7f0f7893293ac71ef1a3a004
+    resource: repo://lib/engine/baseItem.ts
+  - id: openwiki-source-c22a00e69b49f8253cc88b9f
+    resource: repo://lib/engine/recommend.ts
   - id: openwiki-source-cd57e67df49db39d282788a1
     resource: repo://lib/identify/anthropic.ts
   - id: openwiki-source-d46ac60c236057d975bd3989
@@ -39,7 +40,10 @@ sources:
     resource: repo://lib/identify/spec.ts
   - id: openwiki-source-26cd350fc3368022af69d61d
     resource: repo://lib/parse/docx.ts
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-12T00:26:12.199Z" }
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-12T00:26:12.199Z
 ---
 
 # Spec Identification
@@ -118,43 +122,80 @@ category vocabularies.
   nothing usable to keep (an empty cell, or a pasted spec-sheet URL sitting
   in the catalog cell).
 
-## Base-item extraction: why `4430802-112` fails and `4430802` succeeds
+## Base-item extraction: two readers, one search plan
 
-`lib/identify/catalogNumber.ts` is the pure, testable half of a lesson learned
-from live use: a fixture schedule prints the **ordering string**, not the
-product. `VISUAL COMFORT 4430802-112` names one product — `4430802`, a
-two-light bar vanity — configured in finish `112`. Searching the whole string
+Every identification path needs the same thing first: what to actually
+search for. A schedule prints the **ordering string**, not the product —
+`VISUAL COMFORT 4430802-112` names one product, `4430802` (a two-light bar
+vanity), configured in finish `112`; `OXYGEN 3-515-25- HALO` names one
+product, `3-515` ("Halo"), in size/finish `25`. Searching the whole string
 returns almost nothing; searching the base item number returns the
-manufacturer page, the product type, and the finish list.
+manufacturer page, the product type, and the finish list — the failure and
+fix that motivated this module (`README.md` documents the same two examples
+for the same reason, so the app's own README and this page describe one
+mechanism, not two).
 
-`splitCatalogParts` strips only **trailing** tokens, and only while what
-remains still reads as a real item number (`isUsableBase`): it recognizes
-color-temperature codes (`30K`, `3CCT`), wattage (`15W`), lumens (`4000LM`),
-CRI (`80CRI`), voltage (`120V`, `MVOLT`), an explicit vocabulary of finish
-words/abbreviations (`WHITE`, `BZ`, `PC`, …), and slash-delimited option
-groups (`120/277V`, `30K/40K`) via `isOptionToken`. A bare trailing 2-4 digit
-run after a substantial core is also treated as an option code
-(`NUMERIC_OPTION`), which is what actually splits `4430802-112` into base
-`4430802` + option `112`. `splitCatalogAlternates` additionally splits a cell
-that lists several catalog numbers at once (`"4430802-112 / 4430804-112"`)
-into individual candidates, conservatively — a slash embedded in one part
-number (`120/277V`) must not be mistaken for a delimiter between two
-different products.
+Two readers, run in sequence, produce the base item:
 
-`planCatalogSearch(spec)` is the plan every identification prompt consumes:
-the printed alternates, the deduped base numbers to actually search, the
-deduped option codes to mention as configuration context (never as search
-terms), and `hasBase` (whether stripping changed anything worth telling the
+1. **Option stripping** (`lib/identify/catalogNumber.ts`, `splitCatalogParts`)
+   — grammar-driven. It strips only **trailing** tokens, and only while what
+   remains still reads as a real item number (`isUsableBase`): the shared
+   option vocabulary in `lib/engine/baseItem.ts` recognizes
+   color-temperature codes (`30K`, `3CCT`), wattage (`15W`), lumens
+   (`4000LM`), CRI (`80CRI`), voltage (`120V`, `MVOLT`), an explicit
+   vocabulary of finish words/abbreviations (`WHITE`, `BZ`, `PC`, …), and
+   slash-delimited option groups (`120/277V`, `30K/40K`) via `isOptionToken`
+   (re-exported from `baseItem.ts` so the two readers cannot disagree about
+   what a configuration code is). A bare trailing 2-4 digit run after a
+   substantial core is also treated as an option code (`NUMERIC_OPTION`),
+   which is what actually splits `4430802-112` into base `4430802` + option
+   `112`.
+2. **The structural read** (`lib/engine/baseItem.ts`, `simplifiedBaseItem`)
+   — for whatever survives stripping, the base is the first run of
+   characters that carries identity, and everything after it is either more
+   configuration (`variant`) or the product's own printed name (`name`).
+   This is the reader that finds `3-515` inside `3-515-25- HALO`: grammar
+   alone strips nothing there (`HALO` is not an option code), but the
+   structure is plainly "code, then name." `lib/engine/baseItem.ts` is
+   shared, not identify-only — `lib/engine/recommend.ts` imports
+   `sameBaseItem`/`simplifiedBaseItem` from the same module for its own
+   family-matching tier (a History row for `3-515-15 HALO` is family
+   evidence for `3-515-25- HALO`), so every rule in `baseItem.ts` is measured
+   by the accuracy eval ratchet, exactly like the rest of the engine.
+
+`splitCatalogAlternates` additionally splits a cell that lists several
+catalog numbers at once (`"4430802-112 / 4430804-112"`) into individual
+candidates, conservatively — a slash embedded in one part number
+(`120/277V`) must not be mistaken for a delimiter between two different
+products.
+
+`planCatalogSearch(spec, manufacturer)` runs grammar first, then the
+structural read on what's left, once per alternate on the line, and is the
+plan every identification prompt consumes: the printed `alternates`, the
+deduped `baseNumbers` to actually search, the deduped `optionCodes` to
+mention as configuration context (never as search terms), `productName` —
+the manufacturer's own printed name for the product (`"HALO"`,
+`"MQUAN CIRCLE"`), used as a secondary search lead when the number alone is
+thin — and `hasBase` (whether stripping changed anything worth telling the
 model). `lib/identify/claude.ts` uses this plan both to build `lineContext`
 (handed to every mode, so even a document-based identify knows `112` is a
 finish code and won't report the configured string as the product's
 identity) and to build the search queries in `identifyFromWeb`.
 
-This module is **deliberately separate from `lib/engine/matcher.ts`**: the
-engine's series/family matching logic is measured by an eval ratchet and must
-never move because an identification-prompt change shipped. Nothing in
-`lib/engine/matcher.ts` imports from `catalogNumber.ts`, and nothing here is
-imported by the engine — the boundary is structural, not just a comment.
+### Where the boundary with the eval-ratcheted engine actually sits
+
+`lib/identify/catalogNumber.ts` imports only from `lib/engine/baseItem.ts`
+(`isOptionToken`, `simplifiedBaseItem`) — never from `lib/engine/matcher.ts`
+directly — and nothing in `lib/engine/matcher.ts` or `lib/engine/recommend.ts`
+imports from `lib/identify/catalogNumber.ts`. So an identification-prompt
+change confined to `catalogNumber.ts` (how a search query is phrased, what
+`lineContext` says) cannot perturb engine scoring, and the engine cannot be
+perturbed by identification-only changes there. That boundary does **not**
+extend to `lib/engine/baseItem.ts` itself: because the engine's own family
+matching consumes it too, a change to `baseItem.ts`'s structural rules moves
+both engine matching and every identification search query at once, and is
+exactly the kind of change the eval ratchet exists to catch. `catalogNumber.ts`
+is a one-way consumer of that shared module, never the reverse.
 
 ## Flow 1 — Upload-time schedule extraction
 
@@ -345,6 +386,11 @@ the file may ever be called in a loop over a sheet. Three modes:
   product's high-level identity (type, size, lamp count, mounting, the
   finish/CCT options the family offers) rather than an exact configured-SKU
   match, because a configuration-exact product page usually doesn't exist.
+  The suggested queries are manufacturer + each base number, in printed
+  order; when the plan also carries a `productName` (the manufacturer's own
+  printed word for the product), a second query pairs it with the first base
+  number, as a lead for when the number alone is too thin to find anything.
+  The model is told to try these first but is not restricted to them.
 
 ### Timeout/streaming budget for web research
 
@@ -513,9 +559,14 @@ flowchart TD
   `spec.ts`, which reads `CATEGORY_GROUPS` from `lib/engine/matcher.ts`.
   Adding an engine category makes it automatically identifiable by every
   path; nothing in this subsystem should hardcode its own label list.
-- **`catalogNumber.ts` must stay import-isolated from `lib/engine/matcher.ts`**
-  so an identification-prompt tweak can never move the eval-ratcheted engine
-  matching logic, and vice versa.
+- **`catalogNumber.ts` must stay a one-way consumer of `lib/engine/baseItem.ts`
+  and never import `lib/engine/matcher.ts` directly, and `lib/engine/matcher.ts`
+  /`lib/engine/recommend.ts` must never import from `catalogNumber.ts`** — that
+  keeps an identification-prompt tweak from ever moving engine scoring. This
+  does **not** protect `lib/engine/baseItem.ts` itself: it is shared with the
+  engine's own family-matching tier, so a change there is eval-ratcheted like
+  any other engine rule, even though it also reshapes every identification
+  search query.
 - **Token usage logging is a guardrail, not incidental.** Every Claude call
   in all three flows logs a single `[identify] source=… stage=… model=…
   input_tokens=… output_tokens=…` line (with `cache_read_input_tokens` when

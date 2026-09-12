@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:435a1414ae22da66f943b00f086226e19a045ced64e3f4298de9dd33a032bc55",
+  "pageVersion": "sha256:40464947fcefa827ad4fc258fd0d90ed55c421b930eb537c72ef8830cee6ad74",
   "claims": [
     {
       "id": "claim_dfd8ab3aad8643e7a43a0a8b7101fe97",
       "statement": "lib/engine/** (matcher.ts, ranking.ts, recommend.ts, categories.ts, series-learning.ts, series-categories.ts) is pure TypeScript with no Next.js/React or Airtable-SDK imports, which is what lets analyzeLineItem run identically inside API routes, unit tests, and the eval harness.",
       "evidence": [
         {
-          "resource": "repo://lib/engine/recommend.ts#L1-L23",
-          "version": "repo-lines-v1:sha256:44efc55fa0ab8f9130b8a0999e6b33603cb2b3e6894be448b6758aad048d0d7a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYjU0NGE1ODg2MzQzNTBjMTkxNjlhODI0M2I1MzFiZjMwOTVlYjU3YzhmYjAzZTQ0ODM2OTQzZjA4MTY4ODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1NjcyOGIzZGMwZThhNzY3YWU0MmFhOTdhZGViM2YzMjM4NDBlZDI1MzBiM2ZiNjI5MGU2MDJmNzJhOGIwMmUifQ"
+          "resource": "repo://lib/engine/recommend.ts#L5-L9",
+          "version": "repo-lines-v1:sha256:0afa9a1fc85b8de051bd3464aa01b76454426180cedef98f93db4cf78762412a:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGMzOTBjMGY3OTMwNzI0NjEwYTUwY2IyMDhhMGNiOGFjMDZkNDhiMDJjNjk3MGNhYWNmNWRlMGU0ZjQxNmM2NyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjIzY2I0YzEzZDY3NzU5ZDU0Zjc2NzFkNDQwMzQ5NzJkMDkwM2EzOWQwOGFmYWU3M2JiOTgxZWI5YWIwZGNmMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzZlYzViNzdiZDJlZTM2YTFiNzQ5ZGZhMGRkNDA4ZmZjNTYwMzM3YzE3OTE1YmRiMjAwMTY4ZDBhNjFjYWUyZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmQ1ZWYzMWFlYTZjZTg2OGJjYmVkNGJkMmZmZDQzM2QwYjhiMjJlMmVhMDY5ODI1YTVlZjM5MDcwNmEwY2EwZSJ9"
         },
         {
-          "resource": "repo://lib/engine/series-learning.ts#L26-L31",
-          "version": "repo-lines-v1:sha256:77d63e33ed3bf49c17dc5448f9a4cd7306f9c7fb30501f942ad1bd6acb0e55df:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzAzM2Q0NWEzYjUxYjMxZTk5NmNhN2U3MGU0ZDQxZTQzMTc2ZGRkZmFhZDRlMGY5NzQ4ZTY1NDBmMGUyYTQ1NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyYTQyOTM4MmIyZTE0NzE4ZTBlMzdiMDU3MGE4YTE3MDI5OTFmY2Q4NDk4Y2Q4NDA2MGE4YmY0ZjA1MDE3YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmM1YWNhMGUyMjQ0ODI1NmNjYTI5OTA0OGI0YjEwOWNkMDExZDI4YjhjZDllMjNmMDU5ZmIxYWIzNTVjOWZhYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDk1YWU3YjRkZDIxMWI3OGE0NWYwNjg2NGViYmRkOTEyZjZhZDkxODgxYTUzMzAxNDY0OWJiOWJkMjJmNzAzZSJ9"
+          "resource": "repo://lib/engine/series-learning.ts#L29-L31",
+          "version": "repo-lines-v1:sha256:ff1366f944d2139290e00f0af1baa1fe934620c8754d8e4c6ae598b066af5842:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzQ0MWI1MGFmMmQ3ZmE4NWE2ZDM2YTk2YjI0OGY3MjdmOGI4YjkxY2QzZTIwNDhhZGI1NWI3YTJkYjgyNWE3YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyYTQyOTM4MmIyZTE0NzE4ZTBlMzdiMDU3MGE4YTE3MDI5OTFmY2Q4NDk4Y2Q4NDA2MGE4YmY0ZjA1MDE3YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmRiNGYyOTVmYzAwZDE0ZWZmZWU3MzgzMmM4NTU1MWM2YTY5YjAxMTRhYWM5ZDU2N2MyNjFlNTFmYjE2MjFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDk1YWU3YjRkZDIxMWI3OGE0NWYwNjg2NGViYmRkOTEyZjZhZDkxODgxYTUzMzAxNDY0OWJiOWJkMjJmNzAzZSJ9"
         }
       ]
     },
@@ -21,28 +21,40 @@
       "statement": "analyzeLineItem runs an ordered pipeline where each stage can suppress or gate later stages: URL scrub, RFI placeholder, LED tape suppression, bulb/lamp routing, fixture-category inference, History matching (authoritative/sub-authoritative/family), Premier direct match, 3rd Party direct match, Fans matching, already-a-Premier-item passthrough, category fallback, decorative passthrough badge, then own-brand bonus/sort/dedupe/retry/slice.",
       "evidence": [
         {
-          "resource": "repo://lib/engine/recommend.ts#L1-L23",
-          "version": "repo-lines-v1:sha256:44efc55fa0ab8f9130b8a0999e6b33603cb2b3e6894be448b6758aad048d0d7a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYjU0NGE1ODg2MzQzNTBjMTkxNjlhODI0M2I1MzFiZjMwOTVlYjU3YzhmYjAzZTQ0ODM2OTQzZjA4MTY4ODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1NjcyOGIzZGMwZThhNzY3YWU0MmFhOTdhZGViM2YzMjM4NDBlZDI1MzBiM2ZiNjI5MGU2MDJmNzJhOGIwMmUifQ"
+          "resource": "repo://lib/engine/recommend.ts#L10-L22",
+          "version": "repo-lines-v1:sha256:7c75a13e8abf3a4525892af07b16979ef66e75c04915db9cd13fd2164b702487:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxM2NhNjk1MzY5MjA4NjgzNWJlZGNlNzI5MjEyMzQxYzU4ODhlZjQwYjc1N2M1OWYyNjhiNDFhZjAxZDNmNDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiYjdhZTYwYmM2YzJjYzkyMzcxNTcxN2U1NWIyNDE0MGIzZjA4ZTViMjRlNTgwODEzY2UwZDhiYjllMjhmMDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjNzkxOTZjZmI0ZmJmN2VmYThmODRkODJkOGVkNWI5MjM4NjRkZjhlOTdhMmEwYjRlNWZkZjAzMTRkZTAyODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzOWFkYWYyNjZiYzI3NzBkMjI1YTFmOGYyODU5ZTYxMDFhOWRiMjlkYTZhMDY4ZTRlNDhiYjdlNGZiZjBhMWIifQ"
         }
       ]
     },
     {
       "id": "claim_b30d7fad60b048c686198518388ca018",
-      "statement": "A History row is authoritative evidence only when matchingSwapCount >= 3 (AUTHORITATIVE_SWAP_COUNT), the spec is identifiable (isIdentifiableSpecKey), and agreementShare > 0.5 (a strict majority of all History rows carrying that exact spec); authoritative matches floor confidence at 95 and matchType 'exact'.",
+      "statement": "A History row is authoritative evidence only when matchingSwapCount >= 3 (AUTHORITATIVE_SWAP_COUNT), the spec is identifiable (isIdentifiableSpecKey), and agreementShare > 0.5 (a strict majority of all History rows carrying that exact spec); authoritative matches floor confidence at 95 (AUTHORITATIVE_CONFIDENCE) and matchType 'exact'.",
       "evidence": [
         {
-          "resource": "repo://lib/engine/recommend.ts#L88-L111",
-          "version": "repo-lines-v1:sha256:9e204164fc5a0fb63599728618839248513c52a062f8f1dfb180f029a041c505:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyNzFhY2RkN2UzYjcxNzc1MDFhZjExYTYxZTZmZmUwZjg5MGE1N2NmMGJiNjc2MTQzMzU2MmJkYzAyM2JmYjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5MGQzMjllMTgwNDc1ZTU3MDJkZjdhNDAyZjZmNTJhN2Y4MmU4YzVkNzczMjZjODI0MWZkOWFkMjRmOGNlNDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3YmFkNDYzMWM3OTFkOWU2YjUwYTBlMzY4NTcxMTViM2RiZTdmYTlmMmMxOTQyMzg5MTVjZTg4M2I2Zjg1YmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcxOTA5MDA1MGVlOWRiNzc3OGE3MGFjNmEzMzVjNWViMzBmNGViM2M4MzY4Mzg3YWVhN2FkYTM4OTc5YjJlZmUifQ"
+          "resource": "repo://lib/engine/recommend.ts#L1139-L1140",
+          "version": "repo-lines-v1:sha256:94d8369d84aea44d401936dec2cc0335ee08c3e239ba9f389bbc6368597b1761:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzE4ZWMzNThlNDYzMTRiYzAxMzQyMmEzYjA3NzBiMzEzZmM1YmJjODBhOGM5OTkxZDJiNTU0ZmNmZDE1ZjY2MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmJmYzllNTVjZTVjZjEyODFlNTdjNTI4YzU0NjlkNzA1NTk5ODJlNDJjNjkwNWE4NzkxYmI1MDQyODMxYTBlMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDNlMjFmNjU3MGUzOTkzMDdiY2NkNWRhOTc3ZjRjOGJhMzZkNWMyNmFkNGE1ZWVjMzQ1MjI5YWQwODhiZDExZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWI4M2RmNjdjNzdiODE1YjdiZGZlM2Q4Mjg0ZTI0MTlmYzgwZDZkNmM2MDNhM2M1YTNhY2FjM2Q5Yzg1MTA3OSJ9"
+        },
+        {
+          "resource": "repo://lib/engine/recommend.ts#L1205-L1211",
+          "version": "repo-lines-v1:sha256:c7cd19d07c0f57b5b424bc502fe9d5a0b751f79ae177c1a4f4991a30754043f1:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWFjMjQxMzNmYzQzN2Y3M2M1MzE2Nzg0NjViZTg5YjI3NjQyMmIyYTY4NmRlOGU1OGRhZmM2YmE3YzU3MjFkZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWJmMjQxOWY3YWRhNjg1OGEzOGU2OTFiOWMzMWIwOTc3MGE5YTFjODVlYWM2NGY2Nzg1NjA4MDZkYzcxMDNjMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWE0YmI3YjQ2MTZlMzE4ODc5M2E3ZDgwY2UwMDVhNzNkM2UxMzFmYWJlZDhjNGJjY2VlMTgxOWY4MzBlNzM4ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTI2YTU3ODY3YTMwZjMwOTQ3MDA0MzdmYmY5YThmMzlhMGUyMWE0YWJiYTc1YmU4MjRjYTFhYmU2ZjExOTFkZSJ9"
+        },
+        {
+          "resource": "repo://lib/engine/recommend.ts#L97-L100",
+          "version": "repo-lines-v1:sha256:271c01f090bdf03005904532b9c6fd896c699dfc6a83fb71aef561116175fa6e:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDgzMzIxMzBjODkwNDU2YzBhMzIyYjAyZTk3YzY2MzEzMjA1MDY2N2I1MzA4NTA4NzFiZGFjYjliYzRkYmYzMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzQ0MWM4MGFmNzNmOGMzMGFkMDA3MjM3YWJjZjQ2NzI2Y2NhMmM5ZDgyYWMxMGJiZWI0NDIxZGYwNjJlMTZkYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWRjZmM1OTY4MTQxNzIxMGUwZTk4ZTk0NmQ1ZDJlZTlkODlkYjllMTJhMGZkM2FmNzA4MGI2Yjg1ODQ1YTQyMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGYyMDFjOGFmMGNlNWVkNzJhZGMwYzMyZjZjNzdjODg3NGVhNmE1MWYwMGIzMzllNWY2NDJiNjNiYzg1MjQ4OCJ9"
         }
       ]
     },
     {
       "id": "claim_fc1a787562824d29b84ece340f55b693",
-      "statement": "Sub-authoritative exact-spec History evidence displays confidence as EXACT_CONFIDENCE_BASE(45) + EXACT_CONFIDENCE_SPAN(50) × agreementShare × recency-saturation(weightedSwaps/(weightedSwaps+0.6)) + usage prior(min(20,timesUsed/2)), capped at 92, but autoSelectSafe is computed separately from a legacy evidence-mass formula (weightedSwaps*20 + ownBrandBonus) so a higher displayed confidence never widens auto-select eligibility.",
+      "statement": "Sub-authoritative exact-spec History evidence displays confidence as EXACT_CONFIDENCE_BASE(45) + EXACT_CONFIDENCE_SPAN(50) × agreementShare × recency-saturation(weightedSwaps/(weightedSwaps+0.6)) + usage prior(min(20,timesUsed/2)), capped at 92, but autoSelectSafe is computed separately from a legacy evidence-mass formula (weightedSwaps*20, min 100, plus ownBrandBonus if the linked item is a Premier own-brand) so a higher displayed confidence never widens auto-select eligibility.",
       "evidence": [
         {
-          "resource": "repo://lib/engine/recommend.ts#L93-L111",
-          "version": "repo-lines-v1:sha256:a8adf2bd54f2a86f582f331a296da5f1db9e102503dd5d4e5e4d910fec85e2b4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4N2IxY2U0OTY0MjA5NDY1ZThiYWQwMmQ5NjBhZTRlZDE0MDQyMjAzYTk2Y2EyMDE2ZjYwMTJlNDMwY2QyZjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5MGQzMjllMTgwNDc1ZTU3MDJkZjdhNDAyZjZmNTJhN2Y4MmU4YzVkNzczMjZjODI0MWZkOWFkMjRmOGNlNDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzOGNiNThmN2Y0YjY3M2RmMWMxNDZiMjE3MzkxMzJlZWJlNzFlZjc2Y2VkODFjMGNlMjAxZTEzNDdjNTU4ZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcxOTA5MDA1MGVlOWRiNzc3OGE3MGFjNmEzMzVjNWViMzBmNGViM2M4MzY4Mzg3YWVhN2FkYTM4OTc5YjJlZmUifQ"
+          "resource": "repo://lib/engine/recommend.ts#L102-L126",
+          "version": "repo-lines-v1:sha256:446bb9d61578ec99f35a4afe27ef2cd1b81491428f4cdd818078a89782f27587:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0N2M1Zjk2YzMxZWY3YjYwOWNmZTdjM2RiODM5YzYwMzhiMTQ2YTBhODU3Y2RkNDRjYzZlYTNjZDljZGI0NzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiMTA2ZTkzY2M2MTE3YTU1N2I5OGRmODcwNGVlOGRjYjkyODk0NTc2OTU2NGYzZWZkZDQyZGJiZWE5NGFmNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJhYWY2YmFlYTVmY2VlMTM2ZDRiNGE3MGVmZWEwMzRkZGU1NDQ5N2Q2NWNhNmJhNzRiZWQwMGYyN2RhYTkwMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ODYyYjBlMmI1YTUzYjE4NTUxNGIzYjhiMmU2YmIwZjk5MTAyYTM2YjllM2VlNDkyODI1NDJjM2E5MjhmMTMifQ"
+        },
+        {
+          "resource": "repo://lib/engine/recommend.ts#L1177-L1231",
+          "version": "repo-lines-v1:sha256:31284035b11b297e94ba929c6881adb1b9022920c11bdf01149f7fd463acba35:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwZGNhZTZhY2U1OGY3NTQ2NjEzZjlmYTY3NGMzNDRkN2ZiZmUzMTU2MTM5ZDBiZGRmZDk0OGY3ZWRmM2U3N2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MGNiMmE1Y2E5NzI5YmQ0MGNkYWEwM2Y4ZmJjNWRkMTAxYTEzNGI2YTVkNDE2YTJkMjk5YWRjZTkxYTAyMWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzYmU4ODAxN2M1MGIzYzY3NDQxNzljNzYwN2RmZDA2ZTRlMGEwMTU0NTI3ZDk3Zjc0MDRjZmUxN2ZhM2RjYWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVhNjM2YWEwYWExYzMxNWEwYmRiYWY3Mjk4YWE0MTc4ZjU4NDMzNTU5ZTY5YWZiM2IxOTk0MjNkMzU5NGY1ZWMifQ"
         }
       ]
     },
@@ -52,7 +64,11 @@
       "evidence": [
         {
           "resource": "repo://__tests__/tuning.test.ts#L897-L1041",
-          "version": "repo-lines-v1:sha256:e09f0e25f576a31ffed186cb751bfc99f1fc72f2a404c6f3e81a67126614ff7b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2ZGI0NWU4YzU2OWNkNjgwY2JjMzgwODIxMzUyZjQ2NjVlZjIwMTBkODM3ZjJlM2E5Njk0NjFiMGY0N2Y0MGVhIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI3ZWI3MDI1NzU5M2RhMDZmNjgyYTNkZGRhNTRhOWQyNjBkNGZjNTE0ZjY0NTIzN2Y1Y2E3NGIwOGY4ZGE2MWE2IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2ZjY2YmE4OTdhNDVjOGEzZGM1Y2EyOGNlZmEwNWZmODQ0YjdlNmNkOTdjOWVmMTAyM2ZmNTEzNjViMGQ0YjZkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyYzIxNjYzMjZkMDM3MDA4ZjBmNDMxOTlkYTc4YTFjZDgyZTJjYzRkMjI0ZjVmYTM3ZGJkODY2NmZiMWIyODVjIn0"
+          "version": "repo-lines-v1:sha256:cf2ce5870eecbefb568f84b4a7370770c897228058ea80e3014e55ed16fac548:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3NGIwZjJiNzVjNWQ3ZDcxNWZmZjM3ZGY0MzQ4MmFlMDM0OGFlOTBhODFjYTQwODYyNDNhNWM2MGQ0N2U4NmY1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxMjllZDVkMGEwN2U2YzgwNjkyNDhmODBkNDhkNGE2MjdkNmI0YzU3YWE2NDQwMTY0M2YwN2FjNjRjYjFmODViIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIzMjY4ZDA2OTIzYTUyZWY3YjVlODNkMTMzNDgwZDgzMjIyMzdiODZmMWJmOGI4Mzc3NDFkZThjNzUxOWY3ODlmIn0"
+        },
+        {
+          "resource": "repo://lib/engine/recommend.ts#L1196-L1204",
+          "version": "repo-lines-v1:sha256:31e6719430d246afd37162787962f0eebe467a506f115d47f99d3c7cec8123f5:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI4N2ZhYmVkYjVkZDhkZmMzMjI0NTNiMjhmY2ZlZWYxODUzMDBmNzJlMzI1MDhkMDM1MjgzZmFjODk2M2VmZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGQ0M2Y4YWFmMTdiOTFmYjE1YzU3YzA5MTcxMjE4Y2QzYjVjOTAyYjRjZjYzN2ZjMWZmYjg4NWJmZGNhYmNmNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODFkYmQzMzllM2M0NGQ4YWE5YThhMDFmNjZmMjQ0Zjc5NWJmYzQ4ZTc5MDc5N2ViMzdiNGU5YTg1YTE3YmYxNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTg4ZmYxYmMwNTNmOThlN2Q5MjcxNzU3ZjM4ZTQ2Njk2OTI4YTQ1ZTg5ZWI3OGJjMWVlMzk3M2QxMzY4OWNlMSJ9"
         }
       ]
     },
@@ -86,11 +102,11 @@
     },
     {
       "id": "claim_e3d8fa2745e540c89296387a3e7a7a38",
-      "statement": "scripts/build-series-map.ts is a thin CLI wrapper that loads the whole frozen eval snapshot and calls learnSeriesCategories to write the committed lib/engine/series-categories.ts; the committed production map is built from 663 usable linked rows (487 Premier-linked, 176 3rd-party-linked), yielding 128 learned series.",
+      "statement": "scripts/build-series-map.ts is a thin CLI wrapper that loads the whole frozen eval snapshot and calls learnSeriesCategories to write the committed lib/engine/series-categories.ts; per the committed file's regenerated header (source snapshot fetched 2026-09-02, 9,491 History rows), the current production map learns 150 series from 773 usable linked rows (495 Premier-linked, 278 3rd-party-linked), with 109 of those series resting on a single project — these counts change every time the map is regenerated against a newer snapshot.",
       "evidence": [
         {
-          "resource": "repo://lib/engine/series-categories.ts#L1-L21",
-          "version": "repo-lines-v1:sha256:c93500b40c7e377c27a887c6c7c6fdbdb69ab5af58b3403e90e04059851c2097:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmODNiZjI0M2QyZjljMGU3MzZhYjgxNTc3NTA2ODFiZWJiYTFkYWM2YzkyZWE4YTBkN2MwYjQ0YjdhOTZmZWEifQ"
+          "resource": "repo://lib/engine/series-categories.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:1f4cbc68acdc8bb9c2144541ee89b6e3d52c7a1a0530d33cd5384a6cd2c5afe5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhYTkwNjAwMjE5NmYyZDc3YzViOGE3MzYwYjE5NDg4YTljNjQyOGU4MjlkZDZiNjMxNTMzOGU0YWZjZGQxNTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjljNjFmZmYxZWM2ZTJmNjFhMWVlMmEzOTY1OGNlZGY1MzEzNWIwYzE5MmUyOWMxODA1NGRmYjU0OTA2NTI4MmIifQ"
         },
         {
           "resource": "repo://scripts/build-series-map.ts#L1-L41",
@@ -117,22 +133,22 @@
       "statement": "The 3rd Party Domestic Items table functions as context for reading a spec, not as a general substitution catalog: category-fallback candidates from the ordinary resold tier ('third_party') are eligible only if they match at least one spec token that no Premier (or preferred-manufacturer) candidate also matched (the 'earn-your-slot' rule in categoryFallbackRecommendations); when Premier has nothing in the category, every 3rd-party candidate remains eligible.",
       "evidence": [
         {
-          "resource": "repo://lib/engine/recommend.ts#L567-L602",
-          "version": "repo-lines-v1:sha256:3d066256534dcd320d156d812c64d9086c23fbb45fa4681e776ff559c3c1d273:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlZmQyYmFhZjMwNGU2NzE0ZDRkMGExMWVlMDA5YmE1YzhjZDYxOTYwMTBlMjliMjk4ODYzYTE5NjA5NTljMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMDU5YzhjZmI1YTA3MmM2ZjY0ZGQzZDFiZmRiYzM1NmZiZWM5M2FlZWM4ODc5MWRhN2VkYmE4OWMwODg1ZGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjNGY3MDFlNWZkM2M5MDI1ZTkwMDI0MDhmMTFlNjA0ZWEwODc5MDFjMWYyODJiNzlmMDJmY2M1NTIzOTNhNjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZlODdiMWM1MTI1YWM0MDc3MjY2NjM0ODE3ZGIzNDY4NDU0NDdkY2I0ZjcyNWVjNGY5ZWQ3NGNjOTRmN2YwODYifQ"
+          "resource": "repo://lib/engine/recommend.ts#L583-L618",
+          "version": "repo-lines-v1:sha256:7756aa8055bd0814723fd5ea1d07b0a63c7f58ab9a055c29a7703687abcaa5fe:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyNGNiM2ZjYTdiMWU4YTg4ZmQ0NTlmYzQ0NjI4YTllYzYzMGMzNzE3N2FhMGUwNTZjZmYzOGE3NTU5MGJiOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyY2MwZDQ0ZGRlMzkxMDE4YTQ1OWMwNmIwOTBlZWVjOGRmNTA0MTg4Mjk3MzIwMmQwYTc2NWZjOTM1NjRjYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmZGNmNGJmOGU3NGUxODVlNDc5ZjljYzBiNDQzMzAxYjhjZmNkYjY5YTlkMzgzMDU4ZmJmYjk2ZWIyM2JjMzMifQ"
         }
       ]
     },
     {
       "id": "claim_32c5f296528a4a25898ed8de7fac49ab",
-      "statement": "PREFERRED_THIRD_PARTY_MANUFACTURERS (lib/engine/ranking.ts, currently ['GLOBALUX']) identifies manufacturers Premier does not itself manufacture but treats as a house line; isPreferredManufacturer/isHouseLine give these items own-brand ranking treatment (OWN_BRAND_BONUS via applyOwnBrandPreference) and their category-fallback tier ('preferred') is exempt from the earn-your-slot rule, ranking alongside Premier own-brand items rather than competing against them as a budget alternative.",
+      "statement": "PREFERRED_THIRD_PARTY_MANUFACTURERS (lib/engine/ranking.ts, currently ['GLOBALUX']) identifies manufacturers Premier does not itself manufacture but treats as a house line; isPreferredManufacturer/isHouseLine give these items own-brand ranking treatment (OWN_BRAND_BONUS via applyOwnBrandPreference) and their category-fallback tier ('preferred') is exempt from the earn-your-slot rule (only the 'third_party' tier is filtered), ranking alongside Premier own-brand items ('premier' tier) rather than competing against them as a budget alternative.",
       "evidence": [
         {
           "resource": "repo://lib/engine/ranking.ts#L60-L92",
           "version": "repo-lines-v1:sha256:e30170b05adfc78c067ed923f3c8e7a9d48a0bad12416cd54ec372e178be277c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjNWI4YzMxNzZjYzUzZWFjNTZiZGQ5NzcxYzRhYWQ5Mzk0NDc0MzQ5YTQ4ZTU0ODliMDgxZWMwNmE0ZTE2NTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwOWFmMTI5NTlmNzIwMTEyMWE2YTQ2MDZlNjFkMDcyMDdlZTdjOWFiZDNiNzI3M2FkYTU1NzI5NTRlMTAwN2EifQ"
         },
         {
-          "resource": "repo://lib/engine/recommend.ts#L592-L612",
-          "version": "repo-lines-v1:sha256:8f06057a9ea6ad3ef67160f1a68abf8d4ff4edc362e017a0a5b81ef0efb5bd23:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3ZTk1MDIwMDUyNGQ5OTQ5YThhNzNiNDg4ZmViOGZhZWM0OTc2ZWE2YjNjNDc0NTIwYTY0NzI1MWFkYWI4OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhNGQwYWE2ZTA5MmZhYTZlMmRjZDczYTA2ZmE2ZGIxODkxMWRmZjc5NmUxYzllNTViZTgyOTAwZmJkY2VmM2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZDYxMzZlZTE3NjRkMzU4ZjcyZjhjZGFkMjkzZTJiN2I3MGM0ODUwN2Q2NGZjYmExMzVkZDZkMjkyZmJhMDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiYzQzODExYmZhZmQ1ODY0YTczOWJmNThjMWJkNjgwN2ViOWY4NTAyODkxZGIzYWYxZTlhN2U0YTBkMzgzZDgifQ"
+          "resource": "repo://lib/engine/recommend.ts#L612-L628",
+          "version": "repo-lines-v1:sha256:67c163dbe8cec42e38129efcff0b00cbdc3f24a62b353a7adaaea8d687f54018:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3OTgxZDRjNDc4NzQwMjkwYThmMmUyYTlhYmNjNWYzMDQ4MTFkZDg5OGRlY2U1NjA3NGYyMjE5Zjk5NjA4ZTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA0OGE3MWNhMDUyZWViMmE0YjI2MmI2YjJkMmQzMjg5NDNmYTliZDk0MWRmYmE2ZjVkZTI2ZGIzNDA2MDUyODgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZlOWNmYTExZDc0NjFjMTQwZTBiOGIxMjZlYzQ5N2YxYTAxZjZiMzc1YjRiODdhOTU5MWUyOGRjYzg5NDhkZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwZGI3YjNmNzcwNjMxZjk1NzE4NDdiZjQ3MDA0MDNmZmI3YTY1MTY1NWViNzExZTMyMzYxMTI4NTlkZjA1ZmIifQ"
         }
       ]
     },
@@ -151,8 +167,8 @@
       "statement": "applyOwnBrandPreference adds OWN_BRAND_BONUS (15) to house-line (own-brand or preferred-manufacturer) recommendations but never past the recommendation's tier-specific confidence ceiling (rec.confidenceCap, else the family cap of 75, else the sub-authoritative exact-history cap of 92, else 100), because the bonus is a ranking preference and must not override a cap that reflects weak underlying evidence.",
       "evidence": [
         {
-          "resource": "repo://lib/engine/recommend.ts#L230-L253",
-          "version": "repo-lines-v1:sha256:879e0ed60ffb430c4c16aa99266635724a79c92f8a513f4fbd8c7493a1f12d90:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjOGM1NGRlNjU5YTg3ZGZkYjQ4NDg4NGY3NmU5NDY1MGZhYmE1YTdmOTFiNTQ0YmJmZTU2MTAxZDU5ZTEwOTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzMWI5NjRmYjI1Mzk0NjVmMDllZmNkODEyOTBlYmI5YWRlM2VkZmM3ZTgyOWRjNWM3YWQ1M2YwNTQ2NTQxMTkifQ"
+          "resource": "repo://lib/engine/recommend.ts#L248-L262",
+          "version": "repo-lines-v1:sha256:30d6264fe9a2c14b83f5f9091171f4697929a0893fc1e990400d07e5f732eae5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzYTBhOGYwMGE5NWI2ZmEzMWFjOGNlYWNmYWU5NjU2ZWI3NWJlODc4MWQ1NWI1OTczYzM3MDU3ZDFmNTYwZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI1NDA0OWZiMmJhZDU4YmQzNmE3NDBlYjI1YTNhODY0OWRjYzQ2MWViYzUyNmY2NDNjMjk3NTcxY2JkZTM0ZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzZjc0ZTIyMTA1OTBkNjE2MjZhYjFjMzU4YjU1ZDFlNDZhOTI3M2I1Y2M4MzRmYjJmYjExYWM5Mjg5MjE2MmIifQ"
         }
       ]
     },
@@ -169,6 +185,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T12:24:50.371Z"
+    "at": "2026-09-12T00:26:12.199Z"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5a4c0c90d2fde95e90a96c435331d3e10f3ea9d4ef0ff14c1806d2f756453295",
+  "pageVersion": "sha256:287495873f2262c1bfed6b25a194539d7b111ed5b0efc56694a71da722f21e2a",
   "claims": [
     {
       "id": "claim_e3fb9113f3f349f1a653126d01552b26",
@@ -202,15 +202,19 @@
     },
     {
       "id": "claim_1d1b0b68ae924af889d8c200873bdb26",
-      "statement": "As committed, __tests__/eval.baseline.json reports 981 headline cases with top1Rate 13.76%, top3Rate 17.43%, junkRate 39.65%, silentRate 42.92%, and autoWrongRate 0.71%, generated from the snapshot fetched 2026-09-02 per __tests__/eval.context.meta.json.",
+      "statement": "The committed __tests__/eval.baseline.json stores a datasetFingerprint (sha256 of the gzipped snapshot), a generatedAt timestamp, a headline metrics block (cases, top1Rate, top3Rate, junkRate, silentRate, autoWrongRate) matching the fields checkRegression compares, and a caseOutcomes map keyed by case id; generatedAt can be newer than the snapshot's fetchedAt in __tests__/eval.context.meta.json because the baseline is regenerated whenever engine code changes the measured rates, not only when the snapshot itself is refreshed.",
       "evidence": [
         {
           "resource": "repo://__tests__/eval.baseline.json#L1-L11",
-          "version": "repo-lines-v1:sha256:be47a60ed1e126659b54fa9734ce7d6ca3b23ea8726605ef47d55b3364e3a6e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyYTVhMjFkYmM2YTZhM2M0ZTE4YTY3MTA4NzM1YTNhNjYwMGZjNzdjZGNhMTE0Mjg1M2MyMDkzZGUxYjY1ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNmJjOTdiZDE3YTE3Y2VlMWVjZmFjZTQ3N2I3Y2I5MmUzYzc5N2FiOTVlMGZkMDM4MDAwN2ViNjU3NThjMDcifQ"
+          "version": "repo-lines-v1:sha256:15b49522994bbedaa576750b40dda59f799cd7145a3cf9d4f185c7fbf30b84d1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyYTVhMjFkYmM2YTZhM2M0ZTE4YTY3MTA4NzM1YTNhNjYwMGZjNzdjZGNhMTE0Mjg1M2MyMDkzZGUxYjY1ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNmJjOTdiZDE3YTE3Y2VlMWVjZmFjZTQ3N2I3Y2I5MmUzYzc5N2FiOTVlMGZkMDM4MDAwN2ViNjU3NThjMDcifQ"
         },
         {
-          "resource": "repo://__tests__/eval.context.meta.json#L1-L10",
-          "version": "repo-lines-v1:sha256:3d08036e618b352c42daedf9f9c67851462b2c9ac3639071fed9de89c23cfb00:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzZWFlN2U2YTRkM2M3MWJjYzk2MzI4YzUxOWZiYTI5NDFlZTQ4Njk2OGE2ZDYzMjJmYjA4Y2ViNDRlM2VmZDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwYzk0OTg1NTI2YzFjNTdlZjAwYzAwZDNmNGRjOTA2MTU2NzdhMGEzNmE4Yjc5NWRmZjlhZmZkNTBmZTlmNTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI1NjhhNjY0ZThmMTA2ZTc4YmJjNTE0NGJmNWZlN2UyYTViMmQ1MWQ0ZWQwZDVmZWExMjk5NDc2YWJlMmU0NmEifQ"
+          "resource": "repo://__tests__/eval.context.meta.json#L1-L13",
+          "version": "repo-lines-v1:sha256:c996a451b9c4e7d22229886ee94655809f52314e8ff510861250ea6a8db9bef6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzZWFlN2U2YTRkM2M3MWJjYzk2MzI4YzUxOWZiYTI5NDFlZTQ4Njk2OGE2ZDYzMjJmYjA4Y2ViNDRlM2VmZDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlNjAxZmIwNTJkYjYxNGYyNGFhZmJjNjYzNDg1ZjUyMTgzNjdhMTRhN2ZkZDVmY2UyODQzY2IwZWVhMGU1ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFhZWNlNzA3NzE1MWY3OWFjY2U5OWUyNDAxMDM1YzU3ZDU5N2NiMjU2ZTE4NWYzMWNlOGQyMzdlYTFmNzVmZGQifQ"
+        },
+        {
+          "resource": "repo://lib/eval/harness.ts#L501-L523",
+          "version": "repo-lines-v1:sha256:85108df7a49dd2f7fd2e82e64d2b20d463a4ed56536b939887f4840ee2afe022:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyMTU4MDQzZTUyNDkzZGExODU3YzA1OTQ0NzZkMzQ4NzA5NjhhMDZiYTY2MzFkMWM4YzM5YWE4OTQ4MmY0NjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhNWJhMzExMTcyOWRmZjFjZjJhOTEwYWZkNGZlNzgyOWU0ZDk4NTVmZGNhNGZmMTExMTEwMGI5NTI5MDFkMzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkOGM1NmU3NTk2NDBlNmE5OGUyNGJjYTU3ZDU2MjAzZmZiZjAxZTI4MTkyYWIyNTA0M2E3ZmExN2YyM2Y2ODIifQ"
         }
       ]
     },
@@ -227,6 +231,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T18:40:06.129Z"
+    "at": "2026-09-12T00:26:12.199Z"
   }
 }

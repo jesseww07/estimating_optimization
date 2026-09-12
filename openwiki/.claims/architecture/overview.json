@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5d56c5abc06f486696d19245ca3a56b079d8ca908a9e2c31f0d21d04c7ad4d17",
+  "pageVersion": "sha256:3600bd3ade8d6586c98f3fbf0ea090487602f5c5cb31dd025580cf9d87a730d4",
   "claims": [
     {
       "id": "claim_ff1ea2aa93d141d987b8c42335cf5f65",
@@ -16,7 +16,7 @@
         },
         {
           "resource": "repo://app/api/identify/route.ts",
-          "version": "repo-file-v1:sha256:6ff9fd89127ef03ae60887c80405978beb9a654f8c3b1ec7f9c20df82f56c92b"
+          "version": "repo-file-v1:sha256:b4bc1e9557d6963caccf17e1c56f05bc0bfcb6f88406a8cc520c5521c5d94088"
         },
         {
           "resource": "repo://app/api/recommendations/route.ts",
@@ -203,24 +203,64 @@
       "statement": "app/page.tsx hand-copies plain-data types (ParsedLineItem, Recommendation, IdentifiedSpec, LineItemAnalysis, etc.) locally rather than importing them from lib/types.ts, a known type-drift risk, while still importing executable logic (defaultSelection from lib/engine/ranking, hasIdentifiableSignal from lib/identify/lineSignal, and the upload-preparation helpers from app/prepareUpload.ts) directly rather than duplicating it.",
       "evidence": [
         {
-          "resource": "repo://app/page.tsx#L16-L96",
-          "version": "repo-lines-v1:sha256:fd4a2fa997445004d5a1f7d4b0122dfb7f5fde5b9c5a17a66c5fc86193e02cf7:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxYzIwNDgyMTYzNmJlZTFjZTQ1MGQ0ZTBiZjFiZjM0ZmI1ZjQ2ZTk5ZjM4NzQ2ZTdlNDA3Y2JhNWUzMDYyMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1NGQ3M2FhYmYzY2FiYWY0OTIwZWNlMzZjOGU3OGE0YmU4ZjE4MTYyODNhNGJiMzllOTAxMDFiNDQxMWFmNmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyZjAyNzE4YmFiYWNlNTc5NjFlMzA1OTg2Y2E3MDk5YWY2NThkNzZmMDJiNDk5ZjkyYTc5MjcxMzIyOWU1NTIifQ"
+          "resource": "repo://app/page.tsx#L16-L99",
+          "version": "repo-lines-v1:sha256:7b37f9cabf7dc65310260382c1d803d80b93b2ae42604ca0c843b31ab76b2b50:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmNDhhZGU3MDZlYzA3MjY4NDBiNTU3ZWVkOTMxNDFhY2ExZjhmZDYxODc4NjVkMTQyM2E4M2VjM2E1ZmIyOTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyNjllMGRlOTNhNmY3MDllM2RiNzI4NTQ0ZDJjOWFjMzI2NDY2NWU3NWVjMDczNmNkZjBhZTgyZjZjNDcxNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyNzU4NWRjMzMzZmVhMGNjOWZjYTZhNjNjNTRkNjFjYTI4ZjgzMzE2YThjMjE3ZjdlYzBiODg3Y2ExMDhkNWYifQ"
         }
       ]
     },
     {
       "id": "claim_886148ca91a3441dadbaeec05c1c79d6",
-      "statement": "app/page.tsx defines client-side constants (e.g. BATCH_LINES_PER_CALL, BATCH_MAX_CALLS, IDENTIFY_TIMEOUT_MS, BATCH_IDENTIFY_TIMEOUT_MS) that intentionally mirror server-only constants in lib/identify/batch.ts and lib/identify/claude.ts which cannot be imported into a client component; these exist only to set estimator expectations before a button press, with the server remaining authoritative.",
+      "statement": "app/page.tsx defines client-side constants (e.g. BATCH_LINES_PER_CALL, BATCH_MAX_CALLS, IDENTIFY_TIMEOUT_MS, BATCH_IDENTIFY_TIMEOUT_MS) that intentionally mirror server-only constants in lib/identify/batch.ts (BATCH_CHUNK_SIZE=18, MAX_BATCH_CALLS=12, BATCH_TOTAL_BUDGET_MS=240_000) and lib/identify/claude.ts (RESEARCH_TIMEOUT_MS=150_000, EXTRACT_TIMEOUT_MS=45_000) which cannot be imported into a client component; these exist only to set estimator expectations before a button press, with the server remaining authoritative.",
       "evidence": [
         {
-          "resource": "repo://app/page.tsx#L107-L136",
-          "version": "repo-lines-v1:sha256:0c74f36b4fb7b28b5571d5ed150591b698d831a7b77fa8d4cffb4735be2db23a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyNjdlMTgxMTA4NDBlZTkzMjVjZGQ2N2IyOWUwODg2MGUwMDM0NjA4MGFlZWVkNzk2Zjg4OTAxNDM4M2RiNWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2YWQzZmY2YWRmNTY4MDQ5MTVlYWM2NDYzNGYxMzMxOGUxN2IzYThjYmRlNDkxYTJmZjgwMjY2MjY0NDNiNGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEyMzAwZGYyZmQzMjg4ZmZlMjE5YzQ2N2NhZGI5ZGZkMGUzM2YxMjg2ZTkwMzAzOTlkYWI4YTI1OWZhMDk1MDEifQ"
+          "resource": "repo://app/page.tsx#L107-L139",
+          "version": "repo-lines-v1:sha256:3625fafcc188b298fa264edc4c9ebb069f206aa6760a36ec84ee82eae30c75a8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmNDQzNzIxZDQ1NDY1NjllMzMwZGUxYTZmOTc4NTU4MmFjNDI2NDc1OWFlZTQxM2M5ZTQ1NTgzNjU3MzViNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg4M2RlYjViNzEzOGE3YTExNTAzYWUyMjg3ZjM3YzJlNTU1MjlmN2Y3MGVkZTRhYzBmZmU3NTkwYzViNTRlMDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEyODM1ZTBkYmE4NDY5ZGRkY2UzYTM0N2RmNzJmM2JkMTNlZjdhZDk5MDllYTc1NGM2NzBhYzZiYWQ3MmEyYWMifQ"
+        },
+        {
+          "resource": "repo://lib/identify/batch.ts#L83-L91",
+          "version": "repo-lines-v1:sha256:a0baf75e10207a50dab3294e11356646ebefe4c86974777e9fd1e6214e5af83e:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWVlNzljYzNmNGNhNWZlODQ5NzA3ODhmMGQzYWVhNTU2ZjZlN2MzMjMxMzFkYjRlM2QyNzMxOTY1ZTk0NGIwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmM5NDY3YTVkOWE4OTEyMTk5MTk4MzEwYzBhYTc1NzE2ZGQwZDk3NzFjMGJiZWRmMTIyNzlkYTJlYzQ3MTBkNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjI4NjE3YTQ2ZWU4MWU4MmRkYTczYzdhOTQ5OWYxZWQxODc1OGJmZDZlMmZmYzM2MzMyZWJhOWVmYmUzZGJiMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzgyMmI0M2ZjZWQ1NTkwOTQ3MWE3YzVmMTllMWIwOWU4Y2VkNTkyMTMyMDI5ZDY0Y2MxMDQ0NWYxOTMwNmIzOCJ9"
+        },
+        {
+          "resource": "repo://lib/identify/claude.ts#L61-L76",
+          "version": "repo-lines-v1:sha256:782b241b4383bb84d06a83bc01b9733c5653f805d4493247d2ed8a15c8ea23e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmY2JiN2Y2YTQwODhmYzQ3NjRkMTJiMDgxNjEwMTBhMTgxNjBkYmZlMzFiMzcwZjZlZGU0ZTAwODI2Y2U3NjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwNWJmNDE0NmM4NjM3ZTI3MzhiOTA2NDI0OGQ3YTlkZmU2YzBjYWQ0YWMyYjk4NmZjYjkyMTdhYzdhMTk1MDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI4ZTU2YzZlODhmNmI0MDRlODNiMjUzMzZmZTk1M2VjNzVhNzQ1MTZjNDBkZmQzOWM3N2UyODdkYTM0OWIzOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyM2ExNmVkZDI4Y2NkOGVlYWIyMWU1MTllYTExZWY4NDBkNjk4MzgwNjcxMzg0ZWYzN2IwNTJlZmIwZWUxNDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c823c69a8e4f43879c1954d7ade5bc27",
+      "statement": "POST /api/identify runs three mutually exclusive modes on a single ParsedLineItem per request, never a sweep over a sheet: mode 'url' (JSON) validates and fetches a pasted spec link server-side, rejecting file-share hosts (Box/Drive/SharePoint) with a 400 and falling back to mode 'web' (using the URL as a lead) when the direct fetch fails; mode 'web' (JSON) requires an existing manufacturer or catalog value and runs Claude web search; mode 'pdf' (multipart/form-data) accepts a PDF or image file up to 15 MB, sniffed from bytes, and reads it natively via Claude vision.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify/route.ts#L1-L22",
+          "version": "repo-lines-v1:sha256:658670848a86e01ea709a807d5e7103d6c1e2e30becbf3d2e6458642c5663fcb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViOGVhNWE4MTA5NWVkMGIzYjY2YmZhZWY0ODBhZjQ2YzIwZGNkOWU1ODEyZjJjMGYyZTM1MzdjODM1ZWY3NzQifQ"
+        },
+        {
+          "resource": "repo://app/api/identify/route.ts#L115-L166",
+          "version": "repo-lines-v1:sha256:0b617790105ee7e85434afb1bea5f1979b44c7bccef54cb1894fa338b4fa8687:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExZGY4N2E0NzMxNmM3MDhjNTUwMjA5OGU5YWY2YzQ0NTM0ZWI4MGJlYWRjZjYwNjMwMjhlZmNhODU5MzdhYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwNTE4YWY0NWQ1Y2NkMDNiMDc1YTg4OGU0NWE0YTk4MWRlZmY3Yzc1OTZiMGZkMzU5NjY3ZDVmOTMyYmRiMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://app/api/identify/route.ts#L53-L100",
+          "version": "repo-lines-v1:sha256:e5dfdbedd3c8695daedce6e1df7e232b34fcdd5da039d265798a91fab40742d7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMzRiYzBiYzhmNzk3ZjNkODliZDkxODIzOTc1MWU1ZTAzMmNhMmFhNzQyMWViZDJkNGMwYzg5MzVhMDFiMGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4MzRmYWFhZGFkMmFjOGVlYWI2MWJmZGVhZTIyMzUzNWZkNDU0YmZhMGFlNDJjOWMzNTM1ZjkwZmVjZDUzNWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhNGJjYjk2YzFmYTAwODFiMTk2OGNkZmNlZDdkZTQxOTliNmYyODRmMmI2ZmQwNTk5NDdjYWIzOTBkOGQwYTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e989f46a0691430e907884fcd8a936eb",
+      "statement": "Every /api/identify mode converges on the same response contract: it merges the resulting IdentifiedSpec into the line via applyIdentifiedSpec, re-runs analyzeLineItem to produce a fresh LineItemAnalysis, and returns { identified, result, liveData } from a single synchronous handler with maxDuration=300.",
+      "evidence": [
+        {
+          "resource": "repo://app/api/identify/route.ts#L18-L22",
+          "version": "repo-lines-v1:sha256:3c4f09c76309e1acc866cfaa169dad67e43fa4b282235a756dfec714e3932b32:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjU1MDhjYTk4MTUxNjVmY2RhM2ExOWViNzM4NDI1OTBlZjUwMjI0NzMwYThkOWQxZjJkMjU0NmM4NDZjOWZjNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyYTQyOTM4MmIyZTE0NzE4ZTBlMzdiMDU3MGE4YTE3MDI5OTFmY2Q4NDk4Y2Q4NDA2MGE4YmY0ZjA1MDE3YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDI4OTllODE2ZmNiOWFmY2YwZWE1YTlkOWFmYmZmYjBlNzMxZDBhMGNmOGY5MDEyZTdkODIxMDFjNzE0YjA0ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWI4ZWE1YTgxMDk1ZWQwYjNiNjZiZmFlZjQ4MGFmNDZjMjBkY2Q5ZTU4MTJmMmMwZjJlMzUzN2M4MzVlZjc3NCJ9"
+        },
+        {
+          "resource": "repo://app/api/identify/route.ts#L37-L51",
+          "version": "repo-lines-v1:sha256:f6241c7078d8d9ac22527945ce3e961eb100445337aeea0349c64bce9802e349:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5NWQ1MmI4MzEwOWRlNzUxYmQwMmJmM2E3MmQ2ODg3NGU4ZWNmZWU4ODFiMmQ1OTgxOGQ1NzMxMTJlNjIzYmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5Y2I5ZDZmYTI4YThjMGMxMjJkYzBhYzE1ZjJhMTUzOGVkNmNlMjIyYzM3OTljMDk0NmE2M2Y3ZThjZmUzMWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2MzQyMzlmOTEwZmQ4MjYzZDMwOTc0NGVhZTY3MTYxZTAzZTgyNDhjNjdjOGIxNGI5YmY4ZmIyMDk4OGM0ZDUifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T12:24:50.371Z"
+    "at": "2026-09-12T00:26:12.199Z"
   }
 }
