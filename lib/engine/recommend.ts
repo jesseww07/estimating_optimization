@@ -30,6 +30,7 @@ import type {
     ParsedLineItem,
     Recommendation,
 } from '../types';
+import { sameBaseItem, simplifiedBaseItem, type BaseItem } from './baseItem';
 import { groupOfCatalogCategory } from './categories';
 import {
     CATEGORY_GROUPS,
@@ -76,6 +77,14 @@ export interface LineItemAnalysis {
      * category carries the notice plus category-level suggestions.
      */
     infoMessage?: string;
+    /**
+     * The BASE item the engine read out of the catalog string, when it is a
+     * genuine simplification of what was typed — `3-515` (named Halo, size 25)
+     * out of `3-515-25- HALO`. History is matched on it at family level and
+     * "Look up spec" searches it; shown in the header so the estimator can see
+     * the engine keyed on the item, not on the whole string.
+     */
+    specBaseItem?: BaseItem;
     /**
      * The fixture category the engine inferred for the SPEC line itself
      * (identify-flow category, learned series, or the text detector) — shown in
@@ -442,8 +451,15 @@ function categoryFallbackRecommendations(
     inferredCategory: string,
     specDimensionText: string,
     catalogNumber: string,
+    specBase: BaseItem | null = null,
 ): Recommendation[] {
-    const { mark } = lineItem;
+    const { mark, manufacturer } = lineItem;
+    // What these suggestions are NOT a match for, named by the base item when
+    // the engine could read one ("OXYGEN 3-515"), else by the typed spec. The
+    // old wording said the item "wasn't identified" on a line whose category
+    // header said SCONCE — the category IS an identification; what is missing
+    // is a past bid or a catalog item for this product.
+    const specLabel = [manufacturer.trim(), (specBase?.base ?? catalogNumber).trim()].filter(Boolean).join(' ') || 'this spec';
     const recommendations: Recommendation[] = [];
     const catalogIsProse = looksLikeProse(catalogNumber);
     const markIsProse = looksLikeProse(mark);
@@ -630,7 +646,7 @@ function categoryFallbackRecommendations(
             recordId: cand.id,
             matchReason: descriptionBased
                 ? `Category match: ${inferredCategory} (description-based${isPreferred ? ', Premier house line' : isThirdParty ? ', 3rd-party alternative' : ''})`
-                : `Category match: ${inferredCategory} — most-used catalog items (spec not identified at item level)`,
+                : `Category match: ${inferredCategory} — most-used catalog items (no past bid or catalog item matches ${specLabel})`,
             itemAttributes: cand.itemAttributes,
             matchDetails: [
                 `Category: ${cand.category} — matches the spec's (${inferredCategory})`,
@@ -646,11 +662,11 @@ function categoryFallbackRecommendations(
                         ? `3rd-party alternative — the Premier catalog has nothing in the ${inferredCategory} category for this spec`
                         : `3rd-party alternative — it matches wording no Premier ${inferredCategory} item does (${cand.matchedTokens.filter(t => !houseMatchedTokens.has(t)).join(', ')})`]
                     : []),
-                'Exact item not identified from the spec — these are category-level suggestions, never pre-checked',
+                `No past bid or catalog item matches ${specLabel} — offered as a ${inferredCategory} category-level suggestion, never pre-checked`,
             ],
             productCategory: cand.category || undefined,
             categoryGroup: groupOfCatalogCategory(cand.category, inferredCategory),
-            autoSelectReason: `Not pre-checked: the exact item wasn't identified from the spec — these are ${inferredCategory} category-level suggestions.`,
+            autoSelectReason: `Not pre-checked: recognized as ${inferredCategory}, but no past bid or catalog item matches ${specLabel} — these are ${inferredCategory} category-level suggestions.`,
             ...(isThirdParty ? { thirdPartyLinkId: cand.id } : { premierLinkId: cand.id }),
         });
     }
@@ -776,6 +792,17 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // The dimension signature the spec exposes — candidates are gated against this.
     const specDimensionText = `${mark} ${catalogNumber}`;
 
+    // ── The base item (lib/engine/baseItem.ts) ────────────────────────────────
+    // `3-515-25- HALO` is Oxygen's 3-515 in size 25; `WAL-031 MQUAN HALF-CIRCLE`
+    // is Allied Maker's WAL-031. The estimators search the base, and so does the
+    // engine now: a History row for the same base item under the same brand is
+    // family evidence (same product, options differed), gated exactly like the
+    // prefix/series family signals — sub-authoritative, never pre-checked.
+    const specBase = simplifiedBaseItem(catalogNumber, manufacturer);
+    const isBaseFamily = (originalSpec: string, specManufacturer: string | undefined): boolean =>
+        sameBaseItem({ spec: catalogNumber, manufacturer }, { spec: originalSpec, manufacturer: specManufacturer })
+        && dimensionsCompatible(catalogNumber, originalSpec);
+
     // ── Spec keys: the typed catalog # AND the identified one ─────────────────
     // The identify flow (URL / web / PDF) resolves the true orderable catalog #,
     // which is usually the better key for CATALOG text matching but the worse
@@ -847,6 +874,15 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         const specMfr = row.specManufacturer || row.specMfrBackup || '';
         const bidMfr = row.bidManufacturer || row.bidMfrBackup || '';
 
+        // A row that bid its OWN spec's base item — "31260NG - DENARII WALL" →
+        // 31260NG, "EXBK-18-VIWW-G19-C" → itself — is an as-spec record, not
+        // substitution evidence. Through the base-item family rule it would
+        // otherwise surface the specified product back as a recommendation.
+        if (normalizeProductId(bidItemValue) === normalizeSpecKey(row.originalSpec)
+            || sameBaseItem({ spec: row.originalSpec, manufacturer: specMfr }, { spec: bidItemValue, manufacturer: bidMfr })) {
+            continue;
+        }
+
         const specScore = bestCatalogMatch(row.originalSpec).score;
 
         // Family-level spec match (same series, different options) — collected
@@ -854,7 +890,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         // rightly zero accidental substring overlaps, so family evidence must
         // ride its own purpose-built signal (Largo BA: S7R835K10AL scored 0
         // against every S7R history row and 4+ prior decisions were invisible).
-        const familySpecMatch = specTexts.some(t => isFamilySpecMatch(t, row.originalSpec, specScore));
+        const familySpecMatch = specTexts.some(t => isFamilySpecMatch(t, row.originalSpec, specScore))
+            || isBaseFamily(row.originalSpec, specMfr);
 
         // Boost score when NS has confirmed this spec's identity (HIGH = +10, MEDIUM = +5)
         const enrichBonus = row.specEnrichConfidence === 'HIGH' ? 10 : row.specEnrichConfidence === 'MEDIUM' ? 5 : 0;
@@ -954,7 +991,8 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         // confidence (capped below the authoritative floor), matchType 'fuzzy'
         // so auto-select applies only when the evidence honestly clears 50.
         const familySwaps = trueMatchingSwaps.length > 0 ? [] :
-            data.historyMatches.filter(h => specTexts.some(t => isFamilySpecMatch(t, h.originalSpec)));
+            data.historyMatches.filter(h => specTexts.some(t => isFamilySpecMatch(t, h.originalSpec))
+                || isBaseFamily(h.originalSpec, h.specManufacturer));
         const isFamily = trueMatchingSwaps.length === 0 && familySwaps.length > 0;
 
         if (trueMatchingSwaps.length === 0 && !isFamily) continue;
@@ -1631,7 +1669,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // Topping up can only add: fallback confidence is capped at 60, so a real
     // match still outranks these, and the slice below still keeps the best three.
     if (!hasAnyRecommendations && inferredCategory) {
-        recommendations.push(...categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber));
+        recommendations.push(...categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber, specBase));
         hasAnyRecommendations = recommendations.length > 0;
     } else if (hasAnyRecommendations && inferredCategory && recommendations.length < MAX_RECOMMENDATIONS
         && !recommendations.every(rec => rec.isPassthrough)) {
@@ -1649,7 +1687,7 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
         // empty here. Topping those up offered substitutions for 51 decorative
         // specs the estimator had kept as specified (measured on the snapshot).
         const already = new Set(recommendations.map(rec => rec.id));
-        const topUp = categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber)
+        const topUp = categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber, specBase)
             .filter(rec => !already.has(rec.id));
         recommendations.push(...topUp.slice(0, MAX_RECOMMENDATIONS - recommendations.length));
     }
@@ -1684,13 +1722,18 @@ export function analyzeLineItem(lineItem: ParsedLineItem, ctx: EngineContext): L
     // "RECESSED DOWNLIGHT" admitted a same-name item, dedupe removed it). Retry
     // with the in-category fallback so a known category never ends empty.
     if (dedupedRecommendations.length === 0 && recommendations.length > 0 && inferredCategory) {
-        const retry = categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber);
+        const retry = categoryFallbackRecommendations(lineItem, ctx, inferredCategory, specDimensionText, catalogNumber, specBase);
         applyOwnBrandPreference(retry);
         retry.sort(compareRecommendations);
         dedupedRecommendations = deduplicateRecommendations(retry, catalogNumber);
     }
 
-    return { lineItem, recommendations: dedupedRecommendations.slice(0, MAX_RECOMMENDATIONS), specCategory: inferredCategory };
+    return {
+        lineItem,
+        recommendations: dedupedRecommendations.slice(0, MAX_RECOMMENDATIONS),
+        specCategory: inferredCategory,
+        ...(specBase ? { specBaseItem: specBase } : {}),
+    };
 }
 
 /** Batch orchestration for the /api/recommendations route. */

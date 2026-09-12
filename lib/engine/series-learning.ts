@@ -51,7 +51,7 @@ const KEY_STOPLIST = new Set([
 /**
  * The labels detectFixtureCategory is allowed to return, most specific first (a
  * category appearing in several groups maps to the most specific label:
- * 'Surface Mount' → Linear). Deliberately the 12 FIXTURE labels — the taxonomy
+ * 'Surface Mount' → Linear). Deliberately the 15 FIXTURE labels — the taxonomy
  * also defines 'LED Tape' and 'Light Bulb', but the detector has never emitted
  * those and the pipeline treats tape and lamp lines through their own guards
  * (isLedTape / isBulbLampLine, both upstream of category inference). Learning
@@ -60,6 +60,11 @@ const KEY_STOPLIST = new Set([
  */
 export const LABEL_PRIORITY = [
     'Ceiling Fan', 'Vanity', 'Mirror', 'Pendant', 'Sconce', 'Outdoor Pole',
+    // The outdoor sub-types resolve before the umbrella: a series whose items
+    // are Flood Lights is a flood series, not merely an outdoor one. 'Sconce'
+    // stays ahead of 'Outdoor Wall' so a Wall Mount series keeps the label it
+    // has always learned (Wall Mount sits in both groups).
+    'Outdoor Wall', 'Outdoor Flood', 'Outdoor Step',
     'Outdoor', 'Exit/Emergency', 'Recessed', 'Linear', 'Undercabinet', 'Ceiling',
 ];
 

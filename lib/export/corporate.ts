@@ -15,9 +15,14 @@
  * the original spec recorded in ESTIMATING NOTES FOR CORS); "ORIGINAL SPEC"
  * carries the parsed upload verbatim. Pricing columns are intentionally blank —
  * pricing stays with the estimator; this is a takeoff draft, not a quote.
+ *
+ * Lines left AS SPECIFIED are filled yellow (#FFFF99) on VE DRAFT — the
+ * estimating team's convention for "price this one as the specified product"
+ * (requested 2026-09-11). The writer is xlsx-js-style rather than plain xlsx
+ * for exactly this: the community SheetJS build drops cell styles on write.
  */
 
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import type { ParsedLineItem } from '../types';
 
 export interface ExportSubstitution {
@@ -70,6 +75,14 @@ export const COL = {
     EXTENDED: 17,   // R
     COST_EXT: 18,   // S
 } as const;
+
+/** Fill colour for VE DRAFT rows left as specified — the team's yellow. */
+export const AS_SPEC_FILL_RGB = 'FFFF99';
+
+/** A cell that may carry an xlsx-js-style fill. */
+type StyledCell = XLSX.CellObject & {
+    s?: { fill?: { patternType?: string; fgColor?: { rgb?: string }; bgColor?: { rgb?: string } } };
+};
 
 const STANDARD_NOTES = [
     'VE Package. Must be approved by owner and engineer.',
@@ -162,9 +175,25 @@ function sortRows(rows: ExportRow[]): ExportRow[] {
     });
 }
 
+/**
+ * Fill every grid cell of one sheet row (MARK through COST EXTENDED) yellow.
+ * Cells the row left blank are created empty so the band is continuous —
+ * the estimator reads the colour across the row, not per populated cell.
+ */
+function fillRowAsSpec(ws: XLSX.WorkSheet, sheetRow: number): void {
+    for (let c = COL.MARK; c <= COL.COST_EXT; c++) {
+        const addr = XLSX.utils.encode_cell({ r: sheetRow, c });
+        const cell: StyledCell = (ws[addr] as StyledCell | undefined) ?? { t: 's', v: '' };
+        cell.s = { ...(cell.s ?? {}), fill: { patternType: 'solid', fgColor: { rgb: AS_SPEC_FILL_RGB } } };
+        ws[addr] = cell;
+    }
+}
+
 function buildSheet(req: ExportRequest, mode: 'VE' | 'ORIGINAL'): XLSX.WorkSheet {
     const aoa = headerRows(req, mode === 'VE' ? 'VE DRAFT' : 'ORIGINAL SPEC');
     const headerRowIndex = aoa.length - 1; // 0-based index of the MARK header row
+    /** 0-based sheet rows exported without a substitution — the as-specified lines. */
+    const asSpecRows: number[] = [];
     for (const row of sortRows(req.rows)) {
         const li = row.lineItem;
         const r: (string | number | null)[] = [];
@@ -182,6 +211,7 @@ function buildSheet(req: ExportRequest, mode: 'VE' | 'ORIGINAL'): XLSX.WorkSheet
             r[COL.CATALOG] = li.catalogNumber;
             if (mode === 'VE') {
                 r[COL.NOTES] = row.note || 'As specified';
+                asSpecRows.push(aoa.length);
             }
         }
         aoa.push(r);
@@ -216,6 +246,9 @@ function buildSheet(req: ExportRequest, mode: 'VE' | 'ORIGINAL'): XLSX.WorkSheet
         const subCell = XLSX.utils.encode_cell({ r: aoa.length - 3, c: COL.EXTENDED });
         ws[subCell] = { t: 'n', f: `SUM(${extCol}${firstDataRow}:${extCol}${lastDataRow})` };
     }
+    // Yellow band on every as-specified line (after the formula cells exist, so
+    // the EXTENDED cell keeps its formula AND takes the fill).
+    for (const sheetRow of asSpecRows) fillRowAsSpec(ws, sheetRow);
     ws['!cols'] = Array.from({ length: 20 }, (_, i) => {
         if (i === COL.MARK) return { wch: 22 };
         if (i === COL.LOCATION) return { wch: 14 };

@@ -83,6 +83,13 @@ const GROUP_VOCABULARY: Record<string, string[]> = {
     'Pendant': ['Pendant', 'Chandelier', 'Linear / Island Chandeliers'],
     'Sconce': ['Sconce', 'Wall Sconce', 'Wall Mount', 'Outdoor Wall Sconce', 'Wall Sconce — Outdoor'],
     'Outdoor Pole': ['Pole Heads', 'Poles', 'Bollards', 'Bollard', 'Area Light'],
+    // Outdoor sub-types (2026-09-11). "Outdoor" was one bucket — a wall-pack
+    // spec saw pole heads and floods, and a flood spec saw wall packs. A spec
+    // that says WALL PACK / FLOOD / STEP LIGHT is gated to that kind of product;
+    // the umbrella 'Outdoor' below stays for specs that only say "outdoor".
+    'Outdoor Wall': ['Wall Mount', 'Outdoor Wall Sconce', 'Wall Sconce — Outdoor', 'Column Mount'],
+    'Outdoor Flood': ['Flood Light'],
+    'Outdoor Step': ['Step Light', 'Step / Path Light'],
     'Outdoor': [
         'Pole Heads', 'Poles', 'Bollards', 'Bollard', 'Flood Light', 'Area Light',
         'Outdoor Wall Sconce', 'Wall Sconce — Outdoor', 'Wall Mount',

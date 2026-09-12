@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { defaultSelection } from '@/lib/engine/ranking';
 import { hasIdentifiableSignal } from '@/lib/identify/lineSignal';
+import { preferredSpecUrls, specUrlHost } from '@/lib/identify/specUrls';
 import { isWordDocument, prepareWordUpload, tooLargeForUpload } from './prepareUpload';
 
 interface IdentifiedSpec {
@@ -93,6 +94,8 @@ interface LineItemAnalysis {
     infoMessage?: string;
     /** The engine's inferred fixture category for the SPEC line (null/absent = unknown). */
     specCategory?: string | null;
+    /** The base item the engine keyed on, when it simplifies the typed string (see lib/engine/baseItem.ts). */
+    specBaseItem?: { base: string; kind: 'code' | 'name'; variant: string[]; name: string };
 }
 
 interface HealthCounts {
@@ -920,6 +923,17 @@ export default function Home() {
                                             <span>Qty {a.lineItem.quantity || '—'}</span>
                                             <span className="text-muted">{a.lineItem.manufacturer}</span>
                                             <span className="font-mono text-xs self-center">{a.lineItem.catalogNumber}</span>
+                                            {/* The BASE item the engine keyed on — the part of the string that
+                                                identifies the product, apart from its finish/size codes and its
+                                                printed name. History is matched on it; "Look up spec" searches it. */}
+                                            {a.specBaseItem && (
+                                                <span
+                                                    className="text-[10px] uppercase tracking-wider px-2 py-0.5 self-center border border-line text-muted"
+                                                    title={`Base item: ${a.specBaseItem.base}${a.specBaseItem.name ? ` · named "${a.specBaseItem.name}"` : ''}${a.specBaseItem.variant.length ? ` · options ${a.specBaseItem.variant.join(' ')}` : ''}. History is matched on the base item and "Look up spec" searches it.`}
+                                                >
+                                                    base {a.specBaseItem.base}
+                                                </span>
+                                            )}
                                             {/* What the engine thinks the SPEC item IS. Every recommendation card
                                                 below renders its category in this same vocabulary, so a card that
                                                 passed the category gate reads as a match instead of a mismatch. */}
@@ -938,7 +952,14 @@ export default function Home() {
                                             const li = a.lineItem;
                                             const busy = identifyBusy[li.rowIndex];
                                             const idErr = identifyError[li.rowIndex];
-                                            const linkUrl = li.specUrls?.[0] ?? (looksLikeUrl(li.catalogNumber) ? li.catalogNumber.trim() : undefined);
+                                            // Product pages first, file-share links never: a Box link in
+                                            // column A was being offered as THE link while the manufacturer
+                                            // page sat in column S (3rd & Flower D17).
+                                            const linkUrls = preferredSpecUrls([
+                                                ...(li.specUrls ?? []),
+                                                ...(looksLikeUrl(li.catalogNumber) ? [li.catalogNumber.trim()] : []),
+                                            ]).slice(0, 2);
+                                            const linkUrl = linkUrls[0];
                                             const ident = li.identified;
                                             // Web lookup: offered when the line has something to search for,
                                             // recommendations are weak, and the line isn't RFI/tape-suppressed.
@@ -978,15 +999,16 @@ export default function Home() {
                                                         <span className="text-muted">Identifying ({busy})…</span>
                                                     ) : (
                                                         <>
-                                                            {linkUrl && (
+                                                            {linkUrls.map(url => (
                                                                 <button
-                                                                    onClick={() => handleIdentify(a, 'url', { url: linkUrl })}
+                                                                    key={url}
+                                                                    onClick={() => handleIdentify(a, 'url', { url })}
                                                                     className="border-2 border-plteal text-plteal px-3 py-1 uppercase tracking-wider hover:bg-plteal hover:text-white"
-                                                                    title={linkUrl}
+                                                                    title={url}
                                                                 >
-                                                                    Identify from link
+                                                                    Identify from link{linkUrls.length > 1 ? ` · ${specUrlHost(url)}` : ''}
                                                                 </button>
-                                                            )}
+                                                            ))}
                                                             {webEligible && (
                                                                 <button
                                                                     onClick={() => handleIdentify(a, 'web')}

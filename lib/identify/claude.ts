@@ -135,7 +135,7 @@ const RESEARCH_SYSTEM_PROMPT = `You research lighting-fixture products for an es
  * configured string as the product's catalog number.
  */
 function lineContext(line: ParsedLineItem): string {
-    const plan = planCatalogSearch(line.catalogNumber);
+    const plan = planCatalogSearch(line.catalogNumber, line.manufacturer);
     return [
         'Bid-line context:',
         `  Mark: ${line.mark || '(none)'}`,
@@ -147,6 +147,9 @@ function lineContext(line: ParsedLineItem): string {
         plan.hasBase ? `  Base item number(s): ${plan.baseNumbers.join(', ')}` : '',
         plan.optionCodes.length
             ? `  Trailing configuration codes (finish / colour temperature / wattage — NOT part of the item's identity): ${plan.optionCodes.join(', ')}`
+            : '',
+        plan.productName
+            ? `  Product name printed on the line (the manufacturer's word for it, not an item number): ${plan.productName}`
             : '',
         line.section ? `  Section: ${line.section}` : '',
     ].filter(Boolean).join('\n');
@@ -267,11 +270,19 @@ export async function identifyFromDocument(
 export async function identifyFromWeb(line: ParsedLineItem, blockedUrl?: string): Promise<IdentifiedSpec> {
     const client = getClient(RESEARCH_TIMEOUT_MS);
     const model = getModel();
-    const plan = planCatalogSearch(line.catalogNumber);
+    const plan = planCatalogSearch(line.catalogNumber, line.manufacturer);
     const manufacturer = line.manufacturer.trim();
     const queries = (plan.baseNumbers.length ? plan.baseNumbers : plan.alternates)
         .map(base => [manufacturer, base].filter(Boolean).join(' '))
         .filter(Boolean);
+    // The product's printed name is the manufacturer's own word for it — a
+    // second lead when the number alone is thin ("OXYGEN 3-515 HALO",
+    // "B-TD FORMATION WALL SCONCE").
+    if (plan.productName) {
+        const nameLead = [manufacturer, plan.baseNumbers[0] ?? '', plan.productName.split(/\s+/).slice(0, 3).join(' ')]
+            .filter(Boolean).join(' ');
+        if (nameLead && !queries.includes(nameLead)) queries.push(nameLead);
+    }
     const urlLead = blockedUrl
         ? `\n\nThe estimator pasted this spec link, but the page refused a direct fetch: ${blockedUrl}\n` +
         'Treat it as the primary lead — search for the product that URL points to (its path segments usually name the product/SKU).'
