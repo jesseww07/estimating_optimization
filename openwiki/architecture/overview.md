@@ -5,7 +5,7 @@ description: How the VE Estimator Next.js app is structured — upload (sheet, P
 tags: [architecture, next.js, api-routes, upload, export, identify]
 verified:
   - by: openwiki/0.5.1
-    at: 2026-09-10T12:24:50.371Z
+    at: 2026-09-12T00:26:12.199Z
 sources:
   - id: openwiki-source-7afd3e464a0f8f3f651dc62f
     resource: repo://app/api/export/route.ts
@@ -31,7 +31,7 @@ sources:
     resource: repo://lib/identify/media.ts
   - id: openwiki-source-7c58a6a573fdbb77fec41f97
     resource: repo://lib/identify/schedule.ts
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-12T00:26:12.199Z" }
 ---
 
 # Architecture Overview
@@ -179,15 +179,33 @@ Airtable base (~130 requests at 5 req/s).
 only names a spec well enough for a human, not the engine — the identify flow
 gives the engine a manufacturer + catalog number to work with. Three modes,
 always **one line per request** (cost guardrail — this route must never
-sweep a whole sheet): `mode: 'url'` (server-side fetch of a pasted spec-sheet
-link, with a web-search fallback when the site bot-blocks the fetch),
-`mode: 'web'` (Claude with web search, cited findings), and `mode: 'pdf'`
-(multipart; despite the mode name, the uploaded file may be a PDF or an
-image — cut sheets arrive as phone photos as often as PDFs). Every mode ends
-by merging the resulting `IdentifiedSpec` (`lib/identify/types.ts`) into the
-line via `applyIdentifiedSpec` (`lib/identify/apply.ts`) and re-running
-`analyzeLineItem` so the UI gets a fresh recommendation set for that one
-line. Full extraction mechanics, timeout budgets, and the SSRF hygiene on
+sweep a whole sheet):
+
+- `mode: 'url'` (JSON body: `{ mode, url, lineItem }`) — validates the URL is
+  a fetchable public http(s) address first (a hard 400 before any fetch, and
+  a distinct 400 for file-share links such as Box/Drive/SharePoint that only
+  return a login page); fetches the page server-side; on fetch failure
+  (manufacturer sites routinely bot-block direct fetches) it falls back to
+  `mode: 'web'` using the pasted URL as a lead rather than failing the line;
+  a fetched PDF is read natively, fetched text goes through text extraction.
+- `mode: 'web'` (JSON body: `{ mode, lineItem }`) — requires at least a
+  manufacturer or catalog value already on the line; runs Claude with web
+  search over cited findings.
+- `mode: 'pdf'` (multipart/form-data: `mode`, `lineItem` JSON field, `file`)
+  — despite the mode name, the uploaded file may be a PDF or an image
+  (PNG/JPEG/WebP/GIF, sniffed from bytes, not filename/MIME) up to 15 MB;
+  cut sheets arrive as phone photos and screenshots as often as PDFs; Claude
+  reads the file natively (vision).
+
+Every mode ends by merging the resulting `IdentifiedSpec`
+(`lib/identify/types.ts`) into the line via `applyIdentifiedSpec`
+(`lib/identify/apply.ts`) and re-running `analyzeLineItem`, returning
+`{ identified: IdentifiedSpec, result: LineItemAnalysis, liveData: boolean }`
+so the UI gets a fresh recommendation set for that one line. The route runs
+synchronously on `maxDuration = 300` (no job queue, per the handoff decision)
+because a vision read of a real cut sheet can take a while. Full extraction
+mechanics, the per-call timeout budgets that keep the worst case under both
+the client-side abort and this route's `maxDuration`, and the SSRF hygiene on
 the URL fetch are covered in
 [Spec Identification](../workflows/spec-identification.md).
 

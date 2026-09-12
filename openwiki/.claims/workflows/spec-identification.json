@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:112451e99a8d09ab1610b08fee86f1f046f12d5c4d838b529e833bf0f980d7dd",
+  "pageVersion": "sha256:d31722098537f0184ff0ed0c98413f6f8014dab2dd65aece20432649262beee0",
   "claims": [
     {
       "id": "claim_5f580a04ab5943079a0af0dae84a8b42",
@@ -46,25 +46,41 @@
     },
     {
       "id": "claim_e68c7227d977443ea3031d979f7291db",
-      "statement": "lib/identify/catalogNumber.ts splits a bid line's ordering string into a base item number plus trailing configuration codes (finish, CCT, wattage, lumens, CRI, voltage) so identification searches the base item (e.g. '4430802') instead of the full configured string (e.g. '4430802-112'), which returns far fewer/no useful web results.",
+      "statement": "lib/identify/catalogNumber.ts's splitCatalogParts strips trailing tokens recognized by the shared option vocabulary in lib/engine/baseItem.ts (finish words/abbreviations, CCT, wattage, lumens, CRI, voltage, slash-delimited option groups) or by a bare trailing 2-4 digit run (NUMERIC_OPTION), but only while what remains still reads as a real item number (isUsableBase) — splitting a bid line's ordering string into a base item number plus trailing configuration codes so identification searches the base item (e.g. '4430802') instead of the full configured string (e.g. '4430802-112'), which returns far fewer/no useful web results.",
       "evidence": [
         {
-          "resource": "repo://lib/identify/catalogNumber.ts#L1-L20",
-          "version": "repo-lines-v1:sha256:c6fc0b4b916162debaa24c86dc95872781e4b0dd8c7bf11d64103dd21f90b757:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2YzRmOGZiMGZiZDIyYjMyNTg1Y2Y0NDM1YjNkYTM0MzI3OTc2Njg2MTA3YjhmNGU1OWU5ZmMyOGIyMzMzYTMifQ"
+          "resource": "repo://lib/engine/baseItem.ts#L69-L100",
+          "version": "repo-lines-v1:sha256:bde550982fb87e07fee7eda251b6438565bc84254e6003bc159e47fb6cf582b0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1YzFhYTU5ZTViZDYyZWVmOWI0NjAyYjQwNGRlMmU2MTM4ZDJlMWM3M2M5NzNkYTc4YTc4Zjg3NDcxZTVjOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1ZTI2Y2Q5MjM2NmY2MGQ4ZWQ5MmQwMjM5ZjA3ZmVmNzRjYWMxNGFhNjlhZGRmOWMyY2MwZDExZWIwMGE0NjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzMTFkODUwOTdhOTk3ZjJkOTlmMGM0MTRlYTBjNmZjZWFhZGQ2YTg4NDg5YjcxYWFiMjNmNTM3ZTUxODEwOWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyM2U0NTRmNDEwYmZiNmMwMTQxMzNlYmJkOGExMDlhMGUwNzAyNzcyYTc2Nzc0YzI3OWI3N2Y5ZGMwYmRhNDcifQ"
         },
         {
-          "resource": "repo://lib/identify/catalogNumber.ts#L134-L159",
+          "resource": "repo://lib/identify/catalogNumber.ts#L1-L26",
+          "version": "repo-lines-v1:sha256:66a181444c03dbd0af62e2a227938d50c61654fcf246f21e814f3618b7c9f687:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5YTM1MTMxNzE0ODkwNzUzODU4OGI3Y2ZlM2Q5YzgwYjczOWE3NzQzMWEzYjQ3NDQ0YmNmOTc1ZTMzNTlhMzYifQ"
+        },
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L28-L44",
+          "version": "repo-lines-v1:sha256:0ee908990e47a5b0768b0596fa6574b56f564e724cfc64a051b649ccd6611725:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4ZWY4ZjVlMGE2YTYzMjAzNDBlMzE0OGRhNWMyNDg4ZDA3MTc0Nzc1NjlkMmUxYzQ3ZjdjM2Y0MzE2ODJhMTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiOWViNmM5MTEwNjNjNTEzZDM5NWM3MDRjZWFkNjExMGNlMTg2NWRlMTBlZmJkZmQ4Mzk4MDUwZmY4MTg2ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0OGQwZTA0OTg3NGRkMjBiZWE0M2FhNWExZDE1M2VjOWU2OTdjNmVjOWIzNDU1Nzc0MDc4YTMyZDYxM2YzNzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxYzRkYzg2MDFlNTVhNmYxNjU4ODM0MThmNDkxMTY2NTc5YzAyYzQ2NGE5YzBiZDNiMzJmYWM1NDYwODg5MGUifQ"
+        },
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L79-L104",
           "version": "repo-lines-v1:sha256:46e984654717b732f49cda77547655637587455b9e8f045e8a4fb21062f68a41:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwZDcwYmQ3ZTFlNWEzMTQxYzJiZGYyZjQ4ZWYzMGE4NmU5MTRkNTg5NWE5Y2IxZDczNTY2NWVjMGJiNGFmZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4NGY2MTY3NWI0NDdhMmY4ZDk1Nzg5NDYyOTUzZjcyMTVmZDAxMjQ4NDIwMzE1OGIxODg0YzQzYTUzMTg2ZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyM2VlMGI4NjQwODI2OTM2OGM4NTJlNGIxY2U0MGM2YTQ1ZjA3ZGVjZTEyYTU1NTM5NzRhM2FkOTI2YzE4NjAifQ"
         }
       ]
     },
     {
       "id": "claim_3ede5f52454147739588a9e6be1c2e24",
-      "statement": "lib/identify/catalogNumber.ts is deliberately import-isolated from lib/engine/matcher.ts in both directions, so identification-prompt changes cannot affect the eval-ratcheted engine matching logic and the engine cannot be perturbed by base-item extraction changes.",
+      "statement": "lib/identify/catalogNumber.ts imports only from lib/engine/baseItem.ts (isOptionToken, simplifiedBaseItem), never from lib/engine/matcher.ts directly, and nothing in lib/engine/matcher.ts or lib/engine/recommend.ts imports from lib/identify/catalogNumber.ts, so an identification-prompt change confined to catalogNumber.ts cannot perturb the eval-ratcheted engine matching/scoring logic. This boundary does not extend to lib/engine/baseItem.ts itself: lib/engine/recommend.ts imports sameBaseItem/simplifiedBaseItem from that same shared module for its own family-matching tier, so baseItem.ts's own structural rules are measured by the accuracy eval ratchet and a change there moves both engine matching and every identification search query at once; catalogNumber.ts is a one-way consumer of baseItem.ts, never the reverse.",
       "evidence": [
         {
-          "resource": "repo://lib/identify/catalogNumber.ts#L17-L20",
-          "version": "repo-lines-v1:sha256:d4ad9881c7c134f85072dd6cdca7a3746ad240bfb90b75b8eb1556cd7a7b3935:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2JmMzIzYzEzN2VlZDdjMTUwZGQ4MmM5ZjE0MTlhOTkwODQ2NjhhNDlkNThhMWQ0YmQ3MWVkYTYzNzY0YjIxZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyYTQyOTM4MmIyZTE0NzE4ZTBlMzdiMDU3MGE4YTE3MDI5OTFmY2Q4NDk4Y2Q4NDA2MGE4YmY0ZjA1MDE3YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDQ4MmMzMDNhZTgzNjhmMGI1ZDJjODg1ODE1MTJjMjNhOThiODQzNDNmZTM4NWQ3MWZkNWI5N2U2MGJjY2VkZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDZjNGY4ZmIwZmJkMjJiMzI1ODVjZjQ0MzViM2RhMzQzMjc5NzY2ODYxMDdiOGY0ZTU5ZTlmYzI4YjIzMzNhMyJ9"
+          "resource": "repo://lib/engine/baseItem.ts#L41-L45",
+          "version": "repo-lines-v1:sha256:2663cb9bf54d668afc49c97f6965862e2728f7cee16d9e84e46e87279a071578:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmVhYWE5Y2M0NDNkNTM5NTQzNzAwYjBmM2JmZWJmNTNiZTc2ODRiNTViMmJiMzRkNDY0ZmEzNmM0MGNjZDZmYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyYTQyOTM4MmIyZTE0NzE4ZTBlMzdiMDU3MGE4YTE3MDI5OTFmY2Q4NDk4Y2Q4NDA2MGE4YmY0ZjA1MDE3YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzkwMDE0ZDA0M2RiY2U1NzhjNmVjZWYwNzRhZTRlMDgwZTk3MDQ1ZjE0ZDhkYmRlZDhiMzZkYjcxM2Y5ZmQyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWU2YTliMTU0Y2EyNGE2MjQ2NmQxNThhYmVkMTMzNjhlNmY5YmUwNTViMWE4OTMzNjQzODBlYTEwOGJkNDNiZCJ9"
+        },
+        {
+          "resource": "repo://lib/engine/recommend.ts#L30-L34",
+          "version": "repo-lines-v1:sha256:aae51824712261fdc326bda2bcfeed6ddd1ee9ec92a3d45ea769e7240a46d9da:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDYyMWQ5YWEyMzA0YzYxNDQyNjBhNmE0YjkyZWIzODczMjhiZjE3ZmQ0ZGU5ZTZmMmZlM2M5Y2YxZjhkMjBkNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2FlODgzZjMzNWE5OTc0MTViZjRiYjM3YWViNjkwYzVkYzE3ZWJhMWMzYTM2Y2JiN2Y2YjViMzQ1ZWIwZTVlMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTlkZDYwYzM4ODIxZmJmY2U0MTE2OTY4NTVjNmYyZWMxNGZjMjY4NzUwY2JjMGViNjcwZGQxYWQ0YjA0NTUwZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTM4OWM5M2I4N2YwNGY1ZTQyNTdkYzg2ZjNhNjRlYzk2NjdmNTQ1NWYyMmY4NGVmZGQ5NDg0NWYyZDljNWZlNSJ9"
+        },
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L23-L30",
+          "version": "repo-lines-v1:sha256:70bc69f3ba5932ab6c27a8fcc9827b1d606fdd64660c526395a4ac1ec236c07d:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDZmM2JkMTQ5YjY4YTUzNWYxNGNiOGU2NTcwNDgwNmY3ZmNiM2RjNmE0MjBhNmMzOTQwODQ0ZjI0MDkxNTMyNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2NjNmQxZGNkNzRjZGJhZjJkYjhmMDFhODIyODk1ZTFhNWVkOTcwMTQzZDY4MzhlZTg3YmNhMmFiNTcyNzRjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTQyNjE3MGJlNDI0NmFiZTY1NTcxZDI5NmUxYTQyYmVmMzcyMjFiY2ZlMmJhOTk0NWIwYjlhYjVlM2Y1NzY1MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjRkZTNhNzU5MzU4NmU4ZmQ4MTZiYzI5YzBiN2Y0OGYzYTk3NGYxNThhZDQyYjY1YTE1NmI4ZTQwZjg0MmI4YyJ9"
         }
       ]
     },
@@ -246,15 +262,15 @@
     },
     {
       "id": "claim_69c7dbd2f9834bb28f03685b5e3ab484",
-      "statement": "identifyFromWeb performs two Claude calls because structured output and web-search citations cannot share one response: a streamed research call using the web_search tool pointed at the base item number (from planCatalogSearch) rather than the full configured string, followed by a shared structured-output extraction call over the findings.",
+      "statement": "identifyFromWeb performs two Claude calls because structured output and web-search citations cannot share one response: a streamed research call using the web_search tool pointed at the base item number (from planCatalogSearch) rather than the full configured string, followed by a shared structured-output extraction call over the findings; the research call is aborted at a soft deadline and extracts from whatever partial findings streamed, and a caller-supplied blockedUrl (a spec link that failed a direct fetch) is passed to the research turn as its primary lead.",
       "evidence": [
         {
-          "resource": "repo://lib/identify/claude.ts#L110-L127",
-          "version": "repo-lines-v1:sha256:711f9588f7bf16ad37c3eebe647815f84100acbcb205b4e5ee8abdb6f37e2ba5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0NjQzYzMyM2VkNGI2ZTUwNjEyNGUzNDNmYmNhMzkyMWU4OTMxYTkwMTM2MDU5Zjc2NGVmZTQ4MTAyMGM1NjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlOWU2NTQ2N2M2Yzg0ZDAzODQ4NjFlYzU4NTQyODAyODNkNTFjNDM3ZDExNGQwNWQ0YjliN2RkN2QzYWU1MjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzNzJiOTY3NzY4MzMzY2ExM2E2YzExOGVmODA5OTlhOTYxMGFmOGFiYjkxM2JhYjQ1ZDMzZjU2Y2I5Y2M2ZTMifQ"
+          "resource": "repo://lib/identify/claude.ts#L243-L337",
+          "version": "repo-lines-v1:sha256:f574c6b43ca5a836942291197873afcdb59f8d75193b9b27ba5a9b0ff27eaae1:eyJzZWxlY3RlZExpbmVDb3VudCI6OTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OTM3Njc5MWU2OTQ3NmY3YTA3MTg5NmRjMjViOTEzN2VmODQyM2UzZTk2MzQwY2NmYWMzMzIzZDQyY2E1MWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://lib/identify/claude.ts#L240-L326",
-          "version": "repo-lines-v1:sha256:32da44b672adc3484e2c314bbd56d5627e6033c127b0f3a57e29528bd7a1363e:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OTM3Njc5MWU2OTQ3NmY3YTA3MTg5NmRjMjViOTEzN2VmODQyM2UzZTk2MzQwY2NmYWMzMzIzZDQyY2E1MWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://lib/identify/claude.ts#L73-L76",
+          "version": "repo-lines-v1:sha256:193d012a2f8ee2c5251d2cbe7bd5587e378a7d2321f8d3f32b060dc2095ab26b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTk2YmU3M2Q2MmMwMWJlMjkwN2Q1YzRlMjlkMDQ3Yzc2YjJlMDIzNzE4NjEwODcwMzg3ODE0ODhlZGNiOWQ2ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjA1YmY0MTQ2Yzg2MzdlMjczOGI5MDY0MjQ4ZDdhOWRmZTZjMGNhZDRhYzJiOTg2ZmNiOTIxN2FjN2ExOTUwNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGEzOGU2ZTgzZGNhNDJlYTg0ZWIyYTljZmM5NjI1MDliMjEwZWRjZmI4ZGUyMzM4ZjI2MjE4MmM1MGM5MTdkZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzIzYTE2ZWRkMjhjY2Q4ZWVhYjIxZTUxOWVhMTFlZjg0MGQ2OTgzODA2NzEzODRlZjM3YjA1MmVmYjBlZTE0MCJ9"
         }
       ]
     },
@@ -401,6 +417,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T12:24:50.371Z"
+    "at": "2026-09-12T00:26:12.199Z"
   }
 }

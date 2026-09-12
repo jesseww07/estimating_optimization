@@ -3,9 +3,6 @@ type: Engine
 title: Recommendation Engine
 description: How analyzeLineItem scores, ranks, and gates VE substitution recommendations against Premier's catalogs and estimator History, including the Phase 4 family/series matching, the null-category junk gate, the learned series→category map, the 3rd-party earn-your-slot rule, and the exact-history confidence/auto-select-eligibility rework.
 tags: [engine, matching, ranking, history, learning-loop]
-verified:
-  - by: openwiki/0.5.1
-    at: 2026-09-10T12:24:50.371Z
 sources:
   - id: openwiki-source-a566094572771b4f57097809
     resource: repo://__tests__/tuning.test.ts
@@ -21,7 +18,10 @@ sources:
     resource: repo://lib/engine/series-learning.ts
   - id: openwiki-source-6abb52803bfff10f0ab94465
     resource: repo://scripts/build-series-map.ts
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-12T00:26:12.199Z" }
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-12T00:26:12.199Z
 ---
 
 # Recommendation Engine
@@ -263,10 +263,16 @@ of them agree on one of the 12 fixture-detector labels (`LABEL_PRIORITY`;
 "LED Tape" and "Light Bulb" are deliberately excluded — those lines are
 already routed by `isLedTape`/`isBulbLampLine` upstream, and learning them
 here would let the fixture path hand out a category whose gate admits only
-tape or only lamps). Learning from **both** catalogs matters materially: the
-committed production map is learned from 663 usable linked rows (487
-Premier-linked, 176 3rd-party-linked) — Premier-only learning silently
-discarded the ~40% of History rows whose ground truth is a resold item.
+tape or only lamps). Learning from **both** catalogs matters materially: per
+the committed file's generated header (source snapshot fetched 2026-09-02,
+9,491 History rows), the current production map learns 150 series from 773
+usable linked rows — 495 Premier-linked, 278 3rd-party-linked — of which 109
+rest on a single project (legitimate knowledge for the next bid, invisible to
+the eval by construction); Premier-only learning would silently discard the
+roughly 36% of usable rows whose ground truth is a resold item. These counts
+regenerate every time `npx tsx scripts/build-series-map.ts` runs against a
+newer snapshot, so treat the numbers printed in the committed file's own
+header as authoritative over any specific figures quoted here.
 
 Regenerate the map after every `npm run eval:fetch` snapshot refresh, and
 review the diff like any other code change — the

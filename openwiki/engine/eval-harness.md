@@ -3,9 +3,6 @@ type: Testing Tool
 title: Accuracy Eval Harness
 description: How the VE engine's substitution accuracy is measured against labeled historical outcomes (leave-one-project-out replay), the metrics it reports, and the CI regression ratchet that enforces it on every PR.
 tags: [eval, accuracy, ci, regression-testing, history]
-verified:
-  - by: openwiki/0.5.1
-    at: 2026-09-10T18:40:06.129Z
 sources:
   - id: openwiki-source-c54b69307d742355408fda56
     resource: repo://__tests__/eval.baseline.json
@@ -29,7 +26,10 @@ sources:
     resource: repo://scripts/eval/fetch-context.ts
   - id: openwiki-source-07fc8184a46e03e11ed21224
     resource: repo://scripts/eval/run.ts
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-12T00:26:12.199Z" }
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-12T00:26:12.199Z
 ---
 
 # Accuracy Eval Harness
@@ -202,21 +202,35 @@ Commands (`package.json`):
 
 ## Current baseline snapshot
 
-The committed `__tests__/eval.baseline.json` is the source of truth for the
-live numbers, not this page — read it and rerun `npm run eval` before citing
-a figure. As committed, it reports **981 headline cases**: top1 13.76%,
-top3 17.43%, junk 39.65%, silent 42.92%, autoWrong 0.71%, generated from a
-snapshot fetched 2026-09-02 (`__tests__/eval.context.meta.json`; 9,491
-history / 2,339 Premier / 1,115 third-party / 113 fan rows).
+The committed `__tests__/eval.baseline.json` is the only source of truth for
+the live numbers — read it directly (or rerun `npm run eval`) before citing
+a figure; this page deliberately does not quote current headline
+percentages, since any rate quoted here would drift on the very next
+`npm run eval:update`. Its shape: a `datasetFingerprint` (sha256 of the
+gzipped snapshot — how the ratchet detects a baseline generated from a
+different dataset than the one it is being compared against), a
+`generatedAt` timestamp (when the baseline itself was last computed — this
+can move forward on an *unchanged* snapshot purely because engine code
+improved, so it need not match the snapshot's own `fetchedAt`), a
+`headline` metrics block with exactly the fields `checkRegression` compares
+(`cases`, `top1Rate`, `top3Rate`, `junkRate`, `silentRate`,
+`autoWrongRate`), and a `caseOutcomes` map keyed by case id
+(`project::normalizedSpec`) recording every case's last-known outcome — the
+field a PR's diff uses to show precisely which cases flipped.
 
-That snapshot followed a base **consolidation** (unifying four parallel
-category systems onto one shared `Product Categories` table, deduplicating
-catalog rows, and folding manufacturer-name variants into one registry) that
-changed the dataset fingerprint and moved the case count from 971 to 981 —
-per `eval.context.meta.json`, that comparison is explicitly **not**
-like-for-like, and every headline metric held or improved on the larger case
-set (pre-consolidation: top1 13.49%, top3 17.20%, junk 39.65%, silent
-43.15%, autoWrong 0.72%). Both the pre- and post-consolidation figures
+The snapshot the current baseline was computed against is described by
+`__tests__/eval.context.meta.json` (fetch date, source, per-table row
+counts, and free-form provenance notes; as of the most recent fetch: 9,491
+history / 2,339 Premier / 1,115 third-party / 113 fan rows). Its most recent
+entry records a base **consolidation** (unifying four parallel category
+systems onto one shared `Product Categories` table, deduplicating catalog
+rows, and folding manufacturer-name variants into one registry) that
+changed the dataset fingerprint and moved the headline case count from 971
+to 981 — the notes are explicit that the before/after comparison is **not**
+like-for-like, though every headline metric held or improved on the larger
+case set at the time of that fetch.
+
+Both the pre- and post-consolidation snapshots recorded in that history
 supersede the substantially worse numbers `docs/PHASE4-PRIMER.md` recorded at
 its Phase 4 kickoff (top1 9.01%, top3 11.28%, junk 45.55%, silent 43.17%,
 autoWrong 6.94%, on a since-superseded 966-case baseline) — the gap reflects
@@ -225,5 +239,6 @@ null-category junk gate, and the exact-history confidence/auto-select
 rework (see
 [Recommendation Engine](recommendation-engine.md#history-matching-tiers)),
 plus, later, the per-fold series-map fix described above that removed a
-measurement leak. Treat every number on this page as point-in-time
-reference: read `__tests__/eval.baseline.json` for the current figures.
+measurement leak. Treat every rate on this page as point-in-time at best —
+`__tests__/eval.baseline.json` is the only correct source for today's
+figures.

@@ -12,18 +12,22 @@ sources:
     resource: repo://AGENTS.md
   - id: openwiki-source-1d4605aa35fb16ba7dd73a86
     resource: repo://app/api/identify-batch/route.ts
+  - id: openwiki-source-7f0f7893293ac71ef1a3a004
+    resource: repo://lib/engine/baseItem.ts
   - id: openwiki-source-cc76320853086de7e1dc5681
     resource: repo://lib/identify/batch.ts
+  - id: openwiki-source-1d717a656395f6204590aea1
+    resource: repo://lib/identify/catalogNumber.ts
   - id: openwiki-source-ca4b0fd930191158922c5af3
     resource: repo://lib/identify/docxPages.ts
   - id: openwiki-source-f156d2964cca4726335ecbcc
     resource: repo://lib/identify/media.ts
   - id: openwiki-source-23775c3de52f3ab95a13cb8b
     resource: repo://README.md
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T18:40:06.129Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-12T00:26:12.199Z" }
 verified:
   - by: openwiki/0.5.1
-    at: 2026-09-10T18:40:06.129Z
+    at: 2026-09-12T00:26:12.199Z
 ---
 
 # VE Estimator — Quickstart
@@ -52,7 +56,12 @@ export draft with Premier catalog substitutions already suggested.
 5. If a single line still can't be identified, the estimator can trigger
    **per-line identification** (Claude reads a pasted spec URL, does a web
    search, or reads an uploaded cut sheet) and the engine re-runs on the
-   identified spec.
+   identified spec. The web search never searches the printed ordering
+   string verbatim: `lib/identify/catalogNumber.ts` strips trailing
+   finish/option codes first (`4430802-112` is searched as `4430802`)
+   because the full string returns little while the bare base item number
+   returns the manufacturer's product page — the same base-item logic the
+   engine shares with `lib/engine/baseItem.ts` for family matching.
 6. The estimator reviews/overrides the pre-checked selections and **exports**
    a corporate-template workbook.
 7. Export **writes accepted substitutions back to History** — the learning

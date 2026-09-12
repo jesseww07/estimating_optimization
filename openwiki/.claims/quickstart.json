@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:508714751926ec6a92c0de57549c1127a07aa1117fcdc1c0822a24fccd06e330",
+  "pageVersion": "sha256:7ee955916fc7c67e4c528c8df4e21834c0088a3a7e0a68d50aac0b3900504dc2",
   "claims": [
     {
       "id": "claim_685bd3ea5c5c412e8a4a6089d7a63878",
@@ -32,11 +32,19 @@
     },
     {
       "id": "claim_59e3a216efd3423b98bc0762a900ca40",
-      "statement": "Per-line identification (base-item catalog-number extraction) strips trailing finish/option codes such as '-112' from a printed catalog string like '4430802-112' before using it in web searches, because searching the full ordering string returns little while the base item number returns the manufacturer's product page.",
+      "statement": "Per-line identification's web-lookup planner (lib/identify/catalogNumber.ts, sharing its option vocabulary with lib/engine/baseItem.ts) strips trailing finish/option codes such as '-112' from a printed catalog string like '4430802-112' before using it in a web search, searching '4430802' instead, because searching the full ordering string returns little while the bare base item number returns the manufacturer's product page.",
       "evidence": [
         {
-          "resource": "repo://README.md#L34-L38",
-          "version": "repo-lines-v1:sha256:789610010bf84d96450254d5bac2eaa63c0ffd9e1c399dca88dd90c87564030f:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMThjYWNkMTg0OThlYjU3Nzg0ZDFhNTdlOTdhN2ZhZWYzMWQ1N2IzMmFjNDJjNzg1YzRhNmNiYzI4NTA3ZjgyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTE2OTc3N2M1YjY3ODQ0NGVjMDMwZDgyODI5YzQyMTdlNTgyMTI4ZDQzYjkyNzk3MjAxNDU5MTJlOWQzNTkwMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWM0NzZmYTdiNjNlZGVkZDFiNzI3NGEyY2JiNDY0YjVjZjg2YmIzMmQxYWM1Mjc2MWM2NmZkYjVlZDNjYTk2ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2MyZTJlYThhMDU1ZDRhYmExMDExMTE1YzdkOWZiMmU3MzFiYWFhZjNjM2M0MTljOWU3NDU4YzBjZDkxZWVmNCJ9"
+          "resource": "repo://README.md#L32-L41",
+          "version": "repo-lines-v1:sha256:79563421a72742220bf5cc42170558e468a5cae95170b53a7d167331bff1bcc5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjYTA5YTAyZjM2MDE3YWNjMDhjODU5NTRkYWU2MmU0OTJjMDg2MDZhMzQzNTZkM2QzOTI5YmM0MjRiNWRhYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyNTY2OWI2NjExY2UxMWY4NGZjNTcwMDA4ZDA4N2E5MTMwNzRlZGQxYzc4NGE2YTEzMWFiNGQ5Njg2M2RiZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1ZGRhNDE4NDE0ODMwZWQ4Y2Y0NTU2OWQ5NTdkZmE4OGE5ZmM5Mjk0YTIyOGM2OGE4YmUwYWMwYzExNDU1NjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5MDcxNWYyNzAzNzkwMWMxMGMxMWNmYjJhZTIwY2JmYWQ1MGIzOWJlM2RmZTI0Y2Y4YTljNGIxN2M1YWRmODQifQ"
+        },
+        {
+          "resource": "repo://lib/engine/baseItem.ts#L1-L20",
+          "version": "repo-lines-v1:sha256:13427fa38c8007ae2d125fcb8bd8bb9bd5af3ba871df413aced148f5e8041240:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmMDY2ZDY0ZDViMmFjNmRkNmU3OWZmOGNjMTgzNzkwYmI2OTY2ZTk4MTdmYTg4ODFlZGUzMmU5MjlkZjcyNzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiYzUyNmU0NjlmZTEwMGY3OWNhZGIwNGIyYmRiZmI0NGJkNTczOGJmMmNlNDc2NzYxNjJiNDg3NGU2OTY1NDEifQ"
+        },
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L4-L26",
+          "version": "repo-lines-v1:sha256:3c8a98fba5365dbbadb5f468b0d2b990b66b9d1abb1dbe76b2f1a23c98bc2d7d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NWI3NGVhMzNjMTc2Yjg1NTcwYjhlODhjOTM3OGNmZDQ4ZmQxMGVjMzc0Y2NkYWI1NTQyMWM1NjZhOTIzZjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4YzdjNjczZDZiNzFmZWIzMDA1M2Y3NjIzMjRmZjliYzgwYzc4NDk1MDMyMzEyMmEzMDc5MGEyNTVlYmNjNWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5YTM1MTMxNzE0ODkwNzUzODU4OGI3Y2ZlM2Q5YzgwYjczOWE3NzQzMWEzYjQ3NDQ0YmNmOTc1ZTMzNTlhMzYifQ"
         }
       ]
     },
@@ -71,6 +79,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T18:40:06.129Z"
+    "at": "2026-09-12T00:26:12.199Z"
   }
 }
