@@ -482,7 +482,7 @@ describe('3rd & Flower: category detection gaps', () => {
 
     it('classifies Lithonia LXEM exit units and LNC wall packs', () => {
         expect(detectFixtureCategory('C', 'LXEM4-40HL-RFA-EDU', '')).toBe('Exit/Emergency');
-        expect(detectFixtureCategory('S1', 'LNC-7LU-4K-3', '')).toBe('Outdoor');
+        expect(detectFixtureCategory('S1', 'LNC-7LU-4K-3', '')).toBe('Outdoor Wall');
     });
 
     it('EXIT placeholder rows surface in-category exit items with the RFI notice instead of silence', () => {
@@ -1052,9 +1052,9 @@ describe('Aura Santan category detection', () => {
         // `ABOVE ALL AKT30401-III` is a wall pack, which a web search says in two
         // seconds and no keyword in the string does. WP1/WP2 is the drawing
         // convention, and it was the only signal on the line.
-        expect(detectFixtureCategory('WP1', 'AKT30401-III', 'ABOVE ALL')).toBe('Outdoor');
-        expect(detectFixtureCategory('WP2', 'AKT30401-III', 'ABOVE ALL')).toBe('Outdoor');
-        expect(detectFixtureCategory('WP-3', 'XYZ123', 'SOME BRAND')).toBe('Outdoor');
+        expect(detectFixtureCategory('WP1', 'AKT30401-III', 'ABOVE ALL')).toBe('Outdoor Wall');
+        expect(detectFixtureCategory('WP2', 'AKT30401-III', 'ABOVE ALL')).toBe('Outdoor Wall');
+        expect(detectFixtureCategory('WP-3', 'XYZ123', 'SOME BRAND')).toBe('Outdoor Wall');
     });
 
     it('reads DISK / DISC as a disk light rather than falling through to Ceiling', () => {

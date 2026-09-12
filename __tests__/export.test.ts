@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
+import * as XLSXStyle from 'xlsx-js-style';
 import {
+    AS_SPEC_FILL_RGB,
     COL,
     buildCorporateWorkbook,
     inferSubManufacturer,
@@ -138,6 +140,48 @@ describe('buildCorporateWorkbook', () => {
             .map(k => (ws[k] as XLSX.CellObject).f)
             .find(f => f?.startsWith('SUM('));
         expect(subtotal).toBe(`SUM(${extCol}${firstDataRow}:${extCol}${lastDataRow})`);
+    });
+});
+
+describe('as-specified rows are banded yellow on VE DRAFT', () => {
+    // The estimating team's convention (2026-09-11): a line priced as the
+    // specified product is #FFFF99 across the grid, so it reads at a glance in
+    // the corporate workbook. Substituted rows and the ORIGINAL SPEC sheet stay
+    // unfilled.
+    const wb = buildCorporateWorkbook({ jobName: 'Fill Test', jobLocation: '', customer: '', rows });
+    const reread = XLSXStyle.read(workbookToBuffer(wb), { type: 'buffer', cellStyles: true });
+    // xlsx-js-style writes the fill under `s.fill` and reads it back flattened
+    // onto `s` itself — accept either shape.
+    type Styled = XLSXStyle.CellObject & { s?: { fill?: { fgColor?: { rgb?: string } }; fgColor?: { rgb?: string } } };
+    const fillOf = (sheet: string, mark: string, col: number): string | undefined => {
+        const ws = reread.Sheets[sheet]!;
+        const grid = XLSXStyle.utils.sheet_to_json(ws, { header: 1, raw: true, defval: undefined }) as (string | number | undefined)[][];
+        const r = grid.findIndex(row => row?.[COL.MARK] === mark);
+        expect(r, `${mark} on ${sheet}`).toBeGreaterThan(0);
+        const style = (ws[XLSXStyle.utils.encode_cell({ r, c: col })] as Styled | undefined)?.s;
+        return style?.fill?.fgColor?.rgb ?? style?.fgColor?.rgb;
+    };
+
+    it('fills every grid cell of a leave-as-specified row, including the blank pricing cells', () => {
+        expect(fillOf('VE DRAFT', 'W2', COL.MARK)).toBe(AS_SPEC_FILL_RGB);
+        expect(fillOf('VE DRAFT', 'W2', COL.CATALOG)).toBe(AS_SPEC_FILL_RGB);
+        expect(fillOf('VE DRAFT', 'W2', COL.UNIT_COST)).toBe(AS_SPEC_FILL_RGB);
+        expect(fillOf('VE DRAFT', 'W2', COL.COST_EXT)).toBe(AS_SPEC_FILL_RGB);
+        // Tape lines export without a substitution too — they are priced as spec.
+        expect(fillOf('VE DRAFT', 'T1', COL.MARK)).toBe(AS_SPEC_FILL_RGB);
+    });
+
+    it('keeps the extended-cost formula on a filled row', () => {
+        const ws = reread.Sheets['VE DRAFT']!;
+        const grid = XLSXStyle.utils.sheet_to_json(ws, { header: 1, raw: true, defval: undefined }) as (string | number | undefined)[][];
+        const r = grid.findIndex(row => row?.[COL.MARK] === 'W2');
+        const cell = ws[XLSXStyle.utils.encode_cell({ r, c: COL.EXTENDED })] as XLSXStyle.CellObject | undefined;
+        expect(cell?.f).toMatch(/^G\d+\*Q\d+$/);
+    });
+
+    it('leaves substituted rows and the ORIGINAL SPEC sheet unfilled', () => {
+        expect(fillOf('VE DRAFT', 'X-D', COL.MARK)).toBeUndefined();
+        expect(fillOf('ORIGINAL SPEC', 'W2', COL.MARK)).toBeUndefined();
     });
 });
 

@@ -1,5 +1,5 @@
 /**
- * Base-item extraction for catalog / ordering strings.
+ * Base-item extraction for catalog / ordering strings — the LOOKUP planner.
  *
  * A schedule prints the ORDERING string, not the product. "VISUAL COMFORT
  * 4430802-112" is one product — 4430802, a two-light bar vanity — configured in
@@ -9,46 +9,25 @@
  * the finish list. The suffix is a configuration code, and configuration is
  * what the estimator adjusts anyway — identity is what they need looked up.
  *
- * So identification searches the BASE item and treats the stripped codes as
- * configuration context. This module is the pure, testable half of that: it
- * splits a spec into base + option codes and never guesses beyond what the
- * option grammar plainly says.
+ * Two reads are combined here:
  *
- * Deliberately separate from lib/engine/matcher.ts: the engine's series/family
- * logic is measured by the eval ratchet and must not move for an
- * identification-prompt change. Nothing here is imported by the engine.
+ *   1. Option stripping (this module): trailing tokens that the option grammar
+ *      plainly names — finish, CCT, wattage, voltage — come off the end.
+ *   2. The structural read (lib/engine/baseItem.ts): inside what is left, the
+ *      base item is the first run of characters that carries identity, and
+ *      what follows is the product's name or its variant. `3-515-25- HALO`
+ *      strips nothing by grammar (HALO is not an option code) but is plainly
+ *      product 3-515, named Halo, in size 25 — which is exactly what the
+ *      estimator types into Google (ownership review, 2026-09-11).
+ *
+ * The option vocabulary itself lives in the engine module so the two readers
+ * cannot disagree about what a configuration code is; it is re-exported here
+ * for the tests and callers that always imported it from this file.
  */
 
-/** Colour-temperature codes: 30K, 3000K, 5CCT, CCT, 2700K. */
-const CCT = /^(\d{2,4}K|\d?CCT|CCT\d?)$/;
-/** Wattage: 15W, 9.5W, W15. */
-const WATTAGE = /^(\d+(\.\d+)?W|W\d+(\.\d+)?)$/;
-/** Lumens: 4000LM, 800L is ambiguous (L48 is a LENGTH code), so require LM. */
-const LUMENS = /^\d{3,6}LM$/;
-/** CRI: 80CRI, CRI90, 90+. */
-const CRI = /^(\d{2}CRI|CRI\d{2}|\d{2}\+)$/;
-/** Voltage: 120V, 277V, MVOLT, UNV. Bare "120" is left alone — see NUMERIC_OPTION. */
-const VOLTAGE = /^(\d{3}V|MVOLT|MV|UNV|UNIV|UVOLT)$/;
+import { isOptionToken, simplifiedBaseItem } from '../engine/baseItem';
 
-/**
- * Option vocabulary that is configuration rather than identity. Finish words
- * and their common abbreviations, dimming/driver options, and mounting trims
- * that appear as trailing codes.
- */
-const OPTION_WORDS = new Set([
-    // Finishes, spelled out
-    'WHITE', 'BLACK', 'BRONZE', 'NICKEL', 'BRASS', 'CHROME', 'GOLD', 'SILVER',
-    'ALUMINUM', 'ALUMINIUM', 'COPPER', 'GRAPHITE', 'PEWTER', 'WALNUT', 'NATURAL',
-    // Finishes, abbreviated
-    'WH', 'WHT', 'BK', 'BLK', 'MB', 'MBK', 'BZ', 'BRZ', 'DBZ', 'DB', 'ORB',
-    'NKL', 'BN', 'SN', 'PN', 'AN', 'AB', 'PB', 'SB', 'CH', 'PC', 'BC', 'SS',
-    'AL', 'GLD', 'SLV', 'GR', 'GRY', 'TT', 'NAT', 'CLR', 'FR', 'OPL',
-    // Dimming / driver
-    'DIM', 'EDIM', 'NDIM', 'ELV', 'TRIAC', 'DALI', 'PHASE', '010V', '0-10V',
-    'DIMMABLE', 'DRIVER',
-    // Common trailing options
-    'EM', 'EL', 'GLR', 'GMF', 'SPD', 'FUSE', 'SC', 'HO',
-]);
+export { isOptionToken };
 
 /**
  * Delimiters a catalog string uses between tokens; the captured group keeps them
@@ -66,40 +45,6 @@ const NUMERIC_OPTION = /^\d{2,4}$/;
 
 function normalized(value: string): string {
     return value.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-/** True when one indivisible token reads as a configuration code. */
-function isSimpleOptionToken(t: string): boolean {
-    if (OPTION_WORDS.has(t)) return true;
-    return CCT.test(t) || WATTAGE.test(t) || LUMENS.test(t) || CRI.test(t) || VOLTAGE.test(t);
-}
-
-/**
- * True when `token` reads as a configuration code rather than product identity.
- *
- * Slash-delimited GROUPS count: manufacturers print a choice of options as one
- * token (`120/277V`, `MVOLT/UNV`, `30K/40K`), and `CSVT-L48-120/277V` was
- * leaving the voltage in the search query — the exact thing the research prompt
- * tells the model not to do. A group qualifies only when every piece is either
- * an option code or a bare figure the group's other pieces give a unit to
- * (`120` in `120/277V`), and at least one piece is a recognized code — so an
- * alternate item number pair is never mistaken for one.
- */
-export function isOptionToken(token: string): boolean {
-    const t = token.trim().toUpperCase();
-    if (!t) return false;
-    if (isSimpleOptionToken(t)) return true;
-    if (!t.includes('/')) return false;
-    const pieces = t.split('/').map(p => p.trim()).filter(Boolean);
-    if (pieces.length < 2) return false;
-    let recognized = 0;
-    for (const piece of pieces) {
-        if (isSimpleOptionToken(piece)) { recognized++; continue; }
-        // A bare 2-4 digit figure alongside a real code is the same kind of code
-        // with its unit left off once ("120" in "120/277V").
-        if (!/^\d{2,4}$/.test(piece)) return false;
-    }
-    return recognized > 0;
 }
 
 /**
@@ -192,24 +137,47 @@ export interface CatalogSearchPlan {
     optionCodes: string[];
     /** True when stripping actually changed something worth telling the model. */
     hasBase: boolean;
+    /**
+     * The product name printed alongside the code ("HALO" in `3-515-25- HALO`,
+     * "MQUAN CIRCLE" in `WAC-042-MQUAN CIRCLE`), when the line carries one. A
+     * search lead in its own right — it is the word the manufacturer's page
+     * uses — but never part of the item number.
+     */
+    productName?: string;
 }
 
 /**
  * The lookup plan for one catalog cell: what to search, and what was set aside
- * as configuration. Pure so the prompt builder and its tests share one source.
+ * as configuration or as the product's name. Pure so the prompt builder and its
+ * tests share one source.
+ *
+ * `manufacturer` is context for the structural read: when the estimator typed
+ * the brand into the catalog cell as well, it is not part of the item number.
  */
-export function planCatalogSearch(spec: string): CatalogSearchPlan {
+export function planCatalogSearch(spec: string, manufacturer?: string): CatalogSearchPlan {
     const alternates = splitCatalogAlternates(spec);
     const baseNumbers: string[] = [];
     const optionCodes: string[] = [];
+    let productName: string | undefined;
+    const addOptions = (codes: string[]): void => {
+        for (const code of codes) {
+            if (!optionCodes.includes(code)) optionCodes.push(code);
+        }
+    };
     for (const alternate of alternates) {
-        const { base, options } = splitCatalogParts(alternate);
+        const { base: stripped, options } = splitCatalogParts(alternate);
+        // Grammar first (trailing codes), then structure inside what is left:
+        // the base item and the name / variant printed after it.
+        const structural = simplifiedBaseItem(stripped, manufacturer);
+        const base = structural?.base ?? stripped;
         if (base && !baseNumbers.includes(base)) baseNumbers.push(base);
-        for (const option of options) {
-            if (!optionCodes.includes(option)) optionCodes.push(option);
+        addOptions(options);
+        if (structural) {
+            addOptions(structural.variant);
+            if (!productName && structural.name) productName = structural.name;
         }
     }
     const hasBase = baseNumbers.length > 0
         && (optionCodes.length > 0 || baseNumbers.length !== 1 || baseNumbers[0] !== (spec ?? '').trim());
-    return { alternates, baseNumbers, optionCodes, hasBase };
+    return { alternates, baseNumbers, optionCodes, hasBase, ...(productName ? { productName } : {}) };
 }

@@ -113,7 +113,7 @@ export function isIdentifiableSpecKey(spec: string): boolean {
 
 // Words that name a CATEGORY rather than a product. A spec built only from
 // these is vocabulary, not identity — see isIdentifiableSpecKey.
-const GENERIC_SPEC_WORDS = new Set([
+export const GENERIC_SPEC_WORDS: ReadonlySet<string> = new Set([
     // Placeholders
     'NO', 'SPEC', 'SPECIFIED', 'TBD', 'RFI', 'NONE', 'NA', 'UNKNOWN', 'MISSING',
     'SEE', 'PLANS', 'PLAN', 'SCHEDULE', 'BY', 'OTHERS', 'OWNER', 'FURNISHED', 'PROVIDED',
@@ -384,7 +384,10 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
         if (/^(CAN|RECESSED|DISC|DISK|DOWNLIGHT)$/.test(h)) return 'Recessed';
         if (/^(LINEAR|STRIP|TROFFER|UNDERCAB|STRIP LIGHT)$/.test(h)) return 'Linear';
         if (/^(CANOPY|SURFACE|FLUSH|SEMI|SEMI-FLUSH)$/.test(h)) return 'Ceiling';
-        if (/^(OUTDOOR|POLE|POST TOP|POST|BOLLARD|AREA LIGHT|FLOOD|WALL PACK|SHOEBOX)$/.test(h)) return 'Outdoor';
+        if (/^(WALL PACK)$/.test(h)) return 'Outdoor Wall';
+        if (/^(FLOOD|FLOOD LIGHT)$/.test(h)) return 'Outdoor Flood';
+        if (/^(STEP LIGHT|PATH LIGHT)$/.test(h)) return 'Outdoor Step';
+        if (/^(OUTDOOR|POLE|POST TOP|POST|BOLLARD|AREA LIGHT|SHOEBOX)$/.test(h)) return 'Outdoor';
         if (/^(EXIT|EMERGENCY|EGRESS|EXIT SIGN)$/.test(h)) return 'Exit/Emergency';
         if (/^(UP.?DOWN|UP\/DOWN)$/.test(h)) return 'Sconce';
         if (/^(CLOSET|SHELF|CABINET)$/.test(h)) return 'Linear';
@@ -456,11 +459,28 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
         mfr.includes('BIG ASS');
     if (isFan) return 'Ceiling Fan';
 
+    // ── Outdoor sub-types: wall pack, flood, step / path (2026-09-11) ─────────
+    // These were all 'Outdoor', so a wall-pack spec saw pole heads and floods in
+    // its category suggestions. A spec that names the sub-type is gated to it;
+    // the umbrella 'Outdoor' below keeps everything that only says "outdoor".
+    const isOutdoorWall =
+        /^LNC[-\d]/.test(c) ||                    // Lithonia LNC wall pack (3rd & Flower S1/W1)
+        /^LPW/.test(c) ||                          // Signify / Lithonia LPW wall pack
+        // WP1/WP2/WP-A are the drawing convention for a wall pack, and the
+        // catalog cell on those lines is usually a bare part number that names
+        // nothing (Aura Santan WP1/WP2: `ABOVE ALL AKT30401-III` categorized as
+        // nothing, so recessed disk lights surfaced for an outdoor wall pack).
+        /^WP[-\s]?\d|^WP[-\s]?[A-Z]\d?$/.test(m) ||
+        /WALL.?PACK/.test(c);
+    if (isOutdoorWall) return 'Outdoor Wall';
+    if (/FLOOD.?LIGHT|\bFLOOD\b/.test(c)) return 'Outdoor Flood';
+    if (/STEP.?LIGHT|PATH.?LIGHT|\bSTEP\s*LT\b/.test(c)) return 'Outdoor Step';
+
     // ── Outdoor / Pole / Area Light ────────────────────────────────────────────
     // P3HS, P4HS, P3, P5 = pole-mounted head fixtures (Signify EcoForm etc.)
     // BO, EX, EM = bollard, exterior, emergency (handled below for exit/em)
     // OL, SL = outdoor light, street light
-    // Catalog patterns: SW3-, DSXB (Lithonia shoebox), ECF-S (Signify area), LPW (sconce but outdoor)
+    // Catalog patterns: SW3-, DSXB (Lithonia shoebox), ECF-S (Signify area)
     const isOutdoor =
         /^P\d+(-|$|\s)/.test(m) ||               // P3, P4, P3HS, P4HS, P5 (pole marks)
         /\bBO\b/.test(m) ||                      // BO = bollard/outdoor
@@ -470,16 +490,9 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
         /^ECF/.test(c) ||                          // Signify EcoForm area/street
         /^DSXB|^DSX/.test(c) ||                   // Lithonia shoebox
         /^ALED/.test(c) ||                         // RAB area LED
-        /^LNC[-\d]/.test(c) ||                    // Lithonia LNC wall pack (3rd & Flower S1/W1)
         /^SW\d/.test(c) ||                        // SW3-, SW4- (area lights)
-        // WP1/WP2/WP-A are the drawing convention for a wall pack, and the
-        // catalog cell on those lines is usually a bare part number that names
-        // nothing (Aura Santan WP1/WP2: `ABOVE ALL AKT30401-III` categorized as
-        // nothing, so recessed disk lights surfaced for an outdoor wall pack).
-        /^WP[-\s]?\d|^WP[-\s]?[A-Z]\d?$/.test(m) ||
         /SHOEBOX|COBRA|COBRAHEAD|AREA.?LIGHT|STREET.?LIGHT|PARKING|CAR.?PARK/.test(c) ||
-        /WALL.?PACK|FLOOD.?LIGHT/.test(c) ||
-        mfr.includes('EELP') || (mfr.includes('SIGNIFY') && /^ECF|^LPW/.test(c)) ||
+        mfr.includes('EELP') || (mfr.includes('SIGNIFY') && /^ECF/.test(c)) ||
         mfr.includes('RAB') || mfr.includes('KIM LIGHTING') ||
         mfr.includes('GARDCO') || mfr.includes('LEOTEK');
     if (isOutdoor) return 'Outdoor';
@@ -534,7 +547,7 @@ export function detectFixtureCategory(mark: string, catalogNumber: string, manuf
     const isSconce =
         /\bWS\b|\bSC\b|\bWL\b|\bTR\b|\bW\d+\b/.test(m) ||
         /SCONCE|WALL.?LIGHT|WALL.?MOUNT/.test(c) ||
-        /^WS-|^LPW/.test(c);
+        /^WS-/.test(c);
     if (isSconce) return 'Sconce';
 
     // ── Recessed Downlight ─────────────────────────────────────────────────────

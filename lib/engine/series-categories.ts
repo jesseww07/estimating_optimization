@@ -12,15 +12,22 @@
  * series learned from one past job (real knowledge for the next bid) cannot
  * be used to score that same job.
  *
- * Source snapshot: fetched 2026-08-31T22:59:32.744Z (9485 history rows)
- * Series learned: 128 (from 663 usable linked rows —
- * 487 Premier-linked, 176 3rd-party-linked;
+ * Source snapshot: fetched 2026-09-02T05:57:48.241Z (9491 history rows)
+ * Series learned: 150 (from 773 usable linked rows —
+ * 495 Premier-linked, 278 3rd-party-linked;
  * support ≥ 2 rows, agreement ≥ 80%).
- * 90 of them rest on a single project — legitimate for the next
+ * 109 of them rest on a single project — legitimate for the next
  * bid, and invisible to the eval by construction.
  */
 
 export const SERIES_CATEGORY_MAP: Record<string, string> = {
+    "22cz2": "Recessed", // 2/2 rows, 1 project
+    "22gr": "Mirror", // 2/2 rows, 1 project
+    "2avl2": "Recessed", // 2/2 rows, 1 project
+    "2blt2": "Recessed", // 3/3 rows, 2 projects
+    "2gtl": "Mirror", // 2/2 rows, 1 project
+    "2x2": "Mirror", // 2/2 rows, 1 project
+    "3mavr70agp": "Ceiling Fan", // 2/2 rows, 1 project
     "4367oni": "Pendant", // 2/2 rows, 2 projects
     "43848whled30t": "Recessed", // 2/2 rows, 2 projects
     "45574ni": "Vanity", // 2/2 rows, 2 projects
@@ -29,6 +36,7 @@ export const SERIES_CATEGORY_MAP: Record<string, string> = {
     "4snx": "Linear", // 6/6 rows, 1 project
     "4vrvt1": "Linear", // 3/3 rows, 1 project
     "4wnled": "Linear", // 2/2 rows, 1 project
+    "700ucf": "Undercabinet", // 17/17 rows, 1 project
     "700wspit": "Sconce", // 2/2 rows, 1 project
     "75r": "Linear", // 2/2 rows, 1 project
     "aaf121400l30": "Recessed", // 2/2 rows, 1 project
@@ -44,9 +52,13 @@ export const SERIES_CATEGORY_MAP: Record<string, string> = {
     "cite": "Linear", // 2/2 rows, 1 project
     "clx": "Linear", // 13/13 rows, 3 projects
     "clxl48": "Linear", // 6/6 rows, 1 project
+    "cpx": "Mirror", // 6/6 rows, 2 projects
+    "cpxip": "Mirror", // 4/4 rows, 1 project
     "css": "Linear", // 10/10 rows, 3 projects
     "csvt": "Linear", // 3/3 rows, 3 projects
     "ctl": "Recessed", // 2/2 rows, 1 project
+    "cwm2": "Vanity", // 2/2 rows, 1 project
+    "dcmk": "Mirror", // 4/4 rows, 1 project
     "dfc11": "Ceiling", // 2/2 rows, 2 projects
     "disc": "Recessed", // 2/2 rows, 1 project
     "downlight": "Recessed", // 8/8 rows, 3 projects
@@ -61,27 +73,31 @@ export const SERIES_CATEGORY_MAP: Record<string, string> = {
     "elx": "Exit/Emergency", // 8/8 rows, 3 projects
     "elx400": "Exit/Emergency", // 3/3 rows, 1 project
     "esl": "Linear", // 3/3 rows, 1 project
-    "evo2": "Recessed", // 3/3 rows, 1 project
-    "expl": "Outdoor", // 2/2 rows, 1 project
+    "evo2": "Recessed", // 7/7 rows, 1 project
+    "expl": "Outdoor Flood", // 2/2 rows, 1 project
     "ezrxteu": "Exit/Emergency", // 2/2 rows, 1 project
     "f896": "Ceiling Fan", // 3/3 rows, 2 projects
     "fem": "Linear", // 4/4 rows, 4 projects
-    "fluorescent": "Linear", // 2/2 rows, 1 project
-    "fss": "Linear", // 6/6 rows, 2 projects
+    "fluorescent": "Linear", // 3/3 rows, 2 projects
+    "fss": "Linear", // 7/7 rows, 3 projects
     "fssez": "Linear", // 4/4 rows, 2 projects
     "fsw440l840": "Linear", // 2/2 rows, 1 project
     "gadfc02": "Ceiling", // 2/2 rows, 1 project
     "grls": "Recessed", // 2/2 rows, 1 project
     "h602102": "Undercabinet", // 9/10 rows, 1 project
     "ic1jb": "Recessed", // 5/5 rows, 1 project
+    "ico2adj": "Recessed", // 2/2 rows, 1 project
     "ilx": "Exit/Emergency", // 3/3 rows, 1 project
     "jlal": "Recessed", // 2/2 rows, 1 project
     "jsbc": "Recessed", // 7/7 rows, 2 projects
     "jsf": "Recessed", // 3/3 rows, 2 projects
+    "jsfsq": "Ceiling", // 2/2 rows, 1 project
+    "kiss": "Mirror", // 2/2 rows, 1 project
     "kkw1846746": "Ceiling", // 2/2 rows, 1 project
     "l60": "Linear", // 2/2 rows, 1 project
     "lc20rt6": "Recessed", // 4/4 rows, 1 project
     "lcat143500sm": "Linear", // 4/4 rows, 1 project
+    "lcat22": "Recessed", // 2/2 rows, 1 project
     "lcmpd7r": "Recessed", // 2/2 rows, 1 project
     "lcs4": "Linear", // 2/2 rows, 1 project
     "ldn6": "Recessed", // 13/13 rows, 2 projects
@@ -91,6 +107,8 @@ export const SERIES_CATEGORY_MAP: Record<string, string> = {
     "lpx7sd": "Exit/Emergency", // 4/4 rows, 1 project
     "lqm": "Exit/Emergency", // 7/7 rows, 4 projects
     "lvts": "Linear", // 4/4 rows, 3 projects
+    "mag": "Recessed", // 2/2 rows, 1 project
+    "mdl": "Recessed", // 3/3 rows, 1 project
     "ml07": "Linear", // 4/4 rows, 2 projects
     "mnsl": "Linear", // 2/2 rows, 1 project
     "mps": "Linear", // 6/6 rows, 1 project
@@ -98,7 +116,7 @@ export const SERIES_CATEGORY_MAP: Record<string, string> = {
     "nlopac": "Recessed", // 3/3 rows, 2 projects
     "nox43627ww": "Recessed", // 2/2 rows, 1 project
     "npsu": "Undercabinet", // 2/2 rows, 1 project
-    "nsw": "Outdoor", // 3/3 rows, 1 project
+    "nsw": "Outdoor Step", // 3/3 rows, 1 project
     "palermo": "Pendant", // 2/2 rows, 1 project
     "pd3106": "Pendant", // 2/2 rows, 1 project
     "petpe": "Exit/Emergency", // 4/4 rows, 1 project
@@ -109,6 +127,7 @@ export const SERIES_CATEGORY_MAP: Record<string, string> = {
     "rl677": "Recessed", // 2/2 rows, 2 projects
     "rled": "Linear", // 2/2 rows, 1 project
     "rlem": "Exit/Emergency", // 2/2 rows, 1 project
+    "rx277": "Linear", // 4/4 rows, 1 project
     "rxl5rw": "Exit/Emergency", // 5/5 rows, 1 project
     "s10r": "Recessed", // 2/2 rows, 1 project
     "s11355": "Pendant", // 4/4 rows, 1 project
@@ -134,8 +153,11 @@ export const SERIES_CATEGORY_MAP: Record<string, string> = {
     "swp1212": "Linear", // 2/2 rows, 1 project
     "thinktek": "Recessed", // 2/2 rows, 1 project
     "tlx": "Exit/Emergency", // 4/4 rows, 2 projects
+    "total": "Undercabinet", // 4/4 rows, 1 project
     "trc": "Linear", // 2/2 rows, 1 project
     "tsl9": "Linear", // 6/6 rows, 1 project
+    "ucl": "Undercabinet", // 5/5 rows, 1 project
+    "undercab": "Undercabinet", // 2/2 rows, 1 project
     "va4": "Exit/Emergency", // 9/9 rows, 2 projects
     "vap": "Linear", // 3/3 rows, 2 projects
     "vlst4": "Linear", // 4/4 rows, 2 projects

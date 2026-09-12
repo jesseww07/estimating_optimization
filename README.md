@@ -33,10 +33,15 @@ takeoff draft, not a quote; pricing columns are intentionally blank.
    identification**: Claude reads a pasted spec URL, searches the web, or
    reads an uploaded cut sheet (PDF or image), then the engine re-runs. The web
    lookup searches the **base item number** — `4430802-112` is looked up as
-   `4430802`, because the trailing code is a finish the estimator configures and
-   including it is what makes the search return nothing
-   (`lib/identify/catalogNumber.ts`).
+   `4430802`, and `OXYGEN 3-515-25- HALO` as `OXYGEN 3-515` — because the
+   trailing code is a finish the estimator configures and the name is the
+   manufacturer's word for the product, not part of its number. The same base
+   item drives the engine: a History row for `3-515-15 HALO` is family
+   evidence for `3-515-25- HALO`, and the spec header shows the base the engine
+   keyed on (`lib/engine/baseItem.ts`, `lib/identify/catalogNumber.ts`).
 6. The estimator reviews/overrides selections and **exports** the workbook.
+   Lines left **as specified** are banded yellow (`#FFFF99`) on the VE DRAFT
+   sheet — the team's convention for "price this one as the specified product".
 7. When the export opts into recording (`recordToHistory`) and
    `HISTORY_WRITEBACK` allows it, accepted substitutions are **written back
    to History** — the learning loop that makes the next bid's suggestions
