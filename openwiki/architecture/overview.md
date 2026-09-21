@@ -5,7 +5,7 @@ description: How the VE Estimator Next.js app is structured — upload (sheet, P
 tags: [architecture, next.js, api-routes, upload, export, identify]
 verified:
   - by: openwiki/0.5.1
-    at: 2026-09-10T12:24:50.371Z
+    at: 2026-09-21T14:51:09.424Z
 sources:
   - id: openwiki-source-7afd3e464a0f8f3f651dc62f
     resource: repo://app/api/export/route.ts
@@ -31,7 +31,7 @@ sources:
     resource: repo://lib/identify/media.ts
   - id: openwiki-source-7c58a6a573fdbb77fec41f97
     resource: repo://lib/identify/schedule.ts
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-21T14:51:09.424Z" }
 ---
 
 # Architecture Overview
@@ -257,17 +257,24 @@ secret values).
 `app/page.tsx` is a single client component: upload, review, per-line and
 batch identify, and export in one page. It imports `defaultSelection` and
 `hasIdentifiableSignal` directly from `lib/engine/ranking` /
-`lib/identify/lineSignal` (rather than duplicating that logic), and imports
-`isWordDocument`, `prepareWordUpload`, and `tooLargeForUpload` from
-`app/prepareUpload.ts` for the upload path — but otherwise hand-copies
-plain-data types (`ParsedLineItem`, `Recommendation`, `IdentifiedSpec`, etc.)
-locally instead of importing them from `lib/types.ts`, a known drift risk.
-Several client-side constants (`BATCH_LINES_PER_CALL`, `BATCH_MAX_CALLS`,
-identify timeout budgets) intentionally mirror server-only constants in
-`lib/identify/batch.ts` / `lib/identify/claude.ts` that cannot be imported
-into a client component; they exist only to set estimator expectations
+`lib/identify/lineSignal` (rather than duplicating that logic), imports
+`preferredSpecUrls` and `specUrlHost` from `lib/identify/specUrls` for
+spec-link ranking/display, and imports `isWordDocument`, `prepareWordUpload`,
+and `tooLargeForUpload` from `app/prepareUpload.ts` for the upload path — but
+otherwise hand-copies plain-data types (`ParsedLineItem`, `Recommendation`,
+`IdentifiedSpec`, `LineItemAnalysis`, etc.) locally instead of importing them
+from `lib/types.ts`, a known drift risk. Several client-side constants
+(`BATCH_LINES_PER_CALL = 18`, `BATCH_MAX_CALLS = 12`, `IDENTIFY_TIMEOUT_MS =
+240_000`, `BATCH_IDENTIFY_TIMEOUT_MS = 270_000`) intentionally mirror
+server-only constants that cannot be imported into a client component —
+`BATCH_CHUNK_SIZE` / `MAX_BATCH_CALLS` in `lib/identify/batch.ts`, and the
+research/extract timeout chain (`RESEARCH_TIMEOUT_MS` +
+`EXTRACT_TIMEOUT_MS` in `lib/identify/claude.ts`, `BATCH_TOTAL_BUDGET_MS` in
+`lib/identify/batch.ts`) — so the client's ceilings sit just above what the
+server can actually take. They exist only to set estimator expectations
 before a button press; the server remains authoritative, and drift between
 the two can only make the client's estimate slightly stale, never incorrect
 behavior. `app/layout.tsx` sets up three fonts (Playfair Display for
 headers/nav, Cardo, Inter for dense data content) and static page metadata;
 there is no routing beyond the single page and the five API routes.
+</content>

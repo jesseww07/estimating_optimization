@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:112451e99a8d09ab1610b08fee86f1f046f12d5c4d838b529e833bf0f980d7dd",
+  "pageVersion": "sha256:8c5587631d871bfc08911b9911cd2ab8de6f3b4124247616b92043f4676c1210",
   "claims": [
     {
       "id": "claim_5f580a04ab5943079a0af0dae84a8b42",
@@ -49,22 +49,34 @@
       "statement": "lib/identify/catalogNumber.ts splits a bid line's ordering string into a base item number plus trailing configuration codes (finish, CCT, wattage, lumens, CRI, voltage) so identification searches the base item (e.g. '4430802') instead of the full configured string (e.g. '4430802-112'), which returns far fewer/no useful web results.",
       "evidence": [
         {
-          "resource": "repo://lib/identify/catalogNumber.ts#L1-L20",
-          "version": "repo-lines-v1:sha256:c6fc0b4b916162debaa24c86dc95872781e4b0dd8c7bf11d64103dd21f90b757:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2YzRmOGZiMGZiZDIyYjMyNTg1Y2Y0NDM1YjNkYTM0MzI3OTc2Njg2MTA3YjhmNGU1OWU5ZmMyOGIyMzMzYTMifQ"
+          "resource": "repo://lib/identify/catalogNumber.ts#L1-L26",
+          "version": "repo-lines-v1:sha256:66a181444c03dbd0af62e2a227938d50c61654fcf246f21e814f3618b7c9f687:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5YTM1MTMxNzE0ODkwNzUzODU4OGI3Y2ZlM2Q5YzgwYjczOWE3NzQzMWEzYjQ3NDQ0YmNmOTc1ZTMzNTlhMzYifQ"
         },
         {
           "resource": "repo://lib/identify/catalogNumber.ts#L134-L159",
-          "version": "repo-lines-v1:sha256:46e984654717b732f49cda77547655637587455b9e8f045e8a4fb21062f68a41:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwZDcwYmQ3ZTFlNWEzMTQxYzJiZGYyZjQ4ZWYzMGE4NmU5MTRkNTg5NWE5Y2IxZDczNTY2NWVjMGJiNGFmZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4NGY2MTY3NWI0NDdhMmY4ZDk1Nzg5NDYyOTUzZjcyMTVmZDAxMjQ4NDIwMzE1OGIxODg0YzQzYTUzMTg2ZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyM2VlMGI4NjQwODI2OTM2OGM4NTJlNGIxY2U0MGM2YTQ1ZjA3ZGVjZTEyYTU1NTM5NzRhM2FkOTI2YzE4NjAifQ"
+          "version": "repo-lines-v1:sha256:33642b22d25fbfa990df5b3ecbdd18bc045be2273f278af9adcc569ad1d399ed:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1N2NhNzQ4YTEwZTA4YjkzYTBiYmU2Njk4MmRlZTBmMjQ4YWQ3Mjk4NTM4NjQ0ZWZjZmYxMWNlOGNkODM1MmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwMWU0ZGNjN2NiMzFkYzgxZGY1ZmVjZTYxOGJhZGQwMDNmOWM2Y2M1NDhkMGViMDIyMzA4OThjMmE3MGE4ZWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3MmZjMDNmOGMwNjEzN2I0NGVlY2VlNjk5ZDhjMzAyYmZjYzA3NGY2N2EzMTk3NTI0OGEzZjc2NTE3MmVlYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5Y2Y3MzIzMmVhNWVkNmUxYWYxMWNiMWNiZDA1ZWUzNDVlOTE4MmViZmZiZWM3ZGY4ODZmMmVmYTM2OTU3NjgifQ"
         }
       ]
     },
     {
       "id": "claim_3ede5f52454147739588a9e6be1c2e24",
-      "statement": "lib/identify/catalogNumber.ts is deliberately import-isolated from lib/engine/matcher.ts in both directions, so identification-prompt changes cannot affect the eval-ratcheted engine matching logic and the engine cannot be perturbed by base-item extraction changes.",
+      "statement": "lib/identify/catalogNumber.ts is import-isolated from lib/engine/matcher.ts specifically, not from lib/engine as a whole: matcher.ts imports only from lib/engine/categories.ts and lib/engine/series-categories.ts (never from catalogNumber.ts or baseItem.ts), and catalogNumber.ts never reaches into matcher.ts's matching/scoring functions, so an identification-prompt change cannot move the eval-ratcheted matcher.ts logic. catalogNumber.ts does deliberately import isOptionToken and simplifiedBaseItem from lib/engine/baseItem.ts (re-exporting isOptionToken) so the identify and engine base-item/option vocabulary cannot drift apart; lib/engine/baseItem.ts is itself eval-ratcheted engine code also consumed by lib/engine/recommend.ts for family matching against History.",
       "evidence": [
         {
-          "resource": "repo://lib/identify/catalogNumber.ts#L17-L20",
-          "version": "repo-lines-v1:sha256:d4ad9881c7c134f85072dd6cdca7a3746ad240bfb90b75b8eb1556cd7a7b3935:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2JmMzIzYzEzN2VlZDdjMTUwZGQ4MmM5ZjE0MTlhOTkwODQ2NjhhNDlkNThhMWQ0YmQ3MWVkYTYzNzY0YjIxZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyYTQyOTM4MmIyZTE0NzE4ZTBlMzdiMDU3MGE4YTE3MDI5OTFmY2Q4NDk4Y2Q4NDA2MGE4YmY0ZjA1MDE3YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDQ4MmMzMDNhZTgzNjhmMGI1ZDJjODg1ODE1MTJjMjNhOThiODQzNDNmZTM4NWQ3MWZkNWI5N2U2MGJjY2VkZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDZjNGY4ZmIwZmJkMjJiMzI1ODVjZjQ0MzViM2RhMzQzMjc5NzY2ODYxMDdiOGY0ZTU5ZTlmYzI4YjIzMzNhMyJ9"
+          "resource": "repo://lib/engine/baseItem.ts#L41-L47",
+          "version": "repo-lines-v1:sha256:d7b5f18bcddfea862913c9b0edb584e20a7ee2fee9dc9d4b5894c6a263352083:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmVhYWE5Y2M0NDNkNTM5NTQzNzAwYjBmM2JmZWJmNTNiZTc2ODRiNTViMmJiMzRkNDY0ZmEzNmM0MGNjZDZmYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGE2ZTM5OWQ3ZTk2YmZhMjUyNTBlNTQ5YjNkYWM1M2U0ZjkzYWQ0OTRhYTk3Zjk5OTUwZGRjYTQzZmEwODM5MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzkwMDE0ZDA0M2RiY2U1NzhjNmVjZWYwNzRhZTRlMDgwZTk3MDQ1ZjE0ZDhkYmRlZDhiMzZkYjcxM2Y5ZmQyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWIzZWZmYjI3ZGJkMzI1YjFlMTY2ZTMyZWM0ZGZjYTdjNGZjNWU0ZTExOTVjODdiYzU2NDc3YzlkYmEzZTJiOSJ9"
+        },
+        {
+          "resource": "repo://lib/engine/matcher.ts#L1-L10",
+          "version": "repo-lines-v1:sha256:4a0fb2acc00af6ce8b842fdf3d8efa87a14a1bdab2395f46fa5ceb4431e1e61e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzY2FlNDMwNTFjYzRkZGE2MjUzNWRmZjZmMmQ0MWEzNTZmZmMyMTdjN2NmMWNhOTkzNjQ0MTVlYTVhMGVhYzYifQ"
+        },
+        {
+          "resource": "repo://lib/engine/recommend.ts#L33-L33",
+          "version": "repo-lines-v1:sha256:56edd723b6d41e329dddbcbacd66960b49529c916f1b1af7dc5c480ae55e47fc:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTZlZGQ3MjNiNmQ0MWUzMjlkZGRiY2JhY2Q2Njk2MGI0OTUyOWM5MTZmMWIxYWY3ZGM1YzQ4MGFlNTVlNDdmYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTZlZGQ3MjNiNmQ0MWUzMjlkZGRiY2JhY2Q2Njk2MGI0OTUyOWM5MTZmMWIxYWY3ZGM1YzQ4MGFlNTVlNDdmYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDUzNGMyMDE1YTFiNWI4OWEzMmVhNjgwYzk0YzE4ZTViMDI4N2QzMmFjNWYxOWNmZjQ4NTBhNTkwZmE4OTA5NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGY3ZjZkYTk3OTAzODU0MzYxMGViYjg0NTc0YzE3YmYyMmRlYzU0NzdmNzc4ZDgyMDQ4ODM0MGFjNzIwMTc4YSJ9"
+        },
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L26-L30",
+          "version": "repo-lines-v1:sha256:73a70341baa0e23d8d6c5011ff93e8f92fea601d46dc6880eb88de6877474a9f:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyYTQyOTM4MmIyZTE0NzE4ZTBlMzdiMDU3MGE4YTE3MDI5OTFmY2Q4NDk4Y2Q4NDA2MGE4YmY0ZjA1MDE3YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2NjNmQxZGNkNzRjZGJhZjJkYjhmMDFhODIyODk1ZTFhNWVkOTcwMTQzZDY4MzhlZTg3YmNhMmFiNTcyNzRjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWI5Y2I5ZjYzMTIyZTg4NjM2Yzg5NThhNjE4YWVhNzE0MThhNjk0OTI5ZGNiNzhhMDM2ZDJjNmViZGExM2YyNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjRkZTNhNzU5MzU4NmU4ZmQ4MTZiYzI5YzBiN2Y0OGYzYTk3NGYxNThhZDQyYjY1YTE1NmI4ZTQwZjg0MmI4YyJ9"
         }
       ]
     },
@@ -253,8 +265,8 @@
           "version": "repo-lines-v1:sha256:711f9588f7bf16ad37c3eebe647815f84100acbcb205b4e5ee8abdb6f37e2ba5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0NjQzYzMyM2VkNGI2ZTUwNjEyNGUzNDNmYmNhMzkyMWU4OTMxYTkwMTM2MDU5Zjc2NGVmZTQ4MTAyMGM1NjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlOWU2NTQ2N2M2Yzg0ZDAzODQ4NjFlYzU4NTQyODAyODNkNTFjNDM3ZDExNGQwNWQ0YjliN2RkN2QzYWU1MjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzNzJiOTY3NzY4MzMzY2ExM2E2YzExOGVmODA5OTlhOTYxMGFmOGFiYjkxM2JhYjQ1ZDMzZjU2Y2I5Y2M2ZTMifQ"
         },
         {
-          "resource": "repo://lib/identify/claude.ts#L240-L326",
-          "version": "repo-lines-v1:sha256:32da44b672adc3484e2c314bbd56d5627e6033c127b0f3a57e29528bd7a1363e:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OTM3Njc5MWU2OTQ3NmY3YTA3MTg5NmRjMjViOTEzN2VmODQyM2UzZTk2MzQwY2NmYWMzMzIzZDQyY2E1MWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://lib/identify/claude.ts#L243-L270",
+          "version": "repo-lines-v1:sha256:ba7111263c4a253008bc5cdfd8d074a793f640bd50c89e3620c9ee02dd281d72:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2NDRjMmE2MWRmYTZkNjcxY2U3MTI0ODJlMmI0NTBhMTJjMDcwMDY4ODRjNDUzZDk5Mjg5YTA5NWJjOGYyMDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OTM3Njc5MWU2OTQ3NmY3YTA3MTg5NmRjMjViOTEzN2VmODQyM2UzZTk2MzQwY2NmYWMzMzIzZDQyY2E1MWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY5OTQ1MGU5MGJmZjIzZDk5MGY4ZjE0MzZiZmZhOGYxZDI2NmE0ODQ0OGRmZDM3ODJjN2YzY2JmZGEzOGY5NTAifQ"
         }
       ]
     },
@@ -397,10 +409,24 @@
           "version": "repo-lines-v1:sha256:feb669191395f946e64677b390e4b15092d0346a1ef8f576afff915331d8837a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1YzM3OTQ1YzIxNTNkMjEzMTQwNDNjN2U0ZGM5MTcxOTE4M2IwYmZjM2U4N2MyMzRjNzcwNjBmMGQ5M2Y0YTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiYjM1OGY5ZDczZjNjOWYwYTZiY2I2MTQzY2U3NTI1MDgwYjM4MzI1Mzg3ZWVmNGFkNDFiZjY2NmU5YTk4YjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
+    },
+    {
+      "id": "claim_7614447c53074c3580cbc70e95467195",
+      "statement": "planCatalogSearch performs a two-stage base-item extraction per catalog alternate: splitCatalogParts strips trailing option-grammar tokens first, then simplifiedBaseItem (lib/engine/baseItem.ts) reads the remainder structurally for a leading base item plus a trailing product name/variant (e.g. 'OXYGEN 3-515-25- HALO' -> base '3-515', name 'Halo', size '25'); the merged option codes and any discovered productName are surfaced to identification prompts as configuration context and a secondary search lead, never as part of the searched base item number.",
+      "evidence": [
+        {
+          "resource": "repo://lib/engine/baseItem.ts#L1-L45",
+          "version": "repo-lines-v1:sha256:cfee6c9abc05150fa97827baeeb28ab0fe5f2ee700d622b638f1369e409df81a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlNmE5YjE1NGNhMjRhNjI0NjZkMTU4YWJlZDEzMzY4ZTZmOWJlMDU1YjFhODkzMzY0MzgwZWExMDhiZDQzYmQifQ"
+        },
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L157-L183",
+          "version": "repo-lines-v1:sha256:bc94d84ecd372b3ea797a6aca3310f0cc4a8a8e8be9d85c3cdf5159f90cef721:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMGM3NGFjMzIyYTkzY2U2MzllYjBlNThmYTQ1MTk0Y2I0YjU5Mzk1ZGQxZDRiZTFhZmE1MTdhMmUyNDdmMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkYTA3N2UxYWMyY2RkZTY4NDc2MmEwZGE2Y2U0Y2Q5MTMxNjYxNWFjZjI5YTNlZDcyMWM4NjBmMDY0MGRkZjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T12:24:50.371Z"
+    "at": "2026-09-21T14:51:09.424Z"
   }
 }

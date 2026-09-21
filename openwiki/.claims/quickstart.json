@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:508714751926ec6a92c0de57549c1127a07aa1117fcdc1c0822a24fccd06e330",
+  "pageVersion": "sha256:135ab7b0796bb5aed1afab409fc51bc8ec71219df680330ae9b4938362aafef4",
   "claims": [
     {
       "id": "claim_685bd3ea5c5c412e8a4a6089d7a63878",
@@ -32,11 +32,15 @@
     },
     {
       "id": "claim_59e3a216efd3423b98bc0762a900ca40",
-      "statement": "Per-line identification (base-item catalog-number extraction) strips trailing finish/option codes such as '-112' from a printed catalog string like '4430802-112' before using it in web searches, because searching the full ordering string returns little while the base item number returns the manufacturer's product page.",
+      "statement": "Per-line identification's web/search lookup strips trailing finish/option codes from a printed catalog string (e.g. '4430802-112' becomes '4430802') before searching, because current README wording frames that suffix as a configuration the estimator adjusts and not part of the product's identity (the underlying rationale that the full ordering string returns few useful search results while the base item number surfaces the manufacturer's product page lives in the lib/identify/catalogNumber.ts implementation comment, not in this README passage).",
       "evidence": [
         {
-          "resource": "repo://README.md#L34-L38",
-          "version": "repo-lines-v1:sha256:789610010bf84d96450254d5bac2eaa63c0ffd9e1c399dca88dd90c87564030f:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMThjYWNkMTg0OThlYjU3Nzg0ZDFhNTdlOTdhN2ZhZWYzMWQ1N2IzMmFjNDJjNzg1YzRhNmNiYzI4NTA3ZjgyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTE2OTc3N2M1YjY3ODQ0NGVjMDMwZDgyODI5YzQyMTdlNTgyMTI4ZDQzYjkyNzk3MjAxNDU5MTJlOWQzNTkwMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWM0NzZmYTdiNjNlZGVkZDFiNzI3NGEyY2JiNDY0YjVjZjg2YmIzMmQxYWM1Mjc2MWM2NmZkYjVlZDNjYTk2ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2MyZTJlYThhMDU1ZDRhYmExMDExMTE1YzdkOWZiMmU3MzFiYWFhZjNjM2M0MTljOWU3NDU4YzBjZDkxZWVmNCJ9"
+          "resource": "repo://README.md#L32-L41",
+          "version": "repo-lines-v1:sha256:79563421a72742220bf5cc42170558e468a5cae95170b53a7d167331bff1bcc5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjYTA5YTAyZjM2MDE3YWNjMDhjODU5NTRkYWU2MmU0OTJjMDg2MDZhMzQzNTZkM2QzOTI5YmM0MjRiNWRhYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyNTY2OWI2NjExY2UxMWY4NGZjNTcwMDA4ZDA4N2E5MTMwNzRlZGQxYzc4NGE2YTEzMWFiNGQ5Njg2M2RiZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1ZGRhNDE4NDE0ODMwZWQ4Y2Y0NTU2OWQ5NTdkZmE4OGE5ZmM5Mjk0YTIyOGM2OGE4YmUwYWMwYzExNDU1NjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5MDcxNWYyNzAzNzkwMWMxMGMxMWNmYjJhZTIwY2JmYWQ1MGIzOWJlM2RmZTI0Y2Y4YTljNGIxN2M1YWRmODQifQ"
+        },
+        {
+          "resource": "repo://lib/identify/catalogNumber.ts#L1-L26",
+          "version": "repo-lines-v1:sha256:66a181444c03dbd0af62e2a227938d50c61654fcf246f21e814f3618b7c9f687:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5YTM1MTMxNzE0ODkwNzUzODU4OGI3Y2ZlM2Q5YzgwYjczOWE3NzQzMWEzYjQ3NDQ0YmNmOTc1ZTMzNTlhMzYifQ"
         }
       ]
     },
@@ -71,6 +75,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T18:40:06.129Z"
+    "at": "2026-09-21T14:51:09.424Z"
   }
 }

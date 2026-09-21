@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5d56c5abc06f486696d19245ca3a56b079d8ca908a9e2c31f0d21d04c7ad4d17",
+  "pageVersion": "sha256:5d3c50485e55a2084e53cd2f979e802b454b0d1cdd584bcd4895f1de3989bef2",
   "claims": [
     {
       "id": "claim_ff1ea2aa93d141d987b8c42335cf5f65",
@@ -16,7 +16,7 @@
         },
         {
           "resource": "repo://app/api/identify/route.ts",
-          "version": "repo-file-v1:sha256:6ff9fd89127ef03ae60887c80405978beb9a654f8c3b1ec7f9c20df82f56c92b"
+          "version": "repo-file-v1:sha256:b4bc1e9557d6963caccf17e1c56f05bc0bfcb6f88406a8cc520c5521c5d94088"
         },
         {
           "resource": "repo://app/api/recommendations/route.ts",
@@ -200,27 +200,35 @@
     },
     {
       "id": "claim_65270d93c1ca4b7892f38a8461f1c9b4",
-      "statement": "app/page.tsx hand-copies plain-data types (ParsedLineItem, Recommendation, IdentifiedSpec, LineItemAnalysis, etc.) locally rather than importing them from lib/types.ts, a known type-drift risk, while still importing executable logic (defaultSelection from lib/engine/ranking, hasIdentifiableSignal from lib/identify/lineSignal, and the upload-preparation helpers from app/prepareUpload.ts) directly rather than duplicating it.",
+      "statement": "app/page.tsx hand-copies plain-data types (ParsedLineItem, Recommendation, IdentifiedSpec, LineItemAnalysis, ItemAttributes, HealthCounts) locally rather than importing them from lib/types.ts, a known type-drift risk, while still importing executable logic directly rather than duplicating it: defaultSelection from lib/engine/ranking, hasIdentifiableSignal from lib/identify/lineSignal, preferredSpecUrls and specUrlHost from lib/identify/specUrls, and the upload-preparation helpers (isWordDocument, prepareWordUpload, tooLargeForUpload) from app/prepareUpload.ts.",
       "evidence": [
         {
-          "resource": "repo://app/page.tsx#L16-L96",
-          "version": "repo-lines-v1:sha256:fd4a2fa997445004d5a1f7d4b0122dfb7f5fde5b9c5a17a66c5fc86193e02cf7:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxYzIwNDgyMTYzNmJlZTFjZTQ1MGQ0ZTBiZjFiZjM0ZmI1ZjQ2ZTk5ZjM4NzQ2ZTdlNDA3Y2JhNWUzMDYyMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1NGQ3M2FhYmYzY2FiYWY0OTIwZWNlMzZjOGU3OGE0YmU4ZjE4MTYyODNhNGJiMzllOTAxMDFiNDQxMWFmNmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyZjAyNzE4YmFiYWNlNTc5NjFlMzA1OTg2Y2E3MDk5YWY2NThkNzZmMDJiNDk5ZjkyYTc5MjcxMzIyOWU1NTIifQ"
+          "resource": "repo://app/page.tsx#L16-L99",
+          "version": "repo-lines-v1:sha256:7b37f9cabf7dc65310260382c1d803d80b93b2ae42604ca0c843b31ab76b2b50:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmNDhhZGU3MDZlYzA3MjY4NDBiNTU3ZWVkOTMxNDFhY2ExZjhmZDYxODc4NjVkMTQyM2E4M2VjM2E1ZmIyOTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyNjllMGRlOTNhNmY3MDllM2RiNzI4NTQ0ZDJjOWFjMzI2NDY2NWU3NWVjMDczNmNkZjBhZTgyZjZjNDcxNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyNzU4NWRjMzMzZmVhMGNjOWZjYTZhNjNjNTRkNjFjYTI4ZjgzMzE2YThjMjE3ZjdlYzBiODg3Y2ExMDhkNWYifQ"
         }
       ]
     },
     {
       "id": "claim_886148ca91a3441dadbaeec05c1c79d6",
-      "statement": "app/page.tsx defines client-side constants (e.g. BATCH_LINES_PER_CALL, BATCH_MAX_CALLS, IDENTIFY_TIMEOUT_MS, BATCH_IDENTIFY_TIMEOUT_MS) that intentionally mirror server-only constants in lib/identify/batch.ts and lib/identify/claude.ts which cannot be imported into a client component; these exist only to set estimator expectations before a button press, with the server remaining authoritative.",
+      "statement": "app/page.tsx defines client-side constants (BATCH_LINES_PER_CALL = 18, BATCH_MAX_CALLS = 12, IDENTIFY_TIMEOUT_MS = 240_000, BATCH_IDENTIFY_TIMEOUT_MS = 270_000) that intentionally mirror server-only constants that cannot be imported into a client component — BATCH_CHUNK_SIZE (18) and MAX_BATCH_CALLS (12) in lib/identify/batch.ts, and a research/extract timeout chain (RESEARCH_TIMEOUT_MS 150s + EXTRACT_TIMEOUT_MS 45s in lib/identify/claude.ts; BATCH_TOTAL_BUDGET_MS 240s in lib/identify/batch.ts) — so each client ceiling sits just above the true server-side worst case and below the route's 300s maxDuration. These exist only to set estimator expectations before a button press; the server remains authoritative.",
       "evidence": [
         {
-          "resource": "repo://app/page.tsx#L107-L136",
-          "version": "repo-lines-v1:sha256:0c74f36b4fb7b28b5571d5ed150591b698d831a7b77fa8d4cffb4735be2db23a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZDVhYmFjYTIyNjgwYWU5NTMzNjcwMGRmNzY2MzYxOTdhN2NiNmMwMDRmNGNkNzlhYzFiMWZkMmYwYWM0YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyNjdlMTgxMTA4NDBlZTkzMjVjZGQ2N2IyOWUwODg2MGUwMDM0NjA4MGFlZWVkNzk2Zjg4OTAxNDM4M2RiNWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2YWQzZmY2YWRmNTY4MDQ5MTVlYWM2NDYzNGYxMzMxOGUxN2IzYThjYmRlNDkxYTJmZjgwMjY2MjY0NDNiNGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEyMzAwZGYyZmQzMjg4ZmZlMjE5YzQ2N2NhZGI5ZGZkMGUzM2YxMjg2ZTkwMzAzOTlkYWI4YTI1OWZhMDk1MDEifQ"
+          "resource": "repo://app/page.tsx#L107-L139",
+          "version": "repo-lines-v1:sha256:3625fafcc188b298fa264edc4c9ebb069f206aa6760a36ec84ee82eae30c75a8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmNDQzNzIxZDQ1NDY1NjllMzMwZGUxYTZmOTc4NTU4MmFjNDI2NDc1OWFlZTQxM2M5ZTQ1NTgzNjU3MzViNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg4M2RlYjViNzEzOGE3YTExNTAzYWUyMjg3ZjM3YzJlNTU1MjlmN2Y3MGVkZTRhYzBmZmU3NTkwYzViNTRlMDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEyODM1ZTBkYmE4NDY5ZGRkY2UzYTM0N2RmNzJmM2JkMTNlZjdhZDk5MDllYTc1NGM2NzBhYzZiYWQ3MmEyYWMifQ"
+        },
+        {
+          "resource": "repo://lib/identify/batch.ts#L83-L91",
+          "version": "repo-lines-v1:sha256:a0baf75e10207a50dab3294e11356646ebefe4c86974777e9fd1e6214e5af83e:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWVlNzljYzNmNGNhNWZlODQ5NzA3ODhmMGQzYWVhNTU2ZjZlN2MzMjMxMzFkYjRlM2QyNzMxOTY1ZTk0NGIwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmM5NDY3YTVkOWE4OTEyMTk5MTk4MzEwYzBhYTc1NzE2ZGQwZDk3NzFjMGJiZWRmMTIyNzlkYTJlYzQ3MTBkNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjI4NjE3YTQ2ZWU4MWU4MmRkYTczYzdhOTQ5OWYxZWQxODc1OGJmZDZlMmZmYzM2MzMyZWJhOWVmYmUzZGJiMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzgyMmI0M2ZjZWQ1NTkwOTQ3MWE3YzVmMTllMWIwOWU4Y2VkNTkyMTMyMDI5ZDY0Y2MxMDQ0NWYxOTMwNmIzOCJ9"
+        },
+        {
+          "resource": "repo://lib/identify/claude.ts#L73-L76",
+          "version": "repo-lines-v1:sha256:193d012a2f8ee2c5251d2cbe7bd5587e378a7d2321f8d3f32b060dc2095ab26b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTk2YmU3M2Q2MmMwMWJlMjkwN2Q1YzRlMjlkMDQ3Yzc2YjJlMDIzNzE4NjEwODcwMzg3ODE0ODhlZGNiOWQ2ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjA1YmY0MTQ2Yzg2MzdlMjczOGI5MDY0MjQ4ZDdhOWRmZTZjMGNhZDRhYzJiOTg2ZmNiOTIxN2FjN2ExOTUwNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGEzOGU2ZTgzZGNhNDJlYTg0ZWIyYTljZmM5NjI1MDliMjEwZWRjZmI4ZGUyMzM4ZjI2MjE4MmM1MGM5MTdkZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzIzYTE2ZWRkMjhjY2Q4ZWVhYjIxZTUxOWVhMTFlZjg0MGQ2OTgzODA2NzEzODRlZjM3YjA1MmVmYjBlZTE0MCJ9"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T12:24:50.371Z"
+    "at": "2026-09-21T14:51:09.424Z"
   }
 }

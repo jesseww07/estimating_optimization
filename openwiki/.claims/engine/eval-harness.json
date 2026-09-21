@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5a4c0c90d2fde95e90a96c435331d3e10f3ea9d4ef0ff14c1806d2f756453295",
+  "pageVersion": "sha256:356ea08d948abdbdb263a0ec554df520d606192e2cbd20f1c75f6b5e7c2b5330",
   "claims": [
     {
       "id": "claim_e3fb9113f3f349f1a653126d01552b26",
@@ -202,11 +202,11 @@
     },
     {
       "id": "claim_1d1b0b68ae924af889d8c200873bdb26",
-      "statement": "As committed, __tests__/eval.baseline.json reports 981 headline cases with top1Rate 13.76%, top3Rate 17.43%, junkRate 39.65%, silentRate 42.92%, and autoWrongRate 0.71%, generated from the snapshot fetched 2026-09-02 per __tests__/eval.context.meta.json.",
+      "statement": "As committed, __tests__/eval.baseline.json reports generatedAt 2026-09-12T00:11:37.427Z with 981 headline cases, top1Rate 14.27%, top3Rate 17.94%, junkRate 39.55%, silentRate 42.51%, and autoWrongRate 0.71%, scored on the snapshot fetched 2026-09-02 per __tests__/eval.context.meta.json.",
       "evidence": [
         {
           "resource": "repo://__tests__/eval.baseline.json#L1-L11",
-          "version": "repo-lines-v1:sha256:be47a60ed1e126659b54fa9734ce7d6ca3b23ea8726605ef47d55b3364e3a6e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyYTVhMjFkYmM2YTZhM2M0ZTE4YTY3MTA4NzM1YTNhNjYwMGZjNzdjZGNhMTE0Mjg1M2MyMDkzZGUxYjY1ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNmJjOTdiZDE3YTE3Y2VlMWVjZmFjZTQ3N2I3Y2I5MmUzYzc5N2FiOTVlMGZkMDM4MDAwN2ViNjU3NThjMDcifQ"
+          "version": "repo-lines-v1:sha256:15b49522994bbedaa576750b40dda59f799cd7145a3cf9d4f185c7fbf30b84d1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyYTVhMjFkYmM2YTZhM2M0ZTE4YTY3MTA4NzM1YTNhNjYwMGZjNzdjZGNhMTE0Mjg1M2MyMDkzZGUxYjY1ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNmJjOTdiZDE3YTE3Y2VlMWVjZmFjZTQ3N2I3Y2I5MmUzYzc5N2FiOTVlMGZkMDM4MDAwN2ViNjU3NThjMDcifQ"
         },
         {
           "resource": "repo://__tests__/eval.context.meta.json#L1-L10",
@@ -227,6 +227,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.1",
-    "at": "2026-09-10T18:40:06.129Z"
+    "at": "2026-09-21T14:51:09.424Z"
   }
 }

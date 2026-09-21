@@ -3,9 +3,6 @@ type: Testing Tool
 title: Accuracy Eval Harness
 description: How the VE engine's substitution accuracy is measured against labeled historical outcomes (leave-one-project-out replay), the metrics it reports, and the CI regression ratchet that enforces it on every PR.
 tags: [eval, accuracy, ci, regression-testing, history]
-verified:
-  - by: openwiki/0.5.1
-    at: 2026-09-10T18:40:06.129Z
 sources:
   - id: openwiki-source-c54b69307d742355408fda56
     resource: repo://__tests__/eval.baseline.json
@@ -29,7 +26,10 @@ sources:
     resource: repo://scripts/eval/fetch-context.ts
   - id: openwiki-source-07fc8184a46e03e11ed21224
     resource: repo://scripts/eval/run.ts
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-21T14:51:09.424Z" }
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-21T14:51:09.424Z
 ---
 
 # Accuracy Eval Harness
@@ -204,10 +204,11 @@ Commands (`package.json`):
 
 The committed `__tests__/eval.baseline.json` is the source of truth for the
 live numbers, not this page — read it and rerun `npm run eval` before citing
-a figure. As committed, it reports **981 headline cases**: top1 13.76%,
-top3 17.43%, junk 39.65%, silent 42.92%, autoWrong 0.71%, generated from a
-snapshot fetched 2026-09-02 (`__tests__/eval.context.meta.json`; 9,491
-history / 2,339 Premier / 1,115 third-party / 113 fan rows).
+a figure. As committed (`generatedAt` 2026-09-12), it reports **981 headline
+cases**: top1 14.27%, top3 17.94%, junk 39.55%, silent 42.51%, autoWrong
+0.71%, scored on the snapshot fetched 2026-09-02
+(`__tests__/eval.context.meta.json`; 9,491 history / 2,339 Premier / 1,115
+third-party / 113 fan rows).
 
 That snapshot followed a base **consolidation** (unifying four parallel
 category systems onto one shared `Product Categories` table, deduplicating
@@ -216,13 +217,17 @@ changed the dataset fingerprint and moved the case count from 971 to 981 —
 per `eval.context.meta.json`, that comparison is explicitly **not**
 like-for-like, and every headline metric held or improved on the larger case
 set (pre-consolidation: top1 13.49%, top3 17.20%, junk 39.65%, silent
-43.15%, autoWrong 0.72%). Both the pre- and post-consolidation figures
-supersede the substantially worse numbers `docs/PHASE4-PRIMER.md` recorded at
-its Phase 4 kickoff (top1 9.01%, top3 11.28%, junk 45.55%, silent 43.17%,
-autoWrong 6.94%, on a since-superseded 966-case baseline) — the gap reflects
-the family/series-matching tier, the learned series-category map, a
-null-category junk gate, and the exact-history confidence/auto-select
-rework (see
+43.15%, autoWrong 0.72%; immediately post-consolidation, per the same meta
+notes: top1 13.76%, top3 17.43%, junk 39.65%, silent 42.92%, autoWrong
+0.71%). The committed baseline has since moved again, to the 2026-09-12
+figures quoted above, on the same 981-case, same-fingerprint snapshot — a
+later `npm run eval:update` that locked in an engine improvement rather than
+a dataset change. All of these figures supersede the substantially worse
+numbers `docs/PHASE4-PRIMER.md` recorded at its Phase 4 kickoff (top1 9.01%,
+top3 11.28%, junk 45.55%, silent 43.17%, autoWrong 6.94%, on a
+since-superseded 966-case baseline) — the gap reflects the family/series-
+matching tier, the learned series-category map, a null-category junk gate,
+and the exact-history confidence/auto-select rework (see
 [Recommendation Engine](recommendation-engine.md#history-matching-tiers)),
 plus, later, the per-fold series-map fix described above that removed a
 measurement leak. Treat every number on this page as point-in-time

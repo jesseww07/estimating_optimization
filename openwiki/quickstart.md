@@ -1,8 +1,11 @@
 ---
 type: Overview
 title: VE Estimator Quickstart
-description: Entry point for the Premier Lighting VE (value engineering) estimating substitution finder — what it does, how the pieces fit together, and where to go next in the wiki.
+description: Entry point for the Premier Lighting VE (value engineering) estimating substitution finder — what it does end to end, how the wiki's subsystem pages fit together, the business-context constraints that shape the codebase, and a task-routing table from change category to source entry points, tests, and validation commands.
 tags: [quickstart, ve-estimator, premier-lighting, next.js, airtable]
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-21T14:51:09.424Z
 sources:
   - id: openwiki-source-cbf8826979b66452c4f7cd0d
     resource: repo://__tests__/categories.test.ts
@@ -14,16 +17,15 @@ sources:
     resource: repo://app/api/identify-batch/route.ts
   - id: openwiki-source-cc76320853086de7e1dc5681
     resource: repo://lib/identify/batch.ts
+  - id: openwiki-source-1d717a656395f6204590aea1
+    resource: repo://lib/identify/catalogNumber.ts
   - id: openwiki-source-ca4b0fd930191158922c5af3
     resource: repo://lib/identify/docxPages.ts
   - id: openwiki-source-f156d2964cca4726335ecbcc
     resource: repo://lib/identify/media.ts
   - id: openwiki-source-23775c3de52f3ab95a13cb8b
     resource: repo://README.md
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T18:40:06.129Z" }
-verified:
-  - by: openwiki/0.5.1
-    at: 2026-09-10T18:40:06.129Z
+generated: { by: "openwiki/0.5.1", at: "2026-09-21T14:51:09.424Z" }
 ---
 
 # VE Estimator — Quickstart
@@ -50,9 +52,13 @@ export draft with Premier catalog substitutions already suggested.
    ~18 lines, covering only the lines the estimator selects — that assigns a
    category to each and lets the engine re-score them.
 5. If a single line still can't be identified, the estimator can trigger
-   **per-line identification** (Claude reads a pasted spec URL, does a web
-   search, or reads an uploaded cut sheet) and the engine re-runs on the
-   identified spec.
+   **per-line identification**: Claude reads a pasted spec URL, does a web
+   search, or reads an uploaded cut sheet. The web search runs against the
+   spec's **base item number**, not the full printed ordering string —
+   trailing finish/option codes are stripped first (`4430802-112` is looked
+   up as `4430802`) because that suffix is a configuration the estimator
+   adjusts, not part of the product's identity — and then the engine
+   re-runs on the identified spec.
 6. The estimator reviews/overrides the pre-checked selections and **exports**
    a corporate-template workbook.
 7. Export **writes accepted substitutions back to History** — the learning

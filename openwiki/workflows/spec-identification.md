@@ -3,9 +3,6 @@ type: workflow
 title: "Spec Identification: Schedule Extraction, Per-Line Lookup, and Batch Categorization"
 description: How the app turns unreadable or under-specified bid lines into scoreable line items — Claude-based schedule extraction on upload, per-line identify (URL/web/cut sheet), and the batched sheet-wide category pass — and how base-item catalog-number extraction feeds all three.
 tags: [identification, claude, schedule-extraction, docx, pdf, web-search, catalog-number, cost-guardrails, recommendation-engine]
-verified:
-  - by: openwiki/0.5.1
-    at: 2026-09-10T12:24:50.371Z
 sources:
   - id: openwiki-source-1d4605aa35fb16ba7dd73a86
     resource: repo://app/api/identify-batch/route.ts
@@ -15,6 +12,12 @@ sources:
     resource: repo://app/api/upload/route.ts
   - id: openwiki-source-41733ca814a15305110ed0e0
     resource: repo://app/prepareUpload.ts
+  - id: openwiki-source-7f0f7893293ac71ef1a3a004
+    resource: repo://lib/engine/baseItem.ts
+  - id: openwiki-source-95d577784a5965fc7bbbfd90
+    resource: repo://lib/engine/matcher.ts
+  - id: openwiki-source-c22a00e69b49f8253cc88b9f
+    resource: repo://lib/engine/recommend.ts
   - id: openwiki-source-cd57e67df49db39d282788a1
     resource: repo://lib/identify/anthropic.ts
   - id: openwiki-source-d46ac60c236057d975bd3989
@@ -39,7 +42,10 @@ sources:
     resource: repo://lib/identify/spec.ts
   - id: openwiki-source-26cd350fc3368022af69d61d
     resource: repo://lib/parse/docx.ts
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-21T14:51:09.424Z" }
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-21T14:51:09.424Z
 ---
 
 # Spec Identification
@@ -141,20 +147,54 @@ into individual candidates, conservatively — a slash embedded in one part
 number (`120/277V`) must not be mistaken for a delimiter between two
 different products.
 
-`planCatalogSearch(spec)` is the plan every identification prompt consumes:
-the printed alternates, the deduped base numbers to actually search, the
-deduped option codes to mention as configuration context (never as search
-terms), and `hasBase` (whether stripping changed anything worth telling the
-model). `lib/identify/claude.ts` uses this plan both to build `lineContext`
-(handed to every mode, so even a document-based identify knows `112` is a
-finish code and won't report the configured string as the product's
-identity) and to build the search queries in `identifyFromWeb`.
+Grammar-based stripping alone is not enough, because not every ordering
+string carries a recognizable option suffix: `OXYGEN 3-515-25- HALO` strips
+nothing under that grammar — `HALO` is not an option code — yet it is plainly
+product `3-515`, named "Halo", in size `25`. `planCatalogSearch` closes that
+gap with a second, structural read *after* the grammar-based one:
+`simplifiedBaseItem` (`lib/engine/baseItem.ts`) looks inside whatever
+`splitCatalogParts` left behind for the shortest leading run of tokens that
+carries identity, treating everything after it as either a configuration
+variant or the product's printed name. The two reads live in separate
+modules — one is grammar (trailing option codes), the other is structure
+(a leading identity run) — but they are deliberately *not* vocabulary-
+isolated from each other: `catalogNumber.ts` imports `isOptionToken` and
+`simplifiedBaseItem` directly from `lib/engine/baseItem.ts` and re-exports
+`isOptionToken` for callers that already imported it from this file, so the
+option-code vocabulary can never drift between the two readers.
 
-This module is **deliberately separate from `lib/engine/matcher.ts`**: the
-engine's series/family matching logic is measured by an eval ratchet and must
-never move because an identification-prompt change shipped. Nothing in
-`lib/engine/matcher.ts` imports from `catalogNumber.ts`, and nothing here is
-imported by the engine — the boundary is structural, not just a comment.
+`planCatalogSearch(spec)` is the plan every identification prompt consumes:
+the printed alternates, the deduped base numbers to actually search (each
+alternate run through `splitCatalogParts` and then `simplifiedBaseItem` in
+sequence), the deduped option codes to mention as configuration context —
+never as search terms, merging both the grammar-stripped suffixes and the
+structural read's variant tokens — `hasBase` (whether stripping changed
+anything worth telling the model), and an optional `productName`: the
+manufacturer's own word for the product ("HALO", "MQUAN CIRCLE") when the
+structural read finds one, offered as a second search lead in its own right
+but never folded into the item number itself. `lib/identify/claude.ts` uses
+this plan both to build `lineContext` (handed to every mode, so even a
+document-based identify knows `112` is a finish code and won't report the
+configured string as the product's identity) and to build the search
+queries — including a name-based query when `productName` is present — in
+`identifyFromWeb`.
+
+`lib/engine/baseItem.ts` is engine code, not identify code — its own header
+says plainly that "because the engine consumes it, every rule here is
+measured by the eval ratchet," and `lib/engine/recommend.ts` uses the same
+`simplifiedBaseItem`/`sameBaseItem` for family matching against History. So
+`catalogNumber.ts`'s isolation from the engine is narrower than "never
+imports engine code": what it never imports, and is never imported by, is
+specifically `lib/engine/matcher.ts` — the module that owns category
+detection and catalog-match scoring. `matcher.ts` imports only from
+`lib/engine/categories.ts` and `lib/engine/series-categories.ts`; nothing in
+it imports from `catalogNumber.ts` or `baseItem.ts`, and nothing in
+`catalogNumber.ts` reaches back into `matcher.ts`'s matching/scoring
+functions. So an identification-prompt change inside `catalogNumber.ts`
+cannot move `matcher.ts`'s eval-ratcheted matching logic, while the
+base-item vocabulary the two subsystems deliberately share already lives
+inside the engine's own eval-ratcheted surface (`baseItem.ts`), not inside
+this module.
 
 ## Flow 1 — Upload-time schedule extraction
 
@@ -513,9 +553,14 @@ flowchart TD
   `spec.ts`, which reads `CATEGORY_GROUPS` from `lib/engine/matcher.ts`.
   Adding an engine category makes it automatically identifiable by every
   path; nothing in this subsystem should hardcode its own label list.
-- **`catalogNumber.ts` must stay import-isolated from `lib/engine/matcher.ts`**
-  so an identification-prompt tweak can never move the eval-ratcheted engine
-  matching logic, and vice versa.
+- **`catalogNumber.ts` must stay import-isolated from `lib/engine/matcher.ts`
+  specifically, not from the engine as a whole.** It deliberately imports
+  `isOptionToken` and `simplifiedBaseItem` from `lib/engine/baseItem.ts` to
+  keep the identify and engine base-item/option vocabulary from drifting
+  apart; what must never happen, in either direction, is an import between
+  `catalogNumber.ts` and `matcher.ts` itself, so an identification-prompt
+  tweak can never move the eval-ratcheted matching/scoring logic that
+  `matcher.ts` owns, and vice versa.
 - **Token usage logging is a guardrail, not incidental.** Every Claude call
   in all three flows logs a single `[identify] source=… stage=… model=…
   input_tokens=… output_tokens=…` line (with `cache_read_input_tokens` when

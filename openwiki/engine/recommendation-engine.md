@@ -3,9 +3,6 @@ type: Engine
 title: Recommendation Engine
 description: How analyzeLineItem scores, ranks, and gates VE substitution recommendations against Premier's catalogs and estimator History, including the Phase 4 family/series matching, the null-category junk gate, the learned series→category map, the 3rd-party earn-your-slot rule, and the exact-history confidence/auto-select-eligibility rework.
 tags: [engine, matching, ranking, history, learning-loop]
-verified:
-  - by: openwiki/0.5.1
-    at: 2026-09-10T12:24:50.371Z
 sources:
   - id: openwiki-source-a566094572771b4f57097809
     resource: repo://__tests__/tuning.test.ts
@@ -21,7 +18,10 @@ sources:
     resource: repo://lib/engine/series-learning.ts
   - id: openwiki-source-6abb52803bfff10f0ab94465
     resource: repo://scripts/build-series-map.ts
-generated: { by: "openwiki/0.5.1", at: "2026-09-10T12:24:50.371Z" }
+generated: { by: "openwiki/0.5.1", at: "2026-09-21T14:51:09.424Z" }
+verified:
+  - by: openwiki/0.5.1
+    at: 2026-09-21T14:51:09.424Z
 ---
 
 # Recommendation Engine
@@ -259,14 +259,16 @@ resolves to both. A row's Original Spec's first normalized token
 tokens ("led", "wall", "recessed", etc. — not product identity) and against
 prose-looking specs (`looksLikeProse`). A series is "known" when it has at
 least `MIN_SUPPORT` (**2**) linked rows and at least `MIN_AGREEMENT` (**80%**)
-of them agree on one of the 12 fixture-detector labels (`LABEL_PRIORITY`;
+of them agree on one of the 15 fixture-detector labels (`LABEL_PRIORITY`;
 "LED Tape" and "Light Bulb" are deliberately excluded — those lines are
 already routed by `isLedTape`/`isBulbLampLine` upstream, and learning them
 here would let the fixture path hand out a category whose gate admits only
 tape or only lamps). Learning from **both** catalogs matters materially: the
-committed production map is learned from 663 usable linked rows (487
-Premier-linked, 176 3rd-party-linked) — Premier-only learning silently
-discarded the ~40% of History rows whose ground truth is a resold item.
+committed production map is learned from 773 usable linked rows (495
+Premier-linked, 278 3rd-party-linked), yielding 150 learned series — 109 of
+which rest on a single project (real knowledge for the next bid, invisible
+to the eval by construction) — Premier-only learning silently discarded a
+large share of History rows whose ground truth is a resold item.
 
 Regenerate the map after every `npm run eval:fetch` snapshot refresh, and
 review the diff like any other code change — the
